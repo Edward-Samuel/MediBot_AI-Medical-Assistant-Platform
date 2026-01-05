@@ -1,0 +1,110 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  line-height: 1.6;
+  color: #1f2937;
+  background-color: #f9fafb;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.dark body {
+  color: #f3f4f6;
+  background-color: #111827;
+}
+
+.btn-primary {
+  @apply bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+}
+
+.btn-secondary {
+  @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+}
+
+.dark .btn-secondary {
+  @apply bg-gray-700 hover:bg-gray-600 text-gray-200;
+}
+
+.btn-medical {
+  @apply bg-medical-600 hover:bg-medical-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+}
+
+.input-field {
+  @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white text-gray-900;
+}
+
+.dark .input-field {
+  @apply border-gray-600 bg-gray-800 text-gray-100 focus:ring-primary-400;
+}
+
+.input-field:disabled {
+  @apply bg-gray-50 text-gray-500;
+}
+
+.dark .input-field:disabled {
+  @apply bg-gray-900 text-gray-400;
+}
+
+.card {
+  @apply bg-white rounded-lg shadow-md p-6 transition-colors duration-200;
+}
+
+.dark .card {
+  @apply bg-gray-800 shadow-gray-900/20;
+}
+
+.text-gradient {
+  @apply bg-gradient-to-r from-primary-600 to-medical-600 bg-clip-text text-transparent;
+}
+
+/* Loading spinner */
+.spinner {
+  @apply inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin;
+}
+
+/* Custom scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-track {
+  background: #374151;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #6b7280;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Theme transition */
+* {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
+}
