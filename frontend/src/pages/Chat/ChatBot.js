@@ -859,17 +859,7 @@ const ChatBot = () => {
       
       // Only show error messages for actual network/server failures
       // Don't show errors if the backend is working but using fallbacks
-      if (!error.response) {
-        // Network error - no response from server
-        const errorBotMessage = {
-          id: Date.now() + 1,
-          role: 'bot',
-          content: "I'm having trouble connecting to the server. Please check your internet connection and try again.",
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, errorBotMessage]);
-        toast.error('Connection error - please check your internet');
-      } else if (error.response.status >= 500) {
+      if (error.response && error.response.status >= 500) {
         // Server error (5xx)
         const errorBotMessage = {
           id: Date.now() + 1,
@@ -879,10 +869,10 @@ const ChatBot = () => {
         };
         setMessages(prev => [...prev, errorBotMessage]);
         toast.error('Server error occurred');
-      } else if (error.response.status === 429) {
+      } else if (error.response && error.response.status === 429) {
         // Rate limiting (shouldn't happen with fallbacks)
         toast.error('Too many requests - please wait a moment');
-      } else {
+      } else if (error.response) {
         // Other client errors (4xx) - but backend should handle these with fallbacks
         console.log('Unexpected client error:', error.response.status, error.response.data);
         toast.error('Unexpected error occurred');

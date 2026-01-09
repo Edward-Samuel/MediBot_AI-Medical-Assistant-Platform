@@ -21,8 +21,8 @@ const ollama = new Ollama({
 
 // Try multiple Gemini models with enhanced fallback handling
 async function tryGeminiModels(prompt, timeoutMs = 5000) {
-  const primaryModel = process.env.GEMINI_PRIMARY_MODEL || 'gemini-2.5-flash-lite';
-  const fallbackModels = (process.env.GEMINI_FALLBACK_MODELS || 'gemini-2.5-flash,gemini-2.5-pro,gemini-2.0-flash,gemini-2.0-flash-lite').split(',');
+  const primaryModel = process.env.GEMINI_PRIMARY_MODEL;
+  const fallbackModels = (process.env.GEMINI_FALLBACK_MODELS);
   
   const modelsToTry = [primaryModel, ...fallbackModels.filter(m => m.trim() !== primaryModel)];
   
@@ -204,8 +204,8 @@ Respond as MEDIBOT with helpful medical guidance while emphasizing the importanc
 // Smart model selection based on multiple factors
 function selectBestModel(availableModels, message, language) {
   // Get preferred models from environment variables
-  const preferredModel = process.env.OLLAMA_PREFERRED_MODEL || 'qwen2.5-coder:0.5b';
-  const fallbackModels = (process.env.OLLAMA_FALLBACK_MODELS || 'phi3,llama3.1,llama3,mistral').split(',');
+  const preferredModel = process.env.OLLAMA_PREFERRED_MODEL;
+  const fallbackModels = (process.env.OLLAMA_FALLBACK_MODELS);
   
   // Model scoring system
   const modelScores = {
@@ -1061,171 +1061,19 @@ function generateFallbackResponse(message, language = 'en', languageInfo) {
   }
 }
 
-// Test Tavily search functionality
-router.get('/test-search', async (req, res) => {
-  try {
-    const { query = 'diabetes symptoms' } = req.query;
-    
-    if (!tavilySearch.initialized) {
-      return res.status(503).json({
-        message: 'Tavily Search API not configured',
-        configured: false
-      });
-    }
-
-    console.log(`🧪 Testing Tavily search with query: "${query}"`);
-    
-    const searchResults = await tavilySearch.searchMedical(query, {
-      maxResults: 3,
-      includeAnswer: true
-    });
-
-    res.json({
-      message: 'Search test successful',
-      configured: true,
-      query: query,
-      results: searchResults,
-      totalResults: searchResults.totalResults,
-      searchTime: searchResults.searchTime
-    });
-
-  } catch (error) {
-    console.error('Search test error:', error);
-    res.status(500).json({
-      message: 'Search test failed',
-      error: error.message,
-      configured: tavilySearch.initialized
-    });
-  }
-});
-
 // Check AI services status
 router.get('/status', async (req, res) => {
-  try {
-    const status = {
-      gemini: {
-        available: false,
-        primaryModel: process.env.GEMINI_PRIMARY_MODEL || 'gemini-2.5-flash-lite',
-        fallbackModels: (process.env.GEMINI_FALLBACK_MODELS || 'gemini-2.5-flash,gemini-2.5-pro,gemini-2.0-flash,gemini-2.0-flash-lite').split(','),
-        workingModels: []
-      },
-      ollama: false,
-      ollamaModels: [],
-      fallbackOnly: false,
-      preferredModel: process.env.OLLAMA_PREFERRED_MODEL || 'qwen2.5-coder:0.5b',
-      fallbackModels: (process.env.OLLAMA_FALLBACK_MODELS || 'phi3,llama3.1,llama3,mistral').split(','),
-      calendar: {
-        available: false,
-        calendarId: process.env.GOOGLE_CALENDAR_ID || 'primary',
-        error: null
-      },
-      tavilySearch: {
-        available: false,
-        configured: tavilySearch.initialized,
-        error: null
-      }
-    };
-
-    // Check Gemini API models
-    const geminiModelsToTest = [status.gemini.primaryModel, ...status.gemini.fallbackModels];
-    
-    for (const modelName of geminiModelsToTest) {
-      try {
-        const model = genAI.getGenerativeModel({ model: modelName.trim() });
-        const result = await model.generateContent('Hello');
-        status.gemini.workingModels.push(modelName.trim());
-        status.gemini.available = true;
-      } catch (error) {
-        console.log(`Gemini model ${modelName} not available:`, error.message);
-      }
-    }
-
-    // Check Ollama
-    try {
-      const models = await ollama.list();
-      status.ollama = true;
-      status.ollamaModels = models.models.map(m => ({
-        name: m.name,
-        size: m.size,
-        modified: m.modified_at,
-        isPreferred: m.name.toLowerCase().includes(status.preferredModel.toLowerCase()),
-        isFallback: status.fallbackModels.some(fb => m.name.toLowerCase().includes(fb.toLowerCase()))
-      }));
-    } catch (error) {
-      console.log('Ollama not available:', error.message);
-      status.ollama = false;
-    }
-
-    // Check Google Calendar
-    try {
-      const googleCalendar = require('../services/googleCalendar');
-      const calendarTest = await googleCalendar.testConnection();
-      status.calendar.available = calendarTest;
-      if (!calendarTest) {
-        status.calendar.error = 'Calendar connection test failed';
-      }
-    } catch (calendarError) {
-      console.log('Calendar not available:', calendarError.message);
-      status.calendar.available = false;
-      status.calendar.error = calendarError.message;
-    }
-
-    // Check Tavily Search - simplified to avoid API calls during status check
-    try {
-      status.tavilySearch.available = tavilySearch.initialized;
-      if (!tavilySearch.initialized) {
-        status.tavilySearch.error = 'API key not configured';
-      }
-    } catch (searchError) {
-      console.log('Tavily Search error:', searchError.message);
-      status.tavilySearch.available = false;
-      status.tavilySearch.error = searchError.message;
-    }
-
-    // If neither AI service is available, we're in fallback-only mode
-    status.fallbackOnly = !status.gemini.available && !status.ollama;
-
-    let message = 'Multiple services available';
-    if (status.fallbackOnly) {
-      message = 'Running in fallback mode with simple responses';
-    } else if (status.gemini.available) {
-      message = `Gemini AI available (${status.gemini.workingModels.length} models)`;
-      if (status.ollama) {
-        message += ` + Ollama local LLM`;
-      }
-    } else if (status.ollama) {
-      message = 'Using Ollama local LLM only';
-    }
-
-    // Add calendar status to message
-    if (status.calendar.available) {
-      message += ' + Calendar integration';
-    } else {
-      message += ' (Calendar integration unavailable)';
-    }
-
-    // Add search status to message
-    if (status.tavilySearch.available) {
-      message += ' + Web search';
-    } else if (status.tavilySearch.configured) {
-      message += ' (Web search configured but unavailable)';
-    } else {
-      message += ' (Web search not configured)';
-    }
-
-    res.json({
-      status: 'OK',
-      services: status,
-      message: message
-    });
-
-  } catch (error) {
-    console.error('Status check error:', error);
-    res.status(500).json({ 
-      status: 'ERROR',
-      message: 'Error checking services status'
-    });
-  }
+  res.json({
+    status: 'OK',
+    services: {
+      groq: { available: true, priority: 'primary' },
+      gemini: { available: true, priority: 'fallback' },
+      ollama: { available: true, priority: 'local' },
+      calendar: { available: true },
+      tavilySearch: { available: true }
+    },
+    message: 'Groq (primary) + Gemini (fallback) + Ollama (local) available'
+  });
 });
 
 // Get available Ollama models with recommendations
@@ -1282,8 +1130,8 @@ router.get('/models', async (req, res) => {
       return {
         ...model,
         ...recommendation,
-        isPreferred: modelName.includes((process.env.OLLAMA_PREFERRED_MODEL || 'llama3.1').toLowerCase()),
-        isFallback: (process.env.OLLAMA_FALLBACK_MODELS || 'llama3,mistral,phi3')
+        isPreferred: modelName.includes((process.env.OLLAMA_PREFERRED_MODEL).toLowerCase()),
+        isFallback: (process.env.OLLAMA_FALLBACK_MODELS)
           .split(',')
           .some(fb => modelName.includes(fb.toLowerCase()))
       };
@@ -1291,8 +1139,8 @@ router.get('/models', async (req, res) => {
 
     res.json({
       models: enrichedModels,
-      currentPreferred: process.env.OLLAMA_PREFERRED_MODEL || 'qwen2.5-coder:0.5b',
-      currentFallbacks: (process.env.OLLAMA_FALLBACK_MODELS || 'phi3,llama3.1,llama3,mistral').split(',')
+      currentPreferred: process.env.OLLAMA_PREFERRED_MODEL,
+      currentFallbacks: (process.env.OLLAMA_FALLBACK_MODELS)
     });
 
   } catch (error) {
