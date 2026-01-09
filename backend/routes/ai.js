@@ -4,11 +4,9 @@ const { Ollama } = require('ollama');
 const Doctor = require('../models/Doctor');
 const User = require('../models/User');
 const ChatHistory = require('../models/ChatHistory');
-const FAQ = require('../models/FAQ');
 const auth = require('../middleware/auth');
 const { v4: uuidv4 } = require('uuid');
 const tavilySearch = require('../services/tavilySearch');
-const faqService = require('../services/faqService');
 // const appointmentAgent = require('../services/appointmentAgent');
 
 const router = express.Router();
@@ -735,21 +733,6 @@ router.post('/chat', async (req, res) => {
       }
     }
 
-    // Check for FAQ-related queries and get relevant FAQ context
-    let faqContext = null;
-    if (!botResponse && faqService.isFAQQuery(message)) {
-      try {
-        console.log('📚 FAQ search mode detected');
-        faqContext = await faqService.getFAQContext(message);
-        if (faqContext && faqContext.count > 0) {
-          console.log(`✅ Found ${faqContext.count} relevant FAQs`);
-        }
-      } catch (faqError) {
-        console.error('⚠️  FAQ search failed:', faqError.message);
-        // Continue with normal AI chat if FAQ search fails
-      }
-    }
-
     // Check for web search intent
     let searchResults = null;
     if (!botResponse && tavilySearch.isWebSearchQuery(message)) {
@@ -821,12 +804,6 @@ router.post('/chat', async (req, res) => {
         searchContext += `Use this current medical information to enhance your response, but always emphasize consulting healthcare professionals.\n`;
       }
 
-      // Build FAQ context if available
-      let faqContextText = '';
-      if (faqContext && faqContext.context) {
-        faqContextText = `\n\nRELEVANT FREQUENTLY ASKED QUESTIONS:\n${faqContext.context}\n\nUse the above FAQ information to provide accurate and consistent answers. If the user's question is directly answered in the FAQs, prioritize that information.\n`;
-      }
-
       const prompt = `
       You are MEDIBOT, a helpful medical AI assistant. You provide general health information and guidance but always remind users to consult healthcare professionals for proper diagnosis and treatment.
 
@@ -846,7 +823,6 @@ router.post('/chat', async (req, res) => {
       ${searchResults ? '- When using web search information, cite the sources and emphasize they are for educational purposes only' : ''}
 
       ${searchContext}
-      ${faqContextText}
 
       Previous conversation:
       ${conversationContext}
@@ -1084,39 +1060,6 @@ function generateFallbackResponse(message, language = 'en', languageInfo) {
       : "I apologize for the technical difficulty. Please consult a healthcare professional for your medical concerns.";
   }
 }
-
-// Medical FAQ
-router.get('/faq', async (req, res) => {
-  try {
-    const faqs = [
-      {
-        question: "How do I book an appointment?",
-        answer: "You can book an appointment by selecting a doctor from our recommendations, choosing an available time slot, and confirming your booking. You'll receive a confirmation email with appointment details."
-      },
-      {
-        question: "What should I do in case of emergency?",
-        answer: "For medical emergencies, call emergency services immediately (911 in the US). MEDIBOT is for non-emergency consultations and health guidance only."
-      },
-      {
-        question: "How accurate are the doctor recommendations?",
-        answer: "Our AI analyzes your symptoms using advanced medical knowledge to suggest appropriate specialists. However, this is guidance only - always consult with healthcare professionals for proper diagnosis."
-      },
-      {
-        question: "Is my medical information secure?",
-        answer: "Yes, we follow strict HIPAA compliance and use encryption to protect your medical data. Your information is never shared without your consent."
-      },
-      {
-        question: "Can I cancel or reschedule appointments?",
-        answer: "Yes, you can cancel or reschedule appointments up to 24 hours before the scheduled time through your patient dashboard."
-      }
-    ];
-
-    res.json({ faqs });
-  } catch (error) {
-    console.error('FAQ error:', error);
-    res.status(500).json({ message: 'Error fetching FAQs' });
-  }
-});
 
 // Test Tavily search functionality
 router.get('/test-search', async (req, res) => {

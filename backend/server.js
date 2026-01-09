@@ -13,7 +13,6 @@ const aiRoutes = require('./routes/ai');
 const calendarRoutes = require('./routes/calendar');
 const ttsRoutes = require('./routes/tts');
 const chatHistoryRoutes = require('./routes/chatHistory');
-const faqRoutes = require('./routes/faq');
 
 const app = express();
 
@@ -53,7 +52,6 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/calendar', calendarRoutes);
 app.use('/api/tts', ttsRoutes);
 app.use('/api/chat-history', chatHistoryRoutes);
-app.use('/api/faq', faqRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

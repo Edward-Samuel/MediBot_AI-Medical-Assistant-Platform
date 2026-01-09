@@ -4,7 +4,7 @@ A comprehensive medical assistant platform built with Gemini API for reasoning, 
 
 ## Features
 
-- **Patient Portal**: Appointment booking, consultation, FAQs
+- **Patient Portal**: Appointment booking, consultation
 - **Doctor Dashboard**: Schedule management, patient records
 - **AI Assistant**: Intelligent doctor recommendations based on symptoms
 - **RAG System**: Medical knowledge retrieval from verified sources
