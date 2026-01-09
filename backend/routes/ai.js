@@ -1227,17 +1227,14 @@ router.get('/status', async (req, res) => {
       status.calendar.error = calendarError.message;
     }
 
-    // Check Tavily Search
+    // Check Tavily Search - simplified to avoid API calls during status check
     try {
-      const searchTest = await tavilySearch.testSearch();
-      status.tavilySearch.available = searchTest;
-      if (!searchTest && tavilySearch.initialized) {
-        status.tavilySearch.error = 'Search test failed';
-      } else if (!tavilySearch.initialized) {
+      status.tavilySearch.available = tavilySearch.initialized;
+      if (!tavilySearch.initialized) {
         status.tavilySearch.error = 'API key not configured';
       }
     } catch (searchError) {
-      console.log('Tavily Search not available:', searchError.message);
+      console.log('Tavily Search error:', searchError.message);
       status.tavilySearch.available = false;
       status.tavilySearch.error = searchError.message;
     }

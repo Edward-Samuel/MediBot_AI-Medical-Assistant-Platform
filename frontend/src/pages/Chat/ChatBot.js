@@ -48,7 +48,7 @@ const ChatBot = () => {
   const [webSearchMode, setWebSearchMode] = useState(false);
   const [webSearchStatus, setWebSearchStatus] = useState({ 
     available: null, // null = not checked yet, true/false = checked
-    configured: false,
+    configured: null, // null = not checked yet, true/false = checked
     loading: false,
     error: null
   });
@@ -607,13 +607,11 @@ const ChatBot = () => {
       console.log('Current status:', webSearchStatus);
       console.log('Status checked:', webSearchStatusChecked);
       
-      // Clear cache and recheck
-      localStorage.removeItem('webSearchStatus');
-      localStorage.removeItem('webSearchStatusTime');
+      // Reset and recheck
       setWebSearchStatusChecked(false);
-      setWebSearchStatus({ available: null, configured: false, loading: false, error: null });
+      setWebSearchStatus({ available: null, configured: null, loading: false, error: null });
       
-      console.log('Cache cleared, forcing fresh check...');
+      console.log('Forcing fresh check...');
       await checkWebSearchStatus(true); // Force check
     };
     
@@ -642,94 +640,72 @@ const ChatBot = () => {
     };
   }, [currentLanguage]);
 
-  // Lazy load web search status (only when needed)
+  // Simplified web search status check with enhanced debugging
   const checkWebSearchStatus = async (forceCheck = false) => {
     if (!forceCheck && webSearchStatusChecked) return; // Already checked
     
     setWebSearchStatus(prev => ({ ...prev, loading: true }));
     setWebSearchStatusChecked(true);
 
-    const now = Date.now();
-
     try {
-      // Check cache first (skip cache if forcing check)
-      if (!forceCheck) {
-        const cachedStatus = localStorage.getItem('webSearchStatus');
-        const cacheTime = localStorage.getItem('webSearchStatusTime');
-        
-        // Use cache if less than 5 minutes old
-        if (cachedStatus && cacheTime && (now - parseInt(cacheTime)) < 5 * 60 * 1000) {
-          const cached = JSON.parse(cachedStatus);
-          console.log('Using cached web search status:', cached);
-          setWebSearchStatus({ ...cached, loading: false });
-          return;
-        }
-      }
-
-      console.log('Fetching fresh web search status...');
+      console.log('🔍 Checking web search status...');
+      console.log('🔍 Making request to /api/ai/status');
       
-      // Fetch with timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // Increased to 5 seconds
-
       const response = await axios.get('/api/ai/status', {
-        signal: controller.signal,
         timeout: 5000
       });
-      
-      clearTimeout(timeoutId);
 
-      console.log('Backend response:', response.data);
+      console.log('🔍 Backend response received:', response.data);
+      console.log('🔍 Services object:', response.data.services);
+      console.log('🔍 TavilySearch object:', response.data.services?.tavilySearch);
 
       if (response.data.services?.tavilySearch) {
+        const tavilyData = response.data.services.tavilySearch;
         const status = {
-          available: response.data.services.tavilySearch.available,
-          configured: response.data.services.tavilySearch.configured,
+          available: tavilyData.available,
+          configured: tavilyData.configured,
           loading: false,
           error: null
         };
         
-        console.log('Setting web search status:', status);
+        console.log('✅ Setting web search status:', status);
         setWebSearchStatus(status);
-        
-        // Cache the result
-        localStorage.setItem('webSearchStatus', JSON.stringify(status));
-        localStorage.setItem('webSearchStatusTime', now.toString());
       } else {
-        console.log('No tavilySearch in response');
+        console.log('❌ No tavilySearch in response');
         const errorStatus = { 
           available: false, 
           configured: false, 
           loading: false,
           error: 'service_not_found'
         };
+        console.log('❌ Setting error status:', errorStatus);
         setWebSearchStatus(errorStatus);
       }
     } catch (error) {
-      console.error('Error checking web search status:', error);
+      console.error('❌ Error checking web search status:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        code: error.code,
+        response: error.response?.data
+      });
       const errorStatus = { 
         available: false, 
         configured: false, 
         loading: false,
         error: error.name === 'AbortError' ? 'timeout' : 'network'
       };
+      console.log('❌ Setting network error status:', errorStatus);
       setWebSearchStatus(errorStatus);
-      
-      // Cache error state for 1 minute to avoid repeated failed requests
-      localStorage.setItem('webSearchStatus', JSON.stringify(errorStatus));
-      localStorage.setItem('webSearchStatusTime', now.toString());
     }
   };
 
-  // Handle web search toggle with lazy loading
+  // Handle web search toggle - simplified
   const handleWebSearchToggle = async () => {
-    // If there was an error, allow retry by clearing cache and forcing check
+    // If there was an error, retry the check
     if (webSearchStatus.error) {
-      console.log('Clearing web search cache due to error');
-      localStorage.removeItem('webSearchStatus');
-      localStorage.removeItem('webSearchStatusTime');
+      console.log('Retrying web search status check due to error');
       setWebSearchStatusChecked(false);
-      setWebSearchStatus({ available: null, configured: false, loading: false, error: null });
+      setWebSearchStatus({ available: null, configured: null, loading: false, error: null });
       await checkWebSearchStatus(true); // Force check
       return;
     }
@@ -755,7 +731,7 @@ const ChatBot = () => {
 
   // Auto-check web search status on component mount
   useEffect(() => {
-    // Auto-check web search status immediately and after a delay
+    // Auto-check web search status immediately
     const checkStatus = async () => {
       console.log('Auto-checking web search status on mount...');
       await checkWebSearchStatus(false);
@@ -763,16 +739,6 @@ const ChatBot = () => {
     
     // Check immediately
     checkStatus();
-    
-    // Also check after a delay if not already checked
-    const timer = setTimeout(() => {
-      if (!webSearchStatusChecked || webSearchStatus.available === null) {
-        console.log('Retrying web search status check...');
-        checkWebSearchStatus(true); // Force check
-      }
-    }, 3000);
-
-    return () => clearTimeout(timer);
   }, []);
 
   // Clean up speech synthesis on component unmount
@@ -1197,6 +1163,8 @@ const ChatBot = () => {
                       ? 'Connection timeout - click to retry'
                       : webSearchStatus.configured === false
                       ? 'Web search not configured'
+                      : webSearchStatus.configured === null
+                      ? 'Checking web search configuration...'
                       : 'Web search temporarily unavailable'
                   }
                 >
@@ -1224,6 +1192,8 @@ const ChatBot = () => {
                     <span className="text-red-600 dark:text-red-400">Connection timeout - click to retry</span>
                   ) : webSearchStatus.configured === false ? (
                     <span className="text-red-600 dark:text-red-400">Web search not configured</span>
+                  ) : webSearchStatus.configured === null ? (
+                    <span className="text-gray-500 dark:text-gray-400">Checking configuration...</span>
                   ) : (
                     <span className="text-orange-600 dark:text-orange-400">Web search temporarily unavailable</span>
                   )}

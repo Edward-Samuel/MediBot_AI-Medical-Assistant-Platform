@@ -6,7 +6,9 @@ class TavilySearchService {
     this.baseUrl = 'https://api.tavily.com/search';
     this.initialized = !!this.apiKey;
     
-    if (!this.initialized) {
+    if (this.initialized) {
+      console.log('✅ Tavily Search API initialized - web search available');
+    } else {
       console.log('⚠️  Tavily Search API key not found - web search will be disabled');
     }
   }
@@ -221,7 +223,7 @@ class TavilySearchService {
     return response;
   }
 
-  // Test the search functionality
+  // Test the search functionality - simplified version
   async testSearch() {
     try {
       if (!this.initialized) {
@@ -229,9 +231,8 @@ class TavilySearchService {
         return false;
       }
 
-      const testResult = await this.searchMedical('diabetes symptoms', { maxResults: 2 });
-      console.log('✅ Tavily Search test successful');
-      console.log(`   Found ${testResult.totalResults} results`);
+      // Just return true if initialized - don't make actual API call during status check
+      console.log('✅ Tavily Search configured and ready');
       return true;
     } catch (error) {
       console.error('❌ Tavily Search test failed:', error.message);
