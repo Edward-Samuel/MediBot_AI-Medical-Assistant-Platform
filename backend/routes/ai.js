@@ -1,316 +1,39 @@
 const express = require('express');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
-const { Ollama } = require('ollama');
 const Doctor = require('../models/Doctor');
 const User = require('../models/User');
 const ChatHistory = require('../models/ChatHistory');
 const auth = require('../middleware/auth');
 const { v4: uuidv4 } = require('uuid');
 const tavilySearch = require('../services/tavilySearch');
+const openRouterService = require('../services/openRouterService');
 // const appointmentAgent = require('../services/appointmentAgent');
 
 const router = express.Router();
 
-// Initialize Gemini AI
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-// Initialize Ollama (local LLM)
-const ollama = new Ollama({ 
-  host: process.env.OLLAMA_HOST || 'http://localhost:11434' 
-});
-
-// Try multiple Gemini models with enhanced fallback handling
-async function tryGeminiModels(prompt, timeoutMs = 5000) {
-  const primaryModel = process.env.GEMINI_PRIMARY_MODEL;
-  const fallbackModels = (process.env.GEMINI_FALLBACK_MODELS);
-  
-  const modelsToTry = [primaryModel, ...fallbackModels.filter(m => m.trim() !== primaryModel)];
-  
-  let quotaExceeded = false;
-  let lastQuotaError = null;
-  
-  for (const modelName of modelsToTry) {
-    try {
-      console.log(`Trying Gemini model: ${modelName.trim()}`);
-      
-      const model = genAI.getGenerativeModel({ model: modelName.trim() });
-      
-      // Create promise with timeout
-      const geminiPromise = model.generateContent(prompt);
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error(`${modelName} timeout after ${timeoutMs}ms`)), timeoutMs);
-      });
-
-      // Race between API call and timeout
-      const result = await Promise.race([geminiPromise, timeoutPromise]);
-      const response = await result.response;
-      const text = response.text();
-      
-      console.log(`✅ Successfully used Gemini model: ${modelName.trim()}`);
-      return { text, model: modelName.trim() };
-      
-    } catch (error) {
-      const errorMessage = error.message || '';
-      const isQuotaError = errorMessage.includes('quota') || 
-                          errorMessage.includes('429') || 
-                          errorMessage.includes('Too Many Requests') ||
-                          errorMessage.includes('rate limit');
-      
-      if (isQuotaError) {
-        quotaExceeded = true;
-        lastQuotaError = error;
-        console.log(`📊 Gemini model ${modelName.trim()} quota exceeded`);
-        
-        // Extract retry delay if available
-        const retryMatch = errorMessage.match(/retry in (\d+(?:\.\d+)?)s/);
-        if (retryMatch) {
-          const retryDelay = parseFloat(retryMatch[1]);
-          console.log(`⏱️  Google suggests retry in ${retryDelay}s`);
-        }
-        
-        // If all models are likely to have the same quota issue, skip trying others
-        if (modelName === modelsToTry[0]) {
-          console.log(`⚠️  Primary model quota exceeded, other Gemini models likely affected too`);
-          // Still try one more model to be sure, but expect it to fail
-        }
-      } else {
-        console.log(`❌ Gemini model ${modelName.trim()} failed (non-quota): ${errorMessage}`);
-      }
-      
-      // If this is the last model, throw appropriate error
-      if (modelName === modelsToTry[modelsToTry.length - 1]) {
-        if (quotaExceeded) {
-          throw new Error(`All Gemini models quota exceeded. ${lastQuotaError?.message || 'Please try again later.'}`);
-        } else {
-          throw new Error(`All Gemini models failed. Last error: ${errorMessage}`);
-        }
-      }
-      
-      // For quota errors, add a small delay before trying next model
-      if (isQuotaError) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-      
-      // Continue to next model
-      continue;
-    }
-  }
-}
-
-// Check Ollama availability and get available models
-async function checkOllamaAvailability() {
+// Generate response using OpenRouter
+async function generateAIResponse(message, conversationHistory, language, languageInfo) {
   try {
-    const models = await ollama.list();
-    console.log('Ollama available with models:', models.models.map(m => m.name));
-    return models.models.length > 0 ? models.models : null;
-  } catch (error) {
-    console.log('Ollama not available:', error.message);
-    return null;
-  }
-}
+    console.log('🤖 Using OpenRouter for AI response...');
 
-// Generate response using Ollama
-async function generateOllamaResponse(message, conversationHistory, language, languageInfo) {
-  try {
-    const availableModels = await checkOllamaAvailability();
-    if (!availableModels || availableModels.length === 0) {
-      throw new Error('No Ollama models available');
-    }
-
-    const selectedModel = selectBestModel(availableModels, message, language);
-    console.log(`Using Ollama model: ${selectedModel.name} (${selectedModel.reason})`);
-
-    // Build conversation context
-    let conversationContext = '';
-    if (conversationHistory && conversationHistory.length > 0) {
-      conversationContext = conversationHistory.slice(-3).map(msg => 
-        `${msg.role}: ${msg.content}`
-      ).join('\n');
-    }
-
-    // Language-specific instructions
-    let languageInstructions = '';
-    if (language !== 'en') {
-      languageInstructions = `Please respond in ${languageInfo?.name || language}. Use natural, clear language appropriate for medical communication in this language.`;
-      
-      if (language === 'ta') {
-        languageInstructions += `
-        - Use respectful Tamil medical terminology
-        - Include common Tamil phrases for medical conditions when appropriate
-        - Use simple Tamil words that are easily understood
-        - For body parts use: தலை (head), கண் (eye), காது (ear), மார்பு (chest), வயிறு (stomach), கை (hand), கால் (leg)
-        - For symptoms use: வலி (pain), காய்ச்சல் (fever), இருமல் (cough), தலைவலி (headache)`;
+    const response = await openRouterService.generateResponse(
+      message,
+      conversationHistory,
+      {
+        language,
+        languageInfo,
+        enableReasoning: true,
+        maxTokens: 800,
+        temperature: 0.7
       }
-    }
+    );
 
-    const prompt = `You are MEDIBOT, a helpful medical AI assistant. You provide general health information and guidance but always remind users to consult healthcare professionals for proper diagnosis and treatment.
-
-${languageInstructions}
-
-IMPORTANT GUIDELINES:
-- Provide helpful, accurate medical information in a clear, easy-to-read format
-- Use simple formatting with **bold** for important points
-- Always recommend consulting a healthcare professional for diagnosis
-- Never provide specific medical diagnoses
-- Be empathetic and supportive
-- Ask clarifying questions when needed
-- Suggest when to seek immediate medical attention
-- Keep responses concise and well-structured
-- Use bullet points or numbered lists when appropriate
-- Respond in the user's language (${languageInfo?.name || 'English'})
-
-Previous conversation:
-${conversationContext}
-
-User: ${message}
-
-Respond as MEDIBOT with helpful medical guidance while emphasizing the importance of professional medical consultation. Keep the response under 300 words and format it clearly.`;
-
-    // Create Ollama request with timeout (default 15 seconds)
-    const ollamaTimeoutMs = parseInt(process.env.OLLAMA_TIMEOUT_MS) || 15000;
-    const ollamaPromise = ollama.chat({
-      model: selectedModel.name,
-      messages: [
-        {
-          role: 'system',
-          content: 'You are MEDIBOT, a helpful medical AI assistant. Provide general health information and always recommend consulting healthcare professionals.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      options: {
-        temperature: 0.7,
-        top_p: 0.9,
-        max_tokens: 500
-      }
-    });
-
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error(`Ollama timeout after ${ollamaTimeoutMs}ms`)), ollamaTimeoutMs);
-    });
-
-    // Race between Ollama call and timeout
-    const response = await Promise.race([ollamaPromise, timeoutPromise]);
-    return response.message.content;
+    console.log(`✅ Successfully used OpenRouter model: ${response.model}`);
+    return response.content;
 
   } catch (error) {
-    console.error('Ollama error:', error);
+    console.error('OpenRouter error:', error);
     throw error;
   }
-}
-
-// Smart model selection based on multiple factors
-function selectBestModel(availableModels, message, language) {
-  // Get preferred models from environment variables
-  const preferredModel = process.env.OLLAMA_PREFERRED_MODEL;
-  const fallbackModels = (process.env.OLLAMA_FALLBACK_MODELS);
-  
-  // Model scoring system
-  const modelScores = {
-    // Qwen models (excellent for medical queries, fast and efficient)
-    'qwen2.5-coder:0.5b': { score: 105, medical: 100, multilingual: 95, speed: 95 },
-    'qwen2.5-coder': { score: 100, medical: 95, multilingual: 90, speed: 85 },
-    'qwen2.5': { score: 95, medical: 90, multilingual: 85, speed: 80 },
-    'qwen': { score: 90, medical: 85, multilingual: 80, speed: 75 },
-    
-    // Large, high-quality models (best for complex medical queries)
-    'llama3.1': { score: 100, medical: 95, multilingual: 90, speed: 60 },
-    'llama3': { score: 95, medical: 90, multilingual: 85, speed: 65 },
-    'llama2': { score: 85, medical: 80, multilingual: 70, speed: 70 },
-    
-    // Specialized models
-    'codellama': { score: 75, medical: 60, multilingual: 50, speed: 70 },
-    'mistral': { score: 80, medical: 75, multilingual: 80, speed: 80 },
-    'mixtral': { score: 90, medical: 85, multilingual: 85, speed: 50 },
-    
-    // Lightweight models (faster but less capable)
-    'phi3': { score: 70, medical: 65, multilingual: 60, speed: 95 },
-    'phi': { score: 65, medical: 60, multilingual: 55, speed: 90 },
-    'gemma': { score: 75, medical: 70, multilingual: 70, speed: 85 },
-    
-    // Tiny models (very fast, basic responses)
-    'tinyllama': { score: 50, medical: 40, multilingual: 30, speed: 100 },
-    'orca-mini': { score: 60, medical: 55, multilingual: 45, speed: 90 }
-  };
-
-  // Check if preferred model is available
-  let selectedModel = availableModels.find(model => 
-    model.name.toLowerCase().includes(preferredModel.toLowerCase())
-  );
-  
-  if (selectedModel) {
-    return { 
-      ...selectedModel, 
-      reason: `Preferred model (${preferredModel})` 
-    };
-  }
-
-  // Try fallback models in order
-  for (const fallback of fallbackModels) {
-    selectedModel = availableModels.find(model => 
-      model.name.toLowerCase().includes(fallback.toLowerCase())
-    );
-    if (selectedModel) {
-      return { 
-        ...selectedModel, 
-        reason: `Fallback model (${fallback})` 
-      };
-    }
-  }
-
-  // Smart selection based on query complexity and language
-  const isComplexQuery = message.length > 100 || 
-    /complex|detailed|explain|analysis|diagnosis/.test(message.toLowerCase());
-  const isNonEnglish = language !== 'en';
-  
-  // Score available models
-  const scoredModels = availableModels.map(model => {
-    const modelName = model.name.toLowerCase();
-    let bestScore = 0;
-    let matchedPattern = 'unknown';
-    
-    // Find best matching pattern
-    for (const [pattern, scores] of Object.entries(modelScores)) {
-      if (modelName.includes(pattern)) {
-        let totalScore = scores.score;
-        
-        // Boost score for complex medical queries
-        if (isComplexQuery) {
-          totalScore += scores.medical * 0.3;
-        }
-        
-        // Boost score for non-English queries
-        if (isNonEnglish) {
-          totalScore += scores.multilingual * 0.2;
-        }
-        
-        // Slight boost for speed if query is simple
-        if (!isComplexQuery) {
-          totalScore += scores.speed * 0.1;
-        }
-        
-        if (totalScore > bestScore) {
-          bestScore = totalScore;
-          matchedPattern = pattern;
-        }
-      }
-    }
-    
-    return {
-      ...model,
-      score: bestScore,
-      pattern: matchedPattern
-    };
-  }).sort((a, b) => b.score - a.score);
-
-  // Return the highest scored model
-  const bestModel = scoredModels[0];
-  return {
-    ...bestModel,
-    reason: `Best match (${bestModel.pattern}, score: ${Math.round(bestModel.score)})`
-  };
 }
 
 // Medical specialization mapping based on symptoms/conditions
@@ -428,64 +151,22 @@ router.post('/recommend-doctor', async (req, res) => {
 
     let aiAnalysis = null;
 
-    // Try Gemini AI first with enhanced error handling
+    // Use OpenRouter for doctor recommendation
     try {
-      console.log('🤖 Trying Gemini AI for doctor recommendation...');
+      console.log('🤖 Using OpenRouter for doctor recommendation...');
       
-      const prompt = `
-      As a medical AI assistant, analyze the following symptoms and patient information:
+      const analysisResult = await openRouterService.analyzeSymptoms(symptoms, { age, gender, urgency });
       
-      Symptoms: ${symptoms.join(', ')}
-      Age: ${age || 'Not specified'}
-      Gender: ${gender || 'Not specified'}
-      Urgency: ${urgency || 'Normal'}
-      
-      Based on these symptoms, recommend the most appropriate medical specialization(s) from this list:
-      General Medicine, Cardiology, Dermatology, Endocrinology, Gastroenterology, Neurology, Oncology, Orthopedics, Pediatrics, Psychiatry, Pulmonology, Radiology, Surgery, Urology, Gynecology, Ophthalmology, ENT, Emergency Medicine
-      
-      Provide your response in this JSON format:
-      {
-        "primarySpecialization": "specialization name",
-        "alternativeSpecializations": ["alt1", "alt2"],
-        "urgencyLevel": "low/medium/high",
-        "reasoning": "brief explanation",
-        "redFlags": ["any concerning symptoms that need immediate attention"]
-      }
-      
-      Consider the urgency level and age appropriateness (use Pediatrics for children under 18).
-      `;
-
-      // Use the enhanced tryGeminiModels function
-      const geminiResult = await tryGeminiModels(prompt, 10000); // 10 second timeout for doctor recommendations
-      
-      try {
-        // Extract JSON from the response
-        const text = geminiResult.text;
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        aiAnalysis = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
-        console.log(`✅ Gemini AI analysis successful using model: ${geminiResult.model}`);
-      } catch (parseError) {
-        console.error('❌ Error parsing Gemini AI response:', parseError);
-        aiAnalysis = null;
-      }
-
-    } catch (geminiError) {
-      const isQuotaError = geminiError.message.includes('quota') || 
-                          geminiError.message.includes('429') || 
-                          geminiError.message.includes('Too Many Requests');
-      
-      if (isQuotaError) {
-        console.log('📊 All Gemini models quota exceeded, using keyword-based fallback');
+      if (analysisResult.analysis) {
+        aiAnalysis = analysisResult.analysis;
+        console.log('✅ OpenRouter analysis successful');
       } else {
-        console.log('⚠️  All Gemini models failed, using fallback analysis:', geminiError.message);
+        console.log('⚠️ OpenRouter analysis parsing failed, using fallback...');
+        aiAnalysis = fallbackSpecializationMatch(symptoms);
       }
-      
-      aiAnalysis = null;
-    }
 
-    // Fallback to keyword matching if Gemini fails
-    if (!aiAnalysis) {
-      console.log('🔄 Using fallback specialization matching');
+    } catch (openRouterError) {
+      console.log('❌ OpenRouter failed, using fallback analysis:', openRouterError.message);
       aiAnalysis = fallbackSpecializationMatch(symptoms);
     }
 
@@ -529,12 +210,11 @@ router.post('/recommend-doctor', async (req, res) => {
   } catch (error) {
     console.error('AI recommendation error:', error);
     
-    // Even if there's an error, try to provide basic recommendations
+    // Emergency fallback - just use General Medicine
     try {
       console.log('🆘 Using emergency fallback for doctor recommendations');
       const { symptoms } = req.body;
       
-      // Emergency fallback - just use General Medicine
       const emergencyAnalysis = {
         primarySpecialization: 'General Medicine',
         alternativeSpecializations: [],
@@ -761,104 +441,21 @@ router.post('/chat', async (req, res) => {
       }
     }
 
-    // If no appointment intent or processing failed, use normal AI chat
+    // If no appointment intent or processing failed, use OpenRouter AI chat
     if (!botResponse) {
       try {
-      // Try multiple Gemini models with timeout
-      const timeoutMs = parseInt(process.env.GEMINI_TIMEOUT_MS) || 5000;
-      
-      // Build conversation context
-      let conversationContext = '';
-      if (conversationHistory && conversationHistory.length > 0) {
-        conversationContext = conversationHistory.map(msg => 
-          `${msg.role}: ${msg.content}`
-        ).join('\n');
-      }
-
-      // Language-specific instructions
-      let languageInstructions = '';
-      if (language !== 'en') {
-        languageInstructions = `Please respond in ${languageInfo?.name || language}. Use natural, clear language appropriate for medical communication in this language.`;
+        console.log('🤖 Using OpenRouter for AI response...');
         
-        // Special instructions for Tamil
-        if (language === 'ta') {
-          languageInstructions += ` 
-          - Use respectful Tamil medical terminology
-          - Include common Tamil phrases for medical conditions when appropriate
-          - Be culturally sensitive to Tamil healthcare practices
-          - Use simple Tamil words that are easily understood by all Tamil speakers
-          - When mentioning body parts, use common Tamil terms like: தலை (head), கண் (eye), காது (ear), மூக்கு (nose), வாய் (mouth), கழுத்து (neck), மார்பு (chest), வயிறு (stomach), கை (hand), கால் (leg)
-          - For common symptoms use: வலி (pain), காய்ச்சல் (fever), இருமல் (cough), தலைவலி (headache), வயிற்று வலி (stomach pain)`;
-        }
-      }
+        const response = await generateAIResponse(message, conversationHistory, language, languageInfo);
+        botResponse = response;
+        
+        console.log('✅ Successfully generated AI response');
 
-      // Build search context if available
-      let searchContext = '';
-      if (searchResults && searchResults.results && searchResults.results.length > 0) {
-        searchContext = `\n\nCURRENT MEDICAL RESEARCH AND INFORMATION:\n`;
-        searchResults.results.forEach((result, index) => {
-          searchContext += `${index + 1}. ${result.title}\n`;
-          searchContext += `   Source: ${new URL(result.url).hostname}\n`;
-          searchContext += `   Content: ${result.content.substring(0, 300)}...\n\n`;
-        });
-        searchContext += `Use this current medical information to enhance your response, but always emphasize consulting healthcare professionals.\n`;
-      }
-
-      const prompt = `
-      You are MEDIBOT, a helpful medical AI assistant. You provide general health information and guidance but always remind users to consult healthcare professionals for proper diagnosis and treatment.
-
-      ${languageInstructions}
-
-      IMPORTANT GUIDELINES:
-      - Provide helpful, accurate medical information in a clear, easy-to-read format
-      - Use simple formatting: **bold** for important points, but avoid excessive formatting
-      - Always recommend consulting a healthcare professional for diagnosis
-      - Never provide specific medical diagnoses
-      - Be empathetic and supportive
-      - Ask clarifying questions when needed
-      - Suggest when to seek immediate medical attention
-      - Keep responses concise and well-structured
-      - Use bullet points or numbered lists when appropriate
-      - Respond in the user's language (${languageInfo?.name || 'English'})
-      ${searchResults ? '- When using web search information, cite the sources and emphasize they are for educational purposes only' : ''}
-
-      ${searchContext}
-
-      Previous conversation:
-      ${conversationContext}
-
-      User: ${message}
-
-      Respond as MEDIBOT with helpful medical guidance while emphasizing the importance of professional medical consultation. ${searchResults ? 'Include relevant information from the search results above, properly citing sources.' : ''} Format your response clearly and avoid excessive markdown formatting.
-      `;
-
-      // Try multiple Gemini models
-      const geminiResult = await tryGeminiModels(prompt, timeoutMs);
-      botResponse = geminiResult.text;
-      
-      console.log(`✅ Successfully used Gemini model: ${geminiResult.model}`);
-
-    } catch (aiError) {
-      const isQuotaError = aiError.message.includes('quota') || 
-                          aiError.message.includes('429') || 
-                          aiError.message.includes('Too Many Requests');
-      
-      if (isQuotaError) {
-        console.log(`📊 All Gemini models quota exceeded, trying Ollama fallback`);
-      } else {
-        console.log(`❌ All Gemini models failed (${aiError.message}), trying Ollama fallback`);
-      }
-      
-      try {
-        // Try Ollama as fallback
-        botResponse = await generateOllamaResponse(message, conversationHistory, language, languageInfo);
-        usingFallback = true;
-        console.log('✅ Successfully used Ollama fallback');
-      } catch (ollamaError) {
-        console.log('⚠️  Ollama fallback failed, using simple text response:', ollamaError.message);
+      } catch (aiError) {
+        console.log(`❌ OpenRouter failed: ${aiError.message}, using fallback response`);
         usingFallback = true;
         
-        // Final fallback to simple text responses - this should NEVER fail
+        // Final fallback to simple text responses
         try {
           botResponse = generateFallbackResponse(message, language, languageInfo);
           console.log('✅ Using simple text fallback response');
@@ -869,7 +466,6 @@ router.post('/chat', async (req, res) => {
             ? "மன்னிக்கவும், தற்போது நான் பதிலளிக்க முடியவில்லை. மருத்துவ நிபுணரை அணுகவும்."
             : "I apologize for the technical difficulty. Please consult a healthcare professional for your medical concerns.";
         }
-      }
       }
     }
 
@@ -1061,95 +657,147 @@ function generateFallbackResponse(message, language = 'en', languageInfo) {
   }
 }
 
-// Check AI services status
-router.get('/status', async (req, res) => {
-  res.json({
-    status: 'OK',
-    services: {
-      groq: { available: true, priority: 'primary' },
-      gemini: { available: true, priority: 'fallback' },
-      ollama: { available: true, priority: 'local' },
-      calendar: { available: true },
-      tavilySearch: { available: true }
-    },
-    message: 'Groq (primary) + Gemini (fallback) + Ollama (local) available'
-  });
-});
-
-// Get available Ollama models with recommendations
-router.get('/models', async (req, res) => {
+// OpenRouter chat with reasoning capabilities
+router.post('/openrouter-chat', async (req, res) => {
   try {
-    const models = await ollama.list();
-    
-    const modelRecommendations = {
-      'llama3.1': { 
-        category: 'Premium', 
-        medical: 'Excellent', 
-        multilingual: 'Excellent',
-        speed: 'Medium',
-        recommended: true,
-        description: 'Best overall model for medical conversations'
-      },
-      'llama3': { 
-        category: 'Premium', 
-        medical: 'Very Good', 
-        multilingual: 'Good',
-        speed: 'Medium',
-        recommended: true,
-        description: 'High-quality general purpose model'
-      },
-      'mistral': { 
-        category: 'Balanced', 
-        medical: 'Good', 
-        multilingual: 'Good',
-        speed: 'Fast',
-        recommended: true,
-        description: 'Good balance of quality and speed'
-      },
-      'phi3': { 
-        category: 'Lightweight', 
-        medical: 'Basic', 
-        multilingual: 'Limited',
-        speed: 'Very Fast',
-        recommended: false,
-        description: 'Fast responses, basic medical knowledge'
-      }
-    };
+    const { message, conversationHistory, language = 'en', languageInfo, enableReasoning = true } = req.body;
 
-    const enrichedModels = models.models.map(model => {
-      const modelName = model.name.toLowerCase();
-      let recommendation = { category: 'Other', medical: 'Unknown', multilingual: 'Unknown', speed: 'Unknown', recommended: false };
-      
-      for (const [pattern, rec] of Object.entries(modelRecommendations)) {
-        if (modelName.includes(pattern)) {
-          recommendation = rec;
-          break;
-        }
+    if (!message) {
+      return res.status(400).json({ message: 'Message is required' });
+    }
+
+    if (!process.env.OPENROUTER_API_KEY) {
+      return res.status(503).json({ message: 'OpenRouter service not configured' });
+    }
+
+    console.log('🤖 OpenRouter reasoning chat request');
+
+    const response = await openRouterService.generateResponse(
+      message,
+      conversationHistory,
+      {
+        language,
+        languageInfo,
+        enableReasoning,
+        maxTokens: 1000,
+        temperature: 0.7
       }
-      
-      return {
-        ...model,
-        ...recommendation,
-        isPreferred: modelName.includes((process.env.OLLAMA_PREFERRED_MODEL).toLowerCase()),
-        isFallback: (process.env.OLLAMA_FALLBACK_MODELS)
-          .split(',')
-          .some(fb => modelName.includes(fb.toLowerCase()))
-      };
-    });
+    );
 
     res.json({
-      models: enrichedModels,
-      currentPreferred: process.env.OLLAMA_PREFERRED_MODEL,
-      currentFallbacks: (process.env.OLLAMA_FALLBACK_MODELS)
+      response: response.content,
+      reasoning: response.reasoning_details,
+      model: response.model,
+      usage: response.usage,
+      timestamp: new Date().toISOString(),
+      language: language
     });
 
   } catch (error) {
-    console.error('Models list error:', error);
+    console.error('OpenRouter chat error:', error);
     res.status(500).json({ 
-      message: 'Error fetching Ollama models',
+      message: 'OpenRouter service error',
       error: error.message 
     });
   }
+});
+
+// Continue OpenRouter conversation with reasoning
+router.post('/openrouter-continue', async (req, res) => {
+  try {
+    const { messages, newMessage, language = 'en' } = req.body;
+
+    if (!newMessage || !messages) {
+      return res.status(400).json({ message: 'Messages and new message are required' });
+    }
+
+    if (!process.env.OPENROUTER_API_KEY) {
+      return res.status(503).json({ message: 'OpenRouter service not configured' });
+    }
+
+    console.log('🔄 OpenRouter continue conversation with reasoning');
+
+    const response = await openRouterService.continueConversation(
+      messages,
+      newMessage,
+      {
+        maxTokens: 1000,
+        temperature: 0.7
+      }
+    );
+
+    res.json({
+      response: response.content,
+      reasoning: response.reasoning_details,
+      model: response.model,
+      usage: response.usage,
+      fullConversation: response.fullConversation,
+      timestamp: new Date().toISOString(),
+      language: language
+    });
+
+  } catch (error) {
+    console.error('OpenRouter continue conversation error:', error);
+    res.status(500).json({ 
+      message: 'OpenRouter service error',
+      error: error.message 
+    });
+  }
+});
+
+// Get OpenRouter models
+router.get('/openrouter-models', async (req, res) => {
+  try {
+    if (!process.env.OPENROUTER_API_KEY) {
+      return res.status(503).json({ message: 'OpenRouter service not configured' });
+    }
+
+    const models = await openRouterService.getAvailableModels();
+    
+    res.json({
+      models,
+      defaultModel: openRouterService.defaultModel,
+      configured: true
+    });
+
+  } catch (error) {
+    console.error('OpenRouter models error:', error);
+    res.status(500).json({ 
+      message: 'Error fetching OpenRouter models',
+      error: error.message 
+    });
+  }
+});
+
+// Check AI services status
+router.get('/status', async (req, res) => {
+  const services = {
+    openrouter: { available: false, priority: 'primary' },
+    calendar: { available: true },
+    tavilySearch: { available: true }
+  };
+
+  // Check OpenRouter availability
+  try {
+    if (process.env.OPENROUTER_API_KEY) {
+      services.openrouter.available = await openRouterService.checkAvailability();
+    }
+  } catch (error) {
+    console.log('OpenRouter status check failed:', error.message);
+  }
+
+  let message = 'OpenRouter AI service';
+  if (services.openrouter.available) {
+    message = 'OpenRouter AI service available';
+  } else {
+    message = 'OpenRouter AI service unavailable - check API key configuration';
+  }
+
+  res.json({
+    status: 'OK',
+    services,
+    message
+  });
 });
 
 // Confirm appointment booking from chat
