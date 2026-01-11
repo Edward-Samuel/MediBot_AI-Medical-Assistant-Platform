@@ -10,7 +10,7 @@ const openRouterService = require('../services/openRouterService');
 
 const router = express.Router();
 
-// Generate response using OpenRouter
+// Generate response using OpenRouter with structured templates
 async function generateAIResponse(message, conversationHistory, language, languageInfo) {
   try {
     console.log('🤖 Using OpenRouter for AI response...');
@@ -23,16 +23,56 @@ async function generateAIResponse(message, conversationHistory, language, langua
         languageInfo,
         enableReasoning: true,
         maxTokens: 800,
-        temperature: 0.7
+        temperature: 0.3 // Lower temperature for consistency
       }
     );
 
     console.log(`✅ Successfully used OpenRouter model: ${response.model}`);
+    
+    // Log if template was used
+    if (response.isTemplate) {
+      console.log('📋 Used structured template response');
+    }
+    
     return response.content;
 
   } catch (error) {
     console.error('OpenRouter error:', error);
     throw error;
+  }
+}
+
+// Fallback response generator using structured templates
+function generateFallbackResponse(message, language = 'en', languageInfo) {
+  try {
+    const responseTemplates = require('../services/responseTemplates');
+    
+    // Check for emergency
+    if (responseTemplates.isEmergency(message, language)) {
+      const emergencyResponse = responseTemplates.generateEmergencyResponse(language);
+      return emergencyResponse.formatted; // Use formatted version for backward compatibility
+    }
+    
+    // Extract symptom and generate structured response
+    const symptom = responseTemplates.extractSymptom(message, language);
+    
+    // If specific symptom detected, use medical response template
+    if (symptom !== (language === 'ta' ? 'உங்கள் அறிகுறி' : 'your symptom')) {
+      const medicalResponse = responseTemplates.generateMedicalResponse(message, symptom, language);
+      return medicalResponse.formatted; // Use formatted version for backward compatibility
+    }
+    
+    // Otherwise use general health response
+    const generalResponse = responseTemplates.generateGeneralResponse(message, language);
+    return generalResponse.formatted; // Use formatted version for backward compatibility
+    
+  } catch (error) {
+    console.error('Fallback response generation error:', error);
+    
+    // Emergency fallback - should never fail
+    return language === 'ta'
+      ? "மன்னிக்கவும், தற்போது தொழில்நுட்ப சிக்கல் உள்ளது. மருத்துவ நிபுணரை அணுகவும்."
+      : "I apologize for the technical difficulty. Please consult a healthcare professional for your medical concerns.";
   }
 }
 
@@ -396,17 +436,38 @@ router.post('/chat', async (req, res) => {
     let appointmentData = null;
     let webSearchData = null;
 
-    // Check for appointment booking intent if user is authenticated
-    if (userId && (message.toLowerCase().includes('appointment') || message.toLowerCase().includes('book'))) {
+    // Check for appointment booking intent
+    if (message.toLowerCase().includes('appointment') || message.toLowerCase().includes('book')) {
       try {
-        // Simple appointment intent detection
-        appointmentData = {
-          intent: 'appointment_booking',
-          message: 'I can help you book an appointment! Please let me know what type of doctor you need.',
-          simpleBooking: true
-        };
-        
-        botResponse = "I can help you book an appointment! What type of doctor would you like to see? For example:\n\n• **Cardiologist** - for heart-related concerns\n• **Dermatologist** - for skin issues\n• **General Medicine** - for general health checkups\n• **Neurologist** - for neurological concerns\n\nPlease let me know your preference and I'll find available doctors for you.";
+        // Check if user is authenticated for appointment booking
+        if (!userId) {
+          appointmentData = {
+            intent: 'appointment_booking_login_required',
+            message: 'To book an appointment, please log in to your account first.',
+            requiresLogin: true
+          };
+          
+          const responseTemplates = require('../services/responseTemplates');
+          const loginResponse = responseTemplates.generateLoginRequiredResponse(language);
+          botResponse = loginResponse.formatted; // Use formatted version for backward compatibility
+          
+          // Add structured data for frontend
+          appointmentData.structuredResponse = loginResponse;
+        } else {
+          // User is authenticated, proceed with appointment booking
+          appointmentData = {
+            intent: 'appointment_booking',
+            message: 'I can help you book an appointment! Please let me know what type of doctor you need.',
+            simpleBooking: true
+          };
+          
+          const responseTemplates = require('../services/responseTemplates');
+          const bookingResponse = responseTemplates.generateAppointmentBookingResponse(language);
+          botResponse = bookingResponse.formatted; // Use formatted version for backward compatibility
+          
+          // Add structured data for frontend
+          appointmentData.structuredResponse = bookingResponse;
+        }
       } catch (appointmentError) {
         console.error('Appointment detection error:', appointmentError);
         // Continue with normal chat if appointment processing fails
@@ -595,67 +656,6 @@ router.post('/chat', async (req, res) => {
     }
   }
 });
-
-// Fallback response generator for when AI API is unavailable
-function generateFallbackResponse(message, language = 'en', languageInfo) {
-  try {
-    const lowerMessage = message.toLowerCase();
-    
-    // Common medical keywords and responses
-    const responses = {
-      en: {
-        greeting: "Hello! I'm MEDIBOT, your medical assistant. I'm currently running in limited mode due to high demand. How can I help you with your health concerns today?",
-        headache: "For headaches, here are some general recommendations:\n\n**Immediate relief:**\n- Rest in a quiet, dark room\n- Apply a cold or warm compress\n- Stay hydrated\n- Consider over-the-counter pain relievers (follow package instructions)\n\n**When to see a doctor:**\n- Severe or sudden headaches\n- Headaches with fever, stiff neck, or vision changes\n- Frequent headaches that interfere with daily life\n\n**Important:** This is general information only. Please consult a healthcare professional for proper diagnosis and treatment.",
-        fever: "For fever management:\n\n**General care:**\n- Rest and stay hydrated\n- Dress lightly and keep room cool\n- Monitor temperature regularly\n- Consider fever reducers if recommended by a healthcare provider\n\n**Seek immediate medical attention if:**\n- Temperature above 103°F (39.4°C)\n- Fever with severe symptoms (difficulty breathing, chest pain, severe headache)\n- Fever lasting more than 3 days\n- Signs of dehydration\n\n**Important:** Always consult a healthcare professional for proper evaluation and treatment.",
-        pain: "For pain management:\n\n**General approaches:**\n- Rest the affected area\n- Apply ice for acute injuries (first 24-48 hours)\n- Apply heat for muscle tension\n- Gentle movement as tolerated\n- Over-the-counter pain relievers (follow instructions)\n\n**Seek medical attention for:**\n- Severe or worsening pain\n- Pain after injury\n- Pain with other concerning symptoms\n- Chronic pain affecting daily life\n\n**Important:** This is general guidance only. Please consult a healthcare professional for proper diagnosis and treatment.",
-        emergency: "**This sounds like it could be a medical emergency.**\n\nPlease:\n- Call emergency services (911) immediately\n- Go to the nearest emergency room\n- Don't delay seeking immediate medical attention\n\nI'm an AI assistant and cannot provide emergency medical care. Your safety is the priority - please seek immediate professional medical help.",
-        default: "Thank you for your question. I'm currently running in limited mode due to high demand on our AI services.\n\n**General health advice:**\n- For any concerning symptoms, consult a healthcare professional\n- Keep track of your symptoms (when they started, severity, triggers)\n- Maintain a healthy lifestyle (balanced diet, regular exercise, adequate sleep)\n- Stay up to date with preventive care and screenings\n\n**When to seek immediate medical attention:**\n- Severe or sudden symptoms\n- Difficulty breathing or chest pain\n- Signs of serious illness or injury\n\n**Important:** I provide general health information only. For proper diagnosis and treatment, please consult with a qualified healthcare professional.\n\nIs there a specific health concern I can provide general information about?"
-      },
-      ta: {
-        greeting: "வணக்கம்! நான் மெடிபாட், உங்கள் மருத்துவ உதவியாளர். அதிக கோரிக்கையின் காரணமாக நான் தற்போது வரையறுக்கப்பட்ட முறையில் இயங்குகிறேன். உங்கள் சுகாதார கவலைகளில் இன்று நான் எப்படி உதவ முடியும்?",
-        headache: "தலைவலிக்கு பொதுவான பரிந்துரைகள்:\n\n**உடனடி நிவாரணம்:**\n- அமைதியான, இருண்ட அறையில் ஓய்வு எடுங்கள்\n- குளிர் அல்லது சூடான ஒத்தடம் கொடுங்கள்\n- நீர்ச்சத்து பராமரிக்கவும்\n- மருந்தகத்தில் கிடைக்கும் வலி நிவாரணிகளை பரிசீலிக்கவும்\n\n**மருத்துவரை பார்க்க வேண்டிய நேரம்:**\n- கடுமையான அல்லது திடீர் தலைவலி\n- காய்ச்சல், கழுத்து விறைப்பு அல்லது பார்வை மாற்றங்களுடன் தலைவலி\n- அடிக்கடி வரும் தலைவலி\n\n**முக்கியம்:** இது பொதுவான தகவல் மட்டுமே. சரியான நோயறிதல் மற்றும் சிகிச்சைக்கு மருத்துவ நிபுணரை அணுகவும்.",
-        default: "உங்கள் கேள்விக்கு நன்றி. எங்கள் AI சேவைகளில் அதிக கோரிக்கையின் காரணமாக நான் தற்போது வரையறுக்கப்பட்ட முறையில் இயங்குகிறேன்.\n\n**பொதுவான சுகாதார ஆலோசனை:**\n- எந்தவொரு கவலைக்குரிய அறிகுறிகளுக்கும் மருத்துவ நிபுணரை அணுகவும்\n- உங்கள் அறிகுறிகளை கண்காணிக்கவும்\n- ஆரோக்கியமான வாழ்க்கை முறையை பராமரிக்கவும்\n\n**உடனடி மருத்துவ கவனிப்பு தேவைப்படும் போது:**\n- கடுமையான அல்லது திடீர் அறிகுறிகள்\n- மூச்சு திணறல் அல்லது மார்பு வலி\n- கடுமையான நோய் அல்லது காயத்தின் அறிகுறிகள்\n\n**முக்கியம்:** நான் பொதுவான சுகாதார தகவல்களை மட்டுமே வழங்குகிறேன். சரியான நோயறிதல் மற்றும் சிகிச்சைக்கு தகுதிவாய்ந்த மருத்துவ நிபுணரை அணுகவும்."
-      }
-    };
-
-    const langResponses = responses[language] || responses.en;
-    
-    // Check for emergency keywords
-    const emergencyKeywords = ['emergency', 'urgent', 'severe pain', 'can\'t breathe', 'chest pain', 'heart attack', 'stroke'];
-    if (emergencyKeywords.some(keyword => lowerMessage.includes(keyword))) {
-      return langResponses.emergency || responses.en.emergency;
-    }
-    
-    // Check for specific symptoms
-    if (lowerMessage.includes('headache') || lowerMessage.includes('தலைவலி')) {
-      return langResponses.headache || responses.en.headache;
-    }
-    
-    if (lowerMessage.includes('fever') || lowerMessage.includes('காய்ச்சல்')) {
-      return langResponses.fever || responses.en.fever;
-    }
-    
-    if (lowerMessage.includes('pain') || lowerMessage.includes('வலி')) {
-      return langResponses.pain || responses.en.pain;
-    }
-    
-    // Check for greetings
-    if (lowerMessage.includes('hello') || lowerMessage.includes('hi') || lowerMessage.includes('வணக்கம்')) {
-      return langResponses.greeting || responses.en.greeting;
-    }
-    
-    // Default response
-    return langResponses.default || responses.en.default;
-    
-  } catch (error) {
-    console.error('Fallback response generation error:', error);
-    
-    // Emergency fallback - should never fail
-    return language === 'ta'
-      ? "மன்னிக்கவும், தற்போது தொழில்நுட்ப சிக்கல் உள்ளது. மருத்துவ நிபுணரை அணுகவும்."
-      : "I apologize for the technical difficulty. Please consult a healthcare professional for your medical concerns.";
-  }
-}
 
 // OpenRouter chat with reasoning capabilities
 router.post('/openrouter-chat', async (req, res) => {
@@ -906,17 +906,26 @@ router.post('/book-appointment', async (req, res) => {
       };
 
       console.log('🗓️  Attempting to create calendar event...');
-      const calendarResult = await googleCalendar.createAppointmentEvent(calendarData);
-      calendarEventId = calendarResult.eventId;
-      calendarEventLink = calendarResult.eventLink;
-      meetingLink = calendarResult.meetingLink;
-
-      // Update appointment with calendar event ID
-      savedAppointment.googleCalendarEventId = calendarEventId;
-      await savedAppointment.save();
-
-      calendarIntegrationStatus = 'success';
-      console.log('✅ Calendar event created successfully:', calendarEventId);
+      const calendarResult = await googleCalendar.safeCreateEvent(calendarData);
+      
+      if (calendarResult.eventId) {
+        // Calendar integration successful
+        calendarEventId = calendarResult.eventId;
+        calendarEventLink = calendarResult.eventLink;
+        meetingLink = calendarResult.meetingLink;
+        calendarIntegrationStatus = 'success';
+        console.log('✅ Calendar event created successfully:', calendarEventId);
+      } else {
+        // Calendar integration failed, but we have manual instructions
+        calendarIntegrationStatus = 'manual_required';
+        calendarErrorMessage = calendarResult.error || 'Calendar integration unavailable';
+        
+        // Store manual calendar instructions for the response
+        savedAppointment.manualCalendarInstructions = calendarResult.manualInstructions;
+        await savedAppointment.save();
+        
+        console.log('📋 Calendar integration failed, manual instructions provided');
+      }
 
     } catch (calendarError) {
       console.error('⚠️  Calendar integration failed:', calendarError.message);
@@ -962,8 +971,12 @@ router.post('/book-appointment', async (req, res) => {
     
     switch (calendarIntegrationStatus) {
       case 'success':
-        calendarStatusMessage = 'Calendar event created successfully';
+        calendarStatusMessage = 'Appointment booked successfully with calendar integration';
         calendarInstructions = 'Check your calendar for the appointment details and reminders.';
+        break;
+      case 'manual_required':
+        calendarStatusMessage = 'Appointment booked successfully (manual calendar setup required)';
+        calendarInstructions = 'Your appointment is confirmed. Please add it to your calendar manually using the provided instructions.';
         break;
       case 'quota_exceeded':
         calendarStatusMessage = 'Appointment booked successfully (calendar temporarily unavailable)';
@@ -1003,15 +1016,17 @@ router.post('/book-appointment', async (req, res) => {
         instructions: calendarInstructions,
         fallbackUsed: calendarIntegrationStatus !== 'success'
       },
-      // Provide manual calendar details for fallback
-      manualCalendarDetails: calendarIntegrationStatus !== 'success' ? {
+      // Provide manual calendar details when needed
+      manualCalendarDetails: (calendarIntegrationStatus !== 'success') ? {
         title: `Medical Appointment with Dr. ${populatedAppointment.doctorId.userId.profile.firstName} ${populatedAppointment.doctorId.userId.profile.lastName}`,
         dateTime: populatedAppointment.dateTime,
         duration: `${populatedAppointment.duration || 30} minutes`,
         location: 'Contact doctor for location/meeting details',
         description: `Appointment Type: ${populatedAppointment.type}\nSymptoms: ${populatedAppointment.symptoms.join(', ')}\nChief Complaint: ${populatedAppointment.chiefComplaint}`,
         doctorContact: doctor.userId.email,
-        patientContact: patientUser.email
+        patientContact: patientUser.email,
+        // Include manual calendar links if available
+        calendarLinks: savedAppointment.manualCalendarInstructions?.instructions || null
       } : null
     });
 

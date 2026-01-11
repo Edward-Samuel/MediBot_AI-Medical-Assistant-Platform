@@ -1,4 +1,5 @@
 const OpenAI = require('openai');
+const responseTemplates = require('./responseTemplates');
 
 class OpenRouterService {
   constructor() {
@@ -12,11 +13,11 @@ class OpenRouterService {
   }
 
   /**
-   * Generate response with reasoning capabilities
+   * Generate structured medical response with reduced hallucination
    * @param {string} message - User message
    * @param {Array} conversationHistory - Previous conversation messages
    * @param {Object} options - Additional options
-   * @returns {Object} Response with content and reasoning details
+   * @returns {Object} Response with structured content
    */
   async generateResponse(message, conversationHistory = [], options = {}) {
     try {
@@ -25,19 +26,38 @@ class OpenRouterService {
         enableReasoning = true,
         language = 'en',
         languageInfo = null,
-        maxTokens = 1000,
-        temperature = 0.7
+        maxTokens = 800,
+        temperature = 0.3 // Lower temperature for more consistent responses
       } = options;
 
-      // Build messages array
-      const messages = this.buildMessages(message, conversationHistory, language, languageInfo);
+      // Check for emergency situations first
+      if (responseTemplates.isEmergency(message, language)) {
+        console.log('🚨 Emergency detected - using emergency template');
+        return {
+          content: responseTemplates.generateEmergencyResponse(language),
+          reasoning_details: null,
+          model: 'emergency_template',
+          usage: { total_tokens: 0 },
+          finishReason: 'emergency_template',
+          isTemplate: true
+        };
+      }
 
-      // First API call with reasoning
+      // Extract symptom for structured response
+      const symptom = responseTemplates.extractSymptom(message, language);
+      
+      // Build structured prompt to reduce hallucination
+      const structuredPrompt = this.buildStructuredPrompt(message, symptom, conversationHistory, language, languageInfo);
+
+      // Make API call with structured constraints
       const requestOptions = {
         model,
-        messages,
+        messages: structuredPrompt,
         max_tokens: maxTokens,
-        temperature
+        temperature, // Lower temperature for consistency
+        top_p: 0.8, // Reduce randomness
+        frequency_penalty: 0.3, // Reduce repetition
+        presence_penalty: 0.2
       };
 
       // Enable reasoning if supported and requested
@@ -45,41 +65,231 @@ class OpenRouterService {
         requestOptions.reasoning = { enabled: true };
       }
 
-      console.log(`🤖 OpenRouter: Making request to ${model} with reasoning: ${enableReasoning}`);
+      console.log(`🤖 OpenRouter: Making structured request to ${model}`);
       
       const apiResponse = await this.client.chat.completions.create(requestOptions);
-
-      // Extract the assistant message with reasoning_details
       const response = apiResponse.choices[0].message;
       
+      // Post-process response to ensure it follows medical guidelines
+      const processedContent = this.postProcessMedicalResponse(response.content, symptom, language);
+      
       return {
-        content: response.content,
+        content: processedContent,
         reasoning_details: response.reasoning_details || null,
         model: model,
         usage: apiResponse.usage,
-        finishReason: apiResponse.choices[0].finish_reason
+        finishReason: apiResponse.choices[0].finish_reason,
+        isTemplate: false
       };
 
     } catch (error) {
       console.error('OpenRouter API error:', error);
-      throw new Error(`OpenRouter service failed: ${error.message}`);
+      
+      // Fallback to template response
+      const symptom = responseTemplates.extractSymptom(message, language);
+      const fallbackContent = responseTemplates.generateMedicalResponse(message, symptom, language);
+      
+      return {
+        content: fallbackContent,
+        reasoning_details: null,
+        model: 'fallback_template',
+        usage: { total_tokens: 0 },
+        finishReason: 'fallback_template',
+        isTemplate: true,
+        error: error.message
+      };
     }
   }
 
   /**
+   * Build structured prompt to reduce hallucination
+   */
+  buildStructuredPrompt(message, symptom, conversationHistory, language, languageInfo) {
+    const messages = [];
+
+    // System message with strict medical guidelines
+    let systemPrompt = `You are MEDIBOT, a medical information assistant. You must follow these STRICT guidelines:
+
+CRITICAL RULES:
+1. NEVER provide specific medical diagnoses
+2. ALWAYS recommend consulting healthcare professionals
+3. Only provide general, educational health information
+4. Use structured, factual responses
+5. Include appropriate disclaimers
+6. For emergencies, direct to immediate medical care
+
+RESPONSE STRUCTURE:
+1. Acknowledge the concern
+2. Provide general, factual information only
+3. List when to seek professional help
+4. Emphasize professional consultation
+5. Include medical disclaimer
+
+FORBIDDEN:
+- Specific diagnoses ("You have...")
+- Specific treatment recommendations
+- Medication dosages or prescriptions
+- Definitive medical statements
+- Unverified medical claims`;
+
+    // Add language-specific instructions
+    if (language !== 'en') {
+      systemPrompt += `\n\nLanguage: Respond in ${languageInfo?.name || language}. Use clear, respectful medical terminology.`;
+      
+      if (language === 'ta') {
+        systemPrompt += `
+Tamil Guidelines:
+- Use respectful Tamil medical terms
+- Include common Tamil phrases for medical conditions
+- Use simple, easily understood Tamil words
+- Be culturally sensitive to Tamil healthcare practices`;
+      }
+    }
+
+    messages.push({
+      role: 'system',
+      content: systemPrompt
+    });
+
+    // Add conversation history (limited to prevent context drift)
+    if (conversationHistory && conversationHistory.length > 0) {
+      const recentHistory = conversationHistory.slice(-3); // Only last 3 exchanges
+      
+      recentHistory.forEach(msg => {
+        const messageObj = {
+          role: msg.role,
+          content: msg.content
+        };
+        
+        // Preserve reasoning_details for assistant messages
+        if (msg.role === 'assistant' && msg.reasoning_details) {
+          messageObj.reasoning_details = msg.reasoning_details;
+        }
+        
+        messages.push(messageObj);
+      });
+    }
+
+    // Add current user message with structured guidance
+    const structuredUserMessage = `User concern: ${message}
+
+Please provide a structured response following the medical guidelines. Focus on:
+1. General information about ${symptom}
+2. When to seek professional medical help
+3. Clear disclaimer about professional consultation
+
+Keep response factual, helpful, and safe.`;
+
+    messages.push({
+      role: 'user',
+      content: structuredUserMessage
+    });
+
+    return messages;
+  }
+
+  /**
+   * Post-process AI response to ensure medical safety
+   */
+  postProcessMedicalResponse(content, symptom, language) {
+    const lang = language === 'ta' ? 'ta' : 'en';
+    
+    // Check for problematic content
+    const problematicPhrases = {
+      en: [
+        'you have', 'you are diagnosed', 'you definitely', 'you certainly have',
+        'take this medication', 'dosage', 'prescription', 'you should take'
+      ],
+      ta: [
+        'உங்களுக்கு உள்ளது', 'நீங்கள் நோயறிதல்', 'நீங்கள் நிச்சயமாக',
+        'இந்த மருந்தை எடுங்கள்', 'மருந்து அளவு', 'மருந்து பரிந்துரை'
+      ]
+    };
+
+    const phrases = problematicPhrases[lang] || problematicPhrases.en;
+    const lowerContent = content.toLowerCase();
+    
+    // If problematic content detected, use template response
+    if (phrases.some(phrase => lowerContent.includes(phrase.toLowerCase()))) {
+      console.log('⚠️ Problematic content detected, using template response');
+      return responseTemplates.generateMedicalResponse('', symptom, language);
+    }
+
+    // Ensure professional consultation reminder is present
+    const consultationPhrases = {
+      en: ['consult', 'healthcare professional', 'doctor', 'medical attention'],
+      ta: ['மருத்துவர்', 'சுகாதார நிபுணர்', 'மருத்துவ ஆலோசனை', 'மருத்துவ கவனிப்பு']
+    };
+
+    const consultationWords = consultationPhrases[lang] || consultationPhrases.en;
+    const hasConsultationReminder = consultationWords.some(word => 
+      lowerContent.includes(word.toLowerCase())
+    );
+
+    // Add consultation reminder if missing
+    if (!hasConsultationReminder) {
+      const reminder = lang === 'ta'
+        ? '\n\n**முக்கியம்**: சரியான நோயறிதல் மற்றும் சிகிச்சைக்கு மருத்துவ நிபுணரை அணுகவும்.'
+        : '\n\n**Important**: Please consult a healthcare professional for proper diagnosis and treatment.';
+      
+      content += reminder;
+    }
+
+    // Ensure disclaimer is present
+    const disclaimerWords = {
+      en: ['educational', 'information only', 'not a substitute'],
+      ta: ['கல்வி', 'தகவல் மட்டுமே', 'மாற்றாக அல்ல']
+    };
+
+    const disclaimerPresent = disclaimerWords[lang].some(word => 
+      lowerContent.includes(word.toLowerCase())
+    );
+
+    if (!disclaimerWords) {
+      const disclaimer = lang === 'ta'
+        ? '\n\nமறுப்பு: இது கல்வி நோக்கங்களுக்காக மட்டுமே மற்றும் தொழில்முறை மருத்துவ ஆலோசனைக்கு மாற்றாக அல்ல.'
+        : '\n\nDisclaimer: This information is for educational purposes only and not a substitute for professional medical advice.';
+      
+      content += disclaimer;
+    }
+
+    return content;
+  }
+
+  /**
    * Continue conversation with preserved reasoning context
-   * @param {Array} messages - Full conversation including reasoning_details
-   * @param {string} newMessage - New user message
-   * @param {Object} options - Additional options
-   * @returns {Object} Response with continued reasoning
    */
   async continueConversation(messages, newMessage, options = {}) {
     try {
       const {
         model = this.defaultModel,
-        maxTokens = 1000,
-        temperature = 0.7
+        maxTokens = 800,
+        temperature = 0.3 // Lower temperature for consistency
       } = options;
+
+      // Check for emergency in new message
+      if (responseTemplates.isEmergency(newMessage, options.language)) {
+        console.log('🚨 Emergency detected in continuation - using emergency template');
+        return {
+          content: responseTemplates.generateEmergencyResponse(options.language),
+          reasoning_details: null,
+          model: 'emergency_template',
+          usage: { total_tokens: 0 },
+          finishReason: 'emergency_template',
+          isTemplate: true,
+          fullConversation: [
+            ...messages,
+            {
+              role: 'user',
+              content: newMessage
+            },
+            {
+              role: 'assistant',
+              content: responseTemplates.generateEmergencyResponse(options.language)
+            }
+          ]
+        };
+      }
 
       // Add new user message to conversation
       const updatedMessages = [
@@ -96,22 +306,34 @@ class OpenRouterService {
         model,
         messages: updatedMessages,
         max_tokens: maxTokens,
-        temperature
+        temperature,
+        top_p: 0.8,
+        frequency_penalty: 0.3,
+        presence_penalty: 0.2
       });
 
       const assistantMessage = response.choices[0].message;
       
+      // Post-process the response
+      const symptom = responseTemplates.extractSymptom(newMessage, options.language);
+      const processedContent = this.postProcessMedicalResponse(
+        assistantMessage.content, 
+        symptom, 
+        options.language
+      );
+      
       return {
-        content: assistantMessage.content,
+        content: processedContent,
         reasoning_details: assistantMessage.reasoning_details || null,
         model: model,
         usage: response.usage,
         finishReason: response.choices[0].finish_reason,
+        isTemplate: false,
         fullConversation: [
           ...updatedMessages,
           {
             role: 'assistant',
-            content: assistantMessage.content,
+            content: processedContent,
             reasoning_details: assistantMessage.reasoning_details
           }
         ]
@@ -119,7 +341,31 @@ class OpenRouterService {
 
     } catch (error) {
       console.error('OpenRouter conversation continuation error:', error);
-      throw new Error(`OpenRouter conversation failed: ${error.message}`);
+      
+      // Fallback to template response
+      const symptom = responseTemplates.extractSymptom(newMessage, options.language);
+      const fallbackContent = responseTemplates.generateMedicalResponse(newMessage, symptom, options.language);
+      
+      return {
+        content: fallbackContent,
+        reasoning_details: null,
+        model: 'fallback_template',
+        usage: { total_tokens: 0 },
+        finishReason: 'fallback_template',
+        isTemplate: true,
+        error: error.message,
+        fullConversation: [
+          ...messages,
+          {
+            role: 'user',
+            content: newMessage
+          },
+          {
+            role: 'assistant',
+            content: fallbackContent
+          }
+        ]
+      };
     }
   }
 
@@ -260,70 +506,217 @@ IMPORTANT GUIDELINES:
   }
 
   /**
-   * Analyze medical symptoms using reasoning
+   * Analyze medical symptoms using structured approach
    * @param {Array} symptoms - List of symptoms
    * @param {Object} patientInfo - Patient information
-   * @returns {Object} Analysis with reasoning
+   * @returns {Object} Analysis with structured recommendations
    */
   async analyzeSymptoms(symptoms, patientInfo = {}) {
     try {
       const { age, gender, urgency } = patientInfo;
       
-      const prompt = `As a medical AI assistant, analyze the following symptoms and patient information:
+      // Check for emergency symptoms first
+      const emergencySymptoms = symptoms.some(symptom => 
+        responseTemplates.isEmergency(symptom, 'en')
+      );
+      
+      if (emergencySymptoms) {
+        console.log('🚨 Emergency symptoms detected in analysis');
+        return {
+          analysis: {
+            primarySpecialization: 'Emergency Medicine',
+            alternativeSpecializations: [],
+            urgencyLevel: 'high',
+            reasoning: 'Emergency symptoms detected - immediate medical attention required',
+            redFlags: symptoms,
+            confidence: 1.0,
+            isEmergency: true
+          },
+          reasoning: null,
+          model: 'emergency_template'
+        };
+      }
+
+      // Use structured prompt for symptom analysis
+      const prompt = `Analyze these symptoms for medical specialization recommendation:
 
 Symptoms: ${symptoms.join(', ')}
 Age: ${age || 'Not specified'}
 Gender: ${gender || 'Not specified'}
 Urgency: ${urgency || 'Normal'}
 
-Based on these symptoms, recommend the most appropriate medical specialization(s) from this list:
-General Medicine, Cardiology, Dermatology, Endocrinology, Gastroenterology, Neurology, Oncology, Orthopedics, Pediatrics, Psychiatry, Pulmonology, Radiology, Surgery, Urology, Gynecology, Ophthalmology, ENT, Emergency Medicine
+STRICT REQUIREMENTS:
+1. Only recommend from these specializations: General Medicine, Cardiology, Dermatology, Endocrinology, Gastroenterology, Neurology, Oncology, Orthopedics, Pediatrics, Psychiatry, Pulmonology, Radiology, Surgery, Urology, Gynecology, Ophthalmology, ENT, Emergency Medicine
+2. Consider age appropriateness (Pediatrics for under 18)
+3. Base recommendations on symptom patterns, not specific diagnoses
+4. Provide educational reasoning only
 
-Think through your reasoning step by step, considering:
-1. The primary symptoms and their potential causes
-2. The patient's age and gender relevance
-3. The urgency level and any red flags
-4. The most appropriate specialist to consult
-
-Provide your response in this JSON format:
+Respond in this EXACT JSON format:
 {
   "primarySpecialization": "specialization name",
   "alternativeSpecializations": ["alt1", "alt2"],
   "urgencyLevel": "low/medium/high",
-  "reasoning": "detailed explanation of your analysis",
-  "redFlags": ["any concerning symptoms that need immediate attention"],
+  "reasoning": "educational explanation of symptom patterns and why this specialization is appropriate",
+  "redFlags": ["symptoms requiring immediate attention"],
   "confidence": 0.8
 }`;
 
       const response = await this.generateResponse(prompt, [], {
         enableReasoning: true,
-        maxTokens: 800
+        maxTokens: 600,
+        temperature: 0.2 // Very low temperature for consistent analysis
       });
 
       // Try to parse JSON from response
       try {
         const jsonMatch = response.content.match(/\{[\s\S]*\}/);
-        const analysis = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+        let analysis = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+        
+        // Validate and sanitize analysis
+        if (analysis) {
+          analysis = this.validateSymptomAnalysis(analysis, symptoms, patientInfo);
+        }
         
         return {
           analysis,
           reasoning: response.reasoning_details,
-          model: response.model
+          model: response.model,
+          isTemplate: response.isTemplate
         };
       } catch (parseError) {
         console.error('Error parsing OpenRouter analysis:', parseError);
+        
+        // Fallback to rule-based analysis
+        const fallbackAnalysis = this.generateFallbackAnalysis(symptoms, patientInfo);
+        
         return {
-          analysis: null,
-          reasoning: response.reasoning_details,
-          model: response.model,
-          rawResponse: response.content
+          analysis: fallbackAnalysis,
+          reasoning: null,
+          model: 'fallback_rules',
+          isTemplate: true
         };
       }
 
     } catch (error) {
       console.error('OpenRouter symptom analysis error:', error);
-      throw error;
+      
+      // Fallback to rule-based analysis
+      const fallbackAnalysis = this.generateFallbackAnalysis(symptoms, patientInfo);
+      
+      return {
+        analysis: fallbackAnalysis,
+        reasoning: null,
+        model: 'fallback_rules',
+        isTemplate: true,
+        error: error.message
+      };
     }
+  }
+
+  /**
+   * Validate and sanitize symptom analysis
+   */
+  validateSymptomAnalysis(analysis, symptoms, patientInfo) {
+    const validSpecializations = [
+      'General Medicine', 'Cardiology', 'Dermatology', 'Endocrinology', 
+      'Gastroenterology', 'Neurology', 'Oncology', 'Orthopedics', 
+      'Pediatrics', 'Psychiatry', 'Pulmonology', 'Radiology', 
+      'Surgery', 'Urology', 'Gynecology', 'Ophthalmology', 'ENT', 
+      'Emergency Medicine'
+    ];
+
+    // Validate primary specialization
+    if (!validSpecializations.includes(analysis.primarySpecialization)) {
+      analysis.primarySpecialization = 'General Medicine';
+    }
+
+    // Validate alternative specializations
+    if (analysis.alternativeSpecializations) {
+      analysis.alternativeSpecializations = analysis.alternativeSpecializations
+        .filter(spec => validSpecializations.includes(spec))
+        .slice(0, 2); // Limit to 2 alternatives
+    }
+
+    // Validate urgency level
+    if (!['low', 'medium', 'high'].includes(analysis.urgencyLevel)) {
+      analysis.urgencyLevel = 'medium';
+    }
+
+    // Ensure confidence is between 0 and 1
+    if (typeof analysis.confidence !== 'number' || analysis.confidence < 0 || analysis.confidence > 1) {
+      analysis.confidence = 0.7;
+    }
+
+    // Age-based validation
+    if (patientInfo.age && patientInfo.age < 18 && analysis.primarySpecialization !== 'Pediatrics') {
+      analysis.alternativeSpecializations = analysis.alternativeSpecializations || [];
+      if (!analysis.alternativeSpecializations.includes('Pediatrics')) {
+        analysis.alternativeSpecializations.unshift('Pediatrics');
+      }
+    }
+
+    return analysis;
+  }
+
+  /**
+   * Generate rule-based fallback analysis
+   */
+  generateFallbackAnalysis(symptoms, patientInfo) {
+    const { age, urgency } = patientInfo;
+    
+    // Simple rule-based mapping
+    const symptomMap = {
+      'chest pain': 'Cardiology',
+      'heart': 'Cardiology',
+      'skin': 'Dermatology',
+      'rash': 'Dermatology',
+      'headache': 'Neurology',
+      'back pain': 'Orthopedics',
+      'joint': 'Orthopedics',
+      'stomach': 'Gastroenterology',
+      'nausea': 'Gastroenterology',
+      'ear': 'ENT',
+      'throat': 'ENT',
+      'eye': 'Ophthalmology',
+      'vision': 'Ophthalmology',
+      'breathing': 'Pulmonology',
+      'cough': 'Pulmonology',
+      'anxiety': 'Psychiatry',
+      'depression': 'Psychiatry'
+    };
+
+    let primarySpecialization = 'General Medicine';
+    const alternativeSpecializations = [];
+
+    // Find matching specialization
+    const lowerSymptoms = symptoms.map(s => s.toLowerCase()).join(' ');
+    for (const [keyword, specialization] of Object.entries(symptomMap)) {
+      if (lowerSymptoms.includes(keyword)) {
+        primarySpecialization = specialization;
+        break;
+      }
+    }
+
+    // Age-based adjustments
+    if (age && age < 18) {
+      alternativeSpecializations.push('Pediatrics');
+    }
+
+    // Urgency-based adjustments
+    let urgencyLevel = 'medium';
+    if (urgency === 'urgent' || urgency === 'high') {
+      urgencyLevel = 'high';
+    }
+
+    return {
+      primarySpecialization,
+      alternativeSpecializations,
+      urgencyLevel,
+      reasoning: 'Based on symptom keyword matching - please consult a healthcare professional for proper evaluation',
+      redFlags: [],
+      confidence: 0.6,
+      isFallback: true
+    };
   }
 }
 
