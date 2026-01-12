@@ -15,6 +15,7 @@ class OpenRouterService {
   /**
    * Generate structured medical response with reduced hallucination
    * @param {string} message - User message
+   * @param {Array} images - Array of image data (base64)
    * @param {Array} conversationHistory - Previous conversation messages
    * @param {Object} options - Additional options
    * @returns {Object} Response with structured content
@@ -23,12 +24,18 @@ class OpenRouterService {
     try {
       const {
         model = this.defaultModel,
+        images = [],
         enableReasoning = true,
         language = 'en',
         languageInfo = null,
         maxTokens = 800,
         temperature = 0.3 // Lower temperature for more consistent responses
       } = options;
+
+      // Use vision model if images are provided
+      const selectedModel = images && images.length > 0 
+        ? 'nvidia/nemotron-nano-12b-v2-vl:free' // Vision-capable model
+        : model;
 
       // Check for emergency situations first
       if (responseTemplates.isEmergency(message, language)) {
@@ -47,11 +54,11 @@ class OpenRouterService {
       const symptom = responseTemplates.extractSymptom(message, language);
       
       // Build structured prompt to reduce hallucination
-      const structuredPrompt = this.buildStructuredPrompt(message, symptom, conversationHistory, language, languageInfo);
+      const structuredPrompt = this.buildStructuredPrompt(message, symptom, conversationHistory, language, languageInfo, images);
 
       // Make API call with structured constraints
       const requestOptions = {
-        model,
+        model: selectedModel,
         messages: structuredPrompt,
         max_tokens: maxTokens,
         temperature, // Lower temperature for consistency
@@ -60,23 +67,23 @@ class OpenRouterService {
         presence_penalty: 0.2
       };
 
-      // Enable reasoning if supported and requested
-      if (enableReasoning) {
+      // Enable reasoning if supported and requested (not available for vision models)
+      if (enableReasoning && !images?.length) {
         requestOptions.reasoning = { enabled: true };
       }
 
-      console.log(`🤖 OpenRouter: Making structured request to ${model}`);
+      console.log(`🤖 OpenRouter: Making structured request to ${selectedModel}${images?.length ? ' (with images)' : ''}`);
       
       const apiResponse = await this.client.chat.completions.create(requestOptions);
       const response = apiResponse.choices[0].message;
       
       // Post-process response to ensure it follows medical guidelines
-      const processedContent = this.postProcessMedicalResponse(response.content, symptom, language);
+      const processedContent = this.postProcessMedicalResponse(response.content, symptom, language, images?.length > 0);
       
       return {
         content: processedContent,
         reasoning_details: response.reasoning_details || null,
-        model: model,
+        model: selectedModel,
         usage: apiResponse.usage,
         finishReason: apiResponse.choices[0].finish_reason,
         isTemplate: false
@@ -104,7 +111,7 @@ class OpenRouterService {
   /**
    * Build structured prompt to reduce hallucination
    */
-  buildStructuredPrompt(message, symptom, conversationHistory, language, languageInfo) {
+  buildStructuredPrompt(message, symptom, conversationHistory, language, languageInfo, images = []) {
     const messages = [];
 
     // System message with strict medical guidelines
@@ -131,6 +138,19 @@ FORBIDDEN:
 - Medication dosages or prescriptions
 - Definitive medical statements
 - Unverified medical claims`;
+
+    // Add image analysis guidelines if images are present
+    if (images && images.length > 0) {
+      systemPrompt += `
+
+IMAGE ANALYSIS GUIDELINES:
+- Describe what you observe in general terms only
+- NEVER provide specific diagnoses based on images
+- Always recommend professional medical evaluation for any visual concerns
+- Focus on general educational information about visible symptoms
+- Emphasize that images cannot replace professional examination
+- Suggest appropriate medical specialists for visual concerns`;
+    }
 
     // Add language-specific instructions
     if (language !== 'en') {
@@ -170,7 +190,10 @@ Tamil Guidelines:
       });
     }
 
-    // Add current user message with structured guidance
+    // Build current user message
+    let userMessageContent = [];
+    
+    // Add text content
     const structuredUserMessage = `User concern: ${message}
 
 Please provide a structured response following the medical guidelines. Focus on:
@@ -180,9 +203,30 @@ Please provide a structured response following the medical guidelines. Focus on:
 
 Keep response factual, helpful, and safe.`;
 
+    // Handle images if present
+    if (images && images.length > 0) {
+      userMessageContent.push({
+        type: 'text',
+        text: structuredUserMessage + `\n\nI have uploaded ${images.length} image(s) for your review. Please analyze them according to the medical guidelines above.`
+      });
+
+      // Add each image
+      images.forEach((image, index) => {
+        userMessageContent.push({
+          type: 'image_url',
+          image_url: {
+            url: image.data,
+            detail: 'high'
+          }
+        });
+      });
+    } else {
+      userMessageContent = structuredUserMessage;
+    }
+
     messages.push({
       role: 'user',
-      content: structuredUserMessage
+      content: userMessageContent
     });
 
     return messages;
@@ -191,7 +235,7 @@ Keep response factual, helpful, and safe.`;
   /**
    * Post-process AI response to ensure medical safety
    */
-  postProcessMedicalResponse(content, symptom, language) {
+  postProcessMedicalResponse(content, symptom, language, hasImages = false) {
     const lang = language === 'ta' ? 'ta' : 'en';
     
     // Check for problematic content

@@ -11,7 +11,7 @@ const openRouterService = require('../services/openRouterService');
 const router = express.Router();
 
 // Generate response using OpenRouter with structured templates
-async function generateAIResponse(message, conversationHistory, language, languageInfo) {
+async function generateAIResponse(message, conversationHistory, language, languageInfo, images = []) {
   try {
     console.log('🤖 Using OpenRouter for AI response...');
 
@@ -21,13 +21,14 @@ async function generateAIResponse(message, conversationHistory, language, langua
       {
         language,
         languageInfo,
+        images,
         enableReasoning: true,
         maxTokens: 800,
         temperature: 0.3 // Lower temperature for consistency
       }
     );
 
-    console.log(`✅ Successfully used OpenRouter model: ${response.model}`);
+    console.log(`✅ Successfully used OpenRouter model: ${response.model}${images?.length ? ' (with images)' : ''}`);
     
     // Log if template was used
     if (response.isTemplate) {
@@ -407,10 +408,10 @@ function fallbackSpecializationMatch(symptoms) {
 // Medical consultation chat
 router.post('/chat', async (req, res) => {
   try {
-    const { message, conversationHistory, language = 'en', languageInfo, sessionId } = req.body;
+    const { message, images, conversationHistory, language = 'en', languageInfo, sessionId } = req.body;
 
-    if (!message) {
-      return res.status(400).json({ message: 'Message is required' });
+    if (!message && (!images || images.length === 0)) {
+      return res.status(400).json({ message: 'Message or images are required' });
     }
 
     // Check if user is authenticated (optional middleware)
@@ -507,7 +508,7 @@ router.post('/chat', async (req, res) => {
       try {
         console.log('🤖 Using OpenRouter for AI response...');
         
-        const response = await generateAIResponse(message, conversationHistory, language, languageInfo);
+        const response = await generateAIResponse(message, conversationHistory, language, languageInfo, images);
         botResponse = response;
         
         console.log('✅ Successfully generated AI response');

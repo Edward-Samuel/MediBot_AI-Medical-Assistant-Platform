@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader, AlertCircle, Mic, MicOff, Copy, Volume2, VolumeX, Save, Menu, Search, Globe } from 'lucide-react';
+import { Send, Bot, User, Loader, AlertCircle, Mic, MicOff, Copy, Volume2, VolumeX, Save, Menu, Search, Globe, Image, X, Camera } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -36,6 +36,8 @@ const ChatBot = () => {
     }
   ]);
   const [inputMessage, setInputMessage] = useState('');
+  const [selectedImages, setSelectedImages] = useState([]);
+  const [imageModal, setImageModal] = useState({ isOpen: false, imageUrl: '', imageName: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
@@ -56,6 +58,7 @@ const ChatBot = () => {
   const messagesEndRef = useRef(null);
   const recognitionRef = useRef(null);
   const speechSynthesisRef = useRef(null);
+  const createdImageURLs = useRef(new Set()); // Track all created URLs for cleanup
 
   
 
@@ -326,10 +329,18 @@ const ChatBot = () => {
         }
       }
       
-      // Escape to stop speaking
-      if (event.key === 'Escape' && speakingMessageId) {
+      // Escape key handling
+      if (event.key === 'Escape') {
         event.preventDefault();
-        stopSpeaking();
+        
+        // Close image modal first priority
+        if (imageModal.isOpen) {
+          closeImageModal();
+        }
+        // Stop speaking second priority
+        else if (speakingMessageId) {
+          stopSpeaking();
+        }
       }
     };
 
@@ -338,7 +349,7 @@ const ChatBot = () => {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isListening, speechSupported, speakingMessageId, currentLanguage]);
+  }, [isListening, speechSupported, speakingMessageId, currentLanguage, imageModal.isOpen]);
 
   // Start voice recognition
   const startListening = () => {
@@ -376,6 +387,125 @@ const ChatBot = () => {
       document.body.removeChild(textArea);
       toast.success(t('copied'));
     }
+  };
+
+  // Image handling functions
+  const handleImageSelect = (event) => {
+    const files = Array.from(event.target.files);
+    
+    if (files.length === 0) return;
+    
+    console.log('Selected files:', files.length);
+    
+    const validFiles = files.filter(file => {
+      const isValidType = file.type.startsWith('image/');
+      const isValidSize = file.size <= 10 * 1024 * 1024; // 10MB limit
+      
+      if (!isValidType) {
+        toast.error(`${file.name} is not a valid image file`);
+        return false;
+      }
+      if (!isValidSize) {
+        toast.error(`${file.name} is too large (max 10MB)`);
+        return false;
+      }
+      return true;
+    });
+
+    if (validFiles.length > 0) {
+      const newImages = validFiles.map((file, index) => {
+        const preview = URL.createObjectURL(file);
+        createdImageURLs.current.add(preview); // Track the URL
+        console.log('Created preview URL:', preview);
+        
+        return {
+          id: Date.now() + index + Math.random(),
+          file,
+          preview,
+          name: file.name,
+          size: file.size,
+          type: file.type
+        };
+      });
+      
+      setSelectedImages(prev => {
+        const combined = [...prev, ...newImages];
+        const limited = combined.slice(0, 5); // Max 5 images
+        
+        // Clean up excess images
+        if (combined.length > 5) {
+          combined.slice(5).forEach(img => {
+            URL.revokeObjectURL(img.preview);
+            createdImageURLs.current.delete(img.preview); // Remove from tracking
+          });
+          toast.error('Maximum 5 images allowed. Extra images were removed.');
+        }
+        
+        return limited;
+      });
+      
+      toast.success(`${validFiles.length} image${validFiles.length > 1 ? 's' : ''} added`);
+      
+      if (validFiles.length < files.length) {
+        toast.error('Some files were skipped due to invalid format or size');
+      }
+    }
+    
+    // Reset input
+    event.target.value = '';
+  };
+
+  const removeImage = (imageId) => {
+    setSelectedImages(prev => {
+      const imageToRemove = prev.find(img => img.id === imageId);
+      if (imageToRemove && imageToRemove.preview) {
+        // Only revoke URL if it's still in selected images (not sent yet)
+        URL.revokeObjectURL(imageToRemove.preview);
+        createdImageURLs.current.delete(imageToRemove.preview);
+        console.log('Revoked URL for removed image:', imageToRemove.name);
+      }
+      return prev.filter(img => img.id !== imageId);
+    });
+  };
+
+  const clearAllImages = () => {
+    selectedImages.forEach(img => {
+      if (img.preview) {
+        URL.revokeObjectURL(img.preview);
+        createdImageURLs.current.delete(img.preview);
+      }
+    });
+    setSelectedImages([]);
+    toast.success('All images cleared');
+  };
+
+  const clearSelectedImagesOnly = () => {
+    // Clear the selected images array without revoking URLs
+    // URLs will be preserved for sent messages in chat history
+    setSelectedImages([]);
+  };
+
+  const openImageFullSize = (imageUrl, imageName) => {
+    // Try to open in modal first, fallback to new window
+    if (imageUrl && imageName) {
+      setImageModal({ isOpen: true, imageUrl, imageName });
+    } else {
+      console.error('Invalid image data:', { imageUrl, imageName });
+    }
+  };
+
+  const closeImageModal = () => {
+    setImageModal({ isOpen: false, imageUrl: '', imageName: '' });
+  };
+
+  // Convert image to base64
+  const convertImageToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   };
 
   // ElevenLabs TTS with fallback to browser TTS
@@ -741,31 +871,68 @@ const ChatBot = () => {
     checkStatus();
   }, []);
 
-  // Clean up speech synthesis on component unmount
+  // Clean up speech synthesis and image URLs on component unmount
   useEffect(() => {
     return () => {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
       }
+      // Cleanup all created image URLs when component unmounts
+      createdImageURLs.current.forEach(url => {
+        URL.revokeObjectURL(url);
+      });
+      createdImageURLs.current.clear();
     };
-  }, []);
+  }, []); // Empty dependency array - only run on unmount
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
     
-    if (!inputMessage.trim() || isLoading) return;
+    if ((!inputMessage.trim() && selectedImages.length === 0) || isLoading) return;
+
+    // Prepare message content
+    let messageContent = inputMessage.trim();
+    let imageData = [];
+
+    // Process images if any
+    if (selectedImages.length > 0) {
+      try {
+        imageData = await Promise.all(
+          selectedImages.map(async (img) => ({
+            name: img.name,
+            size: img.size,
+            type: img.file.type,
+            data: await convertImageToBase64(img.file)
+          }))
+        );
+        
+        if (!messageContent) {
+          messageContent = `I've uploaded ${selectedImages.length} image${selectedImages.length > 1 ? 's' : ''} for analysis. Please help me understand what you see.`;
+        }
+      } catch (error) {
+        toast.error('Failed to process images');
+        return;
+      }
+    }
 
     const userMessage = {
       id: Date.now(),
       role: 'user',
-      content: inputMessage.trim(),
+      content: messageContent,
+      images: selectedImages.map(img => ({
+        id: img.id,
+        name: img.name,
+        preview: img.preview,
+        size: img.size
+      })),
       timestamp: new Date(),
       webSearchMode: webSearchMode // Add web search mode indicator
     };
 
     setMessages(prev => [...prev, userMessage]);
-    const originalMessage = inputMessage.trim();
+    const originalMessage = messageContent;
     setInputMessage('');
+    clearSelectedImagesOnly(); // Clear selection without revoking URLs
     setIsLoading(true);
 
     try {
@@ -789,6 +956,7 @@ const ChatBot = () => {
       // Send message to AI endpoint with language information and session ID
       const response = await axios.post('/api/ai/chat', {
         message: messageToSend,
+        images: imageData, // Include image data
         conversationHistory: messages.slice(-5), // Send last 5 messages for context
         language: currentLanguage,
         languageInfo: getCurrentLanguageInfo(),
@@ -1017,6 +1185,53 @@ const ChatBot = () => {
                       {formatMessage(message.content)}
                     </div>
                     
+                    {/* Display images for user messages */}
+                    {message.images && message.images.length > 0 && (
+                      <div className="mt-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                          {message.images.map((image) => (
+                            <div key={image.id} className="relative group cursor-pointer">
+                              <img
+                                src={image.preview}
+                                alt={image.name}
+                                className="w-full h-24 object-cover rounded-lg border border-gray-200 dark:border-gray-600 hover:border-green-400 transition-colors"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openImageFullSize(image.preview, image.name);
+                                }}
+                                onError={(e) => {
+                                  console.error('Image failed to load:', image.name);
+                                  e.target.style.display = 'none';
+                                }}
+                              />
+                              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded-lg flex items-center justify-center">
+                                <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openImageFullSize(image.preview, image.name);
+                                    }}
+                                    className="p-2 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:shadow-xl transition-shadow"
+                                    title="View full size"
+                                  >
+                                    <Image className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="absolute bottom-1 left-1 right-1">
+                                <div className="bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded truncate">
+                                  {image.name}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                          Click images to view full size
+                        </div>
+                      </div>
+                    )}
+                    
                     {/* Search Results Sources */}
                     {message.searchResults && message.searchResults.sources && message.searchResults.sources.length > 0 && (
                       <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/10 rounded-lg border border-blue-200 dark:border-blue-800">
@@ -1196,61 +1411,148 @@ const ChatBot = () => {
               </div>
             </div>
 
-            <form onSubmit={handleSendMessage} className="flex space-x-3">
-              <div className="flex-1 relative">
-                <input
-                  type="text"
-                  value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
-                  placeholder={
-                    webSearchMode 
-                      ? "Search medical information (e.g., 'diabetes treatment guidelines')" 
-                      : t('placeholder')
-                  }
-                  className={`w-full px-4 py-3 border rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:border-transparent pr-12 shadow-sm transition-all duration-200 ${
-                    webSearchMode
-                      ? 'border-blue-300 dark:border-blue-600 focus:ring-blue-500'
-                      : 'border-gray-300 dark:border-gray-600 focus:ring-green-500'
-                  }`}
-                  disabled={isLoading || isListening}
-                />
-                
-                {/* Voice Input Button */}
-                {speechSupported && (
-                  <button
-                    type="button"
-                    onClick={isListening ? stopListening : startListening}
-                    disabled={isLoading}
-                    className={`absolute right-3 top-1/2 transform -translate-y-1/2 p-2 rounded-full transition-all duration-200 ${
-                      isListening 
-                        ? 'bg-red-100 text-red-600 hover:bg-red-200 animate-pulse' 
+            <form onSubmit={handleSendMessage} className="space-y-3">
+              {/* Image Preview Section */}
+              {selectedImages.length > 0 && (
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {selectedImages.length} image{selectedImages.length > 1 ? 's' : ''} selected
+                    </span>
+                    <button
+                      type="button"
+                      onClick={clearAllImages}
+                      className="text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200 transition-colors"
+                    >
+                      Clear all
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                    {selectedImages.map((image) => (
+                      <div key={image.id} className="relative group">
+                        <img
+                          src={image.preview}
+                          alt={image.name}
+                          className="w-full h-16 object-cover rounded border border-gray-300 dark:border-gray-600 cursor-pointer hover:border-green-400 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openImageFullSize(image.preview, image.name);
+                          }}
+                          onError={(e) => {
+                            console.error('Preview image failed to load:', image.name);
+                            e.target.style.display = 'none';
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeImage(image.id);
+                          }}
+                          className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                          title="Remove image"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                        <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs px-1 py-0.5 rounded-b truncate">
+                          {image.name}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    Click images to preview • Click X to remove
+                  </div>
+                </div>
+              )}
+
+              <div className="flex space-x-3">
+                <div className="flex-1 relative">
+                  <input
+                    type="text"
+                    value={inputMessage}
+                    onChange={(e) => setInputMessage(e.target.value)}
+                    placeholder={
+                      webSearchMode 
+                        ? "Search medical information (e.g., 'diabetes treatment guidelines')" 
+                        : selectedImages.length > 0
+                        ? "Describe what you'd like to know about these images..."
+                        : t('placeholder')
+                    }
+                    className={`w-full px-4 py-3 border rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:border-transparent pr-20 shadow-sm transition-all duration-200 ${
+                      webSearchMode
+                        ? 'border-blue-300 dark:border-blue-600 focus:ring-blue-500'
+                        : 'border-gray-300 dark:border-gray-600 focus:ring-green-500'
+                    }`}
+                    disabled={isLoading || isListening}
+                  />
+                  
+                  {/* Image Upload Button */}
+                  <label className="absolute right-12 top-1/2 transform -translate-y-1/2 cursor-pointer">
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={handleImageSelect}
+                      className="hidden"
+                      disabled={isLoading || selectedImages.length >= 5}
+                    />
+                    <div className={`p-2 rounded-full transition-all duration-200 ${
+                      selectedImages.length >= 5
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : selectedImages.length > 0
+                        ? 'bg-green-100 text-green-600 hover:bg-green-200'
                         : 'bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-500'
-                    } disabled:opacity-50 disabled:cursor-not-allowed`}
-                    title={isListening ? t('stopVoice') : t('startVoice')}
-                  >
-                    {isListening ? (
-                      <MicOff className="h-4 w-4" />
-                    ) : (
-                      <Mic className="h-4 w-4" />
-                    )}
-                  </button>
-                )}
+                    }`}
+                    title={
+                      selectedImages.length >= 5 
+                        ? 'Maximum 5 images allowed' 
+                        : selectedImages.length > 0
+                        ? `${selectedImages.length} image${selectedImages.length > 1 ? 's' : ''} selected`
+                        : 'Upload images'
+                    }
+                    >
+                      <Camera className="h-4 w-4" />
+                    </div>
+                  </label>
+                  
+                  {/* Voice Input Button */}
+                  {speechSupported && (
+                    <button
+                      type="button"
+                      onClick={isListening ? stopListening : startListening}
+                      disabled={isLoading}
+                      className={`absolute right-3 top-1/2 transform -translate-y-1/2 p-2 rounded-full transition-all duration-200 ${
+                        isListening 
+                          ? 'bg-red-100 text-red-600 hover:bg-red-200 animate-pulse' 
+                          : 'bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-500'
+                      } disabled:opacity-50 disabled:cursor-not-allowed`}
+                      title={isListening ? t('stopVoice') : t('startVoice')}
+                    >
+                      {isListening ? (
+                        <MicOff className="h-4 w-4" />
+                      ) : (
+                        <Mic className="h-4 w-4" />
+                      )}
+                    </button>
+                  )}
+                </div>
+                
+                <button
+                  type="submit"
+                  disabled={(!inputMessage.trim() && selectedImages.length === 0) || isLoading || isListening}
+                  className={`px-4 py-3 text-white rounded-xl transition-colors disabled:cursor-not-allowed flex items-center space-x-2 shadow-sm ${
+                    webSearchMode
+                      ? 'bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 dark:disabled:bg-gray-600'
+                      : 'bg-green-600 hover:bg-green-700 disabled:bg-gray-300 dark:disabled:bg-gray-600'
+                  }`}
+                >
+                  {webSearchMode ? <Search className="h-4 w-4" /> : <Send className="h-4 w-4" />}
+                  <span className="hidden sm:inline">
+                    {webSearchMode ? 'Search' : t('send')}
+                  </span>
+                </button>
               </div>
-              
-              <button
-                type="submit"
-                disabled={!inputMessage.trim() || isLoading || isListening}
-                className={`px-4 py-3 text-white rounded-xl transition-colors disabled:cursor-not-allowed flex items-center space-x-2 shadow-sm ${
-                  webSearchMode
-                    ? 'bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 dark:disabled:bg-gray-600'
-                    : 'bg-green-600 hover:bg-green-700 disabled:bg-gray-300 dark:disabled:bg-gray-600'
-                }`}
-              >
-                {webSearchMode ? <Search className="h-4 w-4" /> : <Send className="h-4 w-4" />}
-                <span className="hidden sm:inline">
-                  {webSearchMode ? 'Search' : t('send')}
-                </span>
-              </button>
             </form>
             
             {/* Voice Status Indicator */}
@@ -1287,6 +1589,33 @@ const ChatBot = () => {
           </div>
         </div>
       </div>
+
+      {/* Image Modal */}
+      {imageModal.isOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4"
+          onClick={closeImageModal}
+        >
+          <div className="relative max-w-4xl max-h-[90vh] w-full h-full flex items-center justify-center">
+            <button
+              onClick={closeImageModal}
+              className="absolute top-4 right-4 bg-white dark:bg-gray-800 text-gray-800 dark:text-white rounded-full p-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors z-10"
+              title="Close"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <img
+              src={imageModal.imageUrl}
+              alt={imageModal.imageName}
+              className="max-w-full max-h-full object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <div className="absolute bottom-4 left-4 right-4 bg-black bg-opacity-50 text-white p-3 rounded-lg">
+              <p className="text-sm font-medium truncate">{imageModal.imageName}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Appointment Booking Widget Overlay */}
       {showAppointmentWidget && appointmentData && (
