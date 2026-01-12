@@ -14,6 +14,10 @@ const messageSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  images: {
+    type: [mongoose.Schema.Types.Mixed], // More flexible schema
+    default: []
+  },
   timestamp: {
     type: Date,
     default: Date.now
@@ -93,7 +97,11 @@ chatHistorySchema.methods.getRecentMessages = function(limit = 10) {
 
 // Static method to get user's chat sessions
 chatHistorySchema.statics.getUserSessions = function(userId, limit = 20) {
-  return this.find({ userId, isActive: true })
+  return this.find({ 
+    userId, 
+    isActive: true,
+    $expr: { $gt: [{ $size: "$messages" }, 0] } // Only sessions with messages
+  })
     .sort({ updatedAt: -1 })
     .limit(limit)
     .select('sessionId title updatedAt messages language');

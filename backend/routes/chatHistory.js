@@ -11,15 +11,17 @@ router.get('/sessions', authenticateToken, async (req, res) => {
     const userId = req.user._id || req.user.id;
     const sessions = await ChatHistory.getUserSessions(userId);
     
-    // Add message count to each session
-    const sessionsWithCount = sessions.map(session => ({
-      ...session.toObject(),
-      messageCount: session.messages ? session.messages.length : 0
-    }));
+    // Filter out sessions with no messages and add message count
+    const sessionsWithMessages = sessions
+      .filter(session => session.messages && session.messages.length > 0)
+      .map(session => ({
+        ...session.toObject(),
+        messageCount: session.messages.length
+      }));
 
     res.json({
-      sessions: sessionsWithCount,
-      total: sessions.length
+      sessions: sessionsWithMessages,
+      total: sessionsWithMessages.length
     });
   } catch (error) {
     console.error('Error fetching chat sessions:', error);
@@ -213,7 +215,13 @@ router.get('/stats', authenticateToken, async (req, res) => {
   try {
     const userId = req.user._id || req.user.id;
     const stats = await ChatHistory.aggregate([
-      { $match: { userId: userId, isActive: true } },
+      { 
+        $match: { 
+          userId: userId, 
+          isActive: true,
+          $expr: { $gt: [{ $size: "$messages" }, 0] } // Only sessions with messages
+        } 
+      },
       {
         $group: {
           _id: null,
@@ -255,7 +263,8 @@ router.get('/search', authenticateToken, async (req, res) => {
 
     const searchFilter = {
       userId: userId,
-      isActive: true
+      isActive: true,
+      $expr: { $gt: [{ $size: "$messages" }, 0] } // Only sessions with messages
     };
 
     // Add language filter if specified
@@ -316,6 +325,30 @@ router.get('/search', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error searching chat history:', error);
     res.status(500).json({ message: 'Error searching chat history' });
+  }
+});
+
+// Cleanup empty chat sessions (admin/maintenance endpoint)
+router.delete('/cleanup-empty', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.id;
+    
+    // Find and delete sessions with no messages
+    const result = await ChatHistory.deleteMany({
+      userId: userId,
+      $or: [
+        { messages: { $size: 0 } },
+        { messages: { $exists: false } }
+      ]
+    });
+
+    res.json({
+      message: 'Empty chat sessions cleaned up successfully',
+      deletedCount: result.deletedCount
+    });
+  } catch (error) {
+    console.error('Error cleaning up empty sessions:', error);
+    res.status(500).json({ message: 'Error cleaning up empty sessions' });
   }
 });
 

@@ -569,22 +569,73 @@ router.post('/chat', async (req, res) => {
         }
 
         // Add user message
-        await chatHistory.addMessage({
-          id: uuidv4(),
-          role: 'user',
-          content: message,
-          language,
-          timestamp: new Date()
+        console.log('Saving user message with images:', {
+          messageLength: message?.length,
+          imagesCount: images?.length,
+          imagesType: typeof images,
+          firstImageSample: images?.[0] ? {
+            name: images[0].name,
+            size: images[0].size,
+            type: images[0].type,
+            dataLength: images[0].data?.length,
+            dataPrefix: images[0].data?.substring(0, 50)
+          } : null
         });
+        
+        // Validate and clean images data
+        const validImages = Array.isArray(images) ? images.filter(img => {
+          const isValid = img && 
+            typeof img.name === 'string' && 
+            typeof img.size === 'number' && 
+            typeof img.type === 'string' && 
+            typeof img.data === 'string' &&
+            img.data.startsWith('data:');
+          
+          if (!isValid) {
+            console.log('Invalid image data:', img);
+          }
+          return isValid;
+        }) : [];
+        
+        console.log('Valid images after filtering:', validImages.length);
+        
+        try {
+          await chatHistory.addMessage({
+            id: uuidv4(),
+            role: 'user',
+            content: message,
+            images: validImages,
+            language,
+            timestamp: new Date()
+          });
+          console.log('User message saved successfully');
+        } catch (saveError) {
+          console.error('Error saving user message:', saveError);
+          // Continue without failing the request
+        }
 
         // Add bot response
-        await chatHistory.addMessage({
-          id: uuidv4(),
-          role: 'bot',
-          content: botResponse,
-          language,
-          timestamp: new Date()
-        });
+        try {
+          // Ensure botResponse is a string
+          let contentToSave = botResponse;
+          if (typeof botResponse === 'object' && botResponse !== null) {
+            // If it's an object, try to extract formatted text
+            contentToSave = botResponse.formatted || botResponse.text || JSON.stringify(botResponse);
+            console.log('Bot response was object, extracted:', typeof contentToSave);
+          }
+          
+          await chatHistory.addMessage({
+            id: uuidv4(),
+            role: 'bot',
+            content: contentToSave,
+            language,
+            timestamp: new Date()
+          });
+          console.log('Bot message saved successfully');
+        } catch (saveError) {
+          console.error('Error saving bot message:', saveError);
+          // Continue without failing the request
+        }
 
         console.log(`Chat history saved for user ${userId}, session ${currentSessionId}, total messages: ${chatHistory.messages.length}`);
       } catch (historyError) {

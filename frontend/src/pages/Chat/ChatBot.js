@@ -155,7 +155,34 @@ const ChatBot = () => {
       });
 
       if (response.data.messages) {
-        setMessages(response.data.messages);
+        console.log('Loading chat history with', response.data.messages.length, 'messages');
+        
+        // Process messages to handle image data
+        const processedMessages = response.data.messages.map((message, index) => {
+          if (message.images && message.images.length > 0) {
+            console.log(`Message ${index} has ${message.images.length} images`);
+            
+            const processedImages = message.images.map(img => {
+              console.log('Processing image:', img.name, 'Data length:', img.data?.length);
+              return {
+                id: Date.now() + Math.random(),
+                name: img.name,
+                preview: img.data, // Use base64 data URL directly
+                size: img.size,
+                type: img.type
+              };
+            });
+            
+            return {
+              ...message,
+              images: processedImages
+            };
+          }
+          return message;
+        });
+        
+        console.log('Processed messages:', processedMessages.length);
+        setMessages(processedMessages);
         setCurrentSessionId(sessionId);
         setChatSaved(true);
         setSidebarOpen(false); // Close sidebar after loading
@@ -486,7 +513,7 @@ const ChatBot = () => {
   };
 
   const openImageFullSize = (imageUrl, imageName) => {
-    // Try to open in modal first, fallback to new window
+    // Handle both blob URLs and base64 data URLs
     if (imageUrl && imageName) {
       setImageModal({ isOpen: true, imageUrl, imageName });
     } else {
@@ -954,6 +981,17 @@ const ChatBot = () => {
       }
 
       // Send message to AI endpoint with language information and session ID
+      console.log('Sending to backend:', {
+        messageLength: messageToSend?.length,
+        imagesCount: imageData?.length,
+        firstImageSample: imageData?.[0] ? {
+          name: imageData[0].name,
+          size: imageData[0].size,
+          type: imageData[0].type,
+          dataLength: imageData[0].data?.length
+        } : null
+      });
+      
       const response = await axios.post('/api/ai/chat', {
         message: messageToSend,
         images: imageData, // Include image data
@@ -1200,8 +1238,11 @@ const ChatBot = () => {
                                   openImageFullSize(image.preview, image.name);
                                 }}
                                 onError={(e) => {
-                                  console.error('Image failed to load:', image.name);
+                                  console.error('Image failed to load:', image.name, 'URL:', image.preview);
                                   e.target.style.display = 'none';
+                                }}
+                                onLoad={() => {
+                                  console.log('Image loaded successfully:', image.name);
                                 }}
                               />
                               <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded-lg flex items-center justify-center">
@@ -1227,7 +1268,7 @@ const ChatBot = () => {
                           ))}
                         </div>
                         <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                          Click images to view full size
+                          Click images to view full size • {message.images.length} image{message.images.length > 1 ? 's' : ''}
                         </div>
                       </div>
                     )}

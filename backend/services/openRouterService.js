@@ -94,10 +94,10 @@ class OpenRouterService {
       
       // Fallback to template response
       const symptom = responseTemplates.extractSymptom(message, language);
-      const fallbackContent = responseTemplates.generateMedicalResponse(message, symptom, language);
+      const fallbackResponse = responseTemplates.generateMedicalResponse(message, symptom, language);
       
       return {
-        content: fallbackContent,
+        content: fallbackResponse.formatted, // Use formatted string, not the whole object
         reasoning_details: null,
         model: 'fallback_template',
         usage: { total_tokens: 0 },
@@ -388,10 +388,10 @@ Keep response factual, helpful, and safe.`;
       
       // Fallback to template response
       const symptom = responseTemplates.extractSymptom(newMessage, options.language);
-      const fallbackContent = responseTemplates.generateMedicalResponse(newMessage, symptom, options.language);
+      const fallbackResponse = responseTemplates.generateMedicalResponse(newMessage, symptom, options.language);
       
       return {
-        content: fallbackContent,
+        content: fallbackResponse.formatted, // Use formatted string, not the whole object
         reasoning_details: null,
         model: 'fallback_template',
         usage: { total_tokens: 0 },
@@ -406,7 +406,7 @@ Keep response factual, helpful, and safe.`;
           },
           {
             role: 'assistant',
-            content: fallbackContent
+            content: fallbackResponse.formatted // Use formatted string here too
           }
         ]
       };
