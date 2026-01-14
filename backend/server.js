@@ -16,6 +16,9 @@ const chatHistoryRoutes = require('./routes/chatHistory');
 
 const app = express();
 
+// Trust proxy - required for rate limiting behind proxies/load balancers
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet());
 app.use(cors({
