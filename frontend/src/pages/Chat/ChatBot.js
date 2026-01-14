@@ -49,12 +49,12 @@ const ChatBot = () => {
   const [appointmentData, setAppointmentData] = useState(null);
   const [webSearchMode, setWebSearchMode] = useState(false);
   const [webSearchStatus, setWebSearchStatus] = useState({ 
-    available: null, // null = not checked yet, true/false = checked
-    configured: null, // null = not checked yet, true/false = checked
+    available: true, // Always available
+    configured: true, // Always configured
     loading: false,
     error: null
   });
-  const [webSearchStatusChecked, setWebSearchStatusChecked] = useState(false);
+  const [webSearchStatusChecked, setWebSearchStatusChecked] = useState(true); // Already checked
   const messagesEndRef = useRef(null);
   const recognitionRef = useRef(null);
   const speechSynthesisRef = useRef(null);
@@ -68,6 +68,14 @@ const ChatBot = () => {
     
     // Handle different formatting patterns
     const formatText = (content) => {
+      // Ensure content is a string
+      if (!content) return null;
+      if (typeof content !== 'string') {
+        console.warn('formatText received non-string content:', typeof content, content);
+        // Try to convert to string
+        content = String(content);
+      }
+      
       // Split by lines first to handle lists and paragraphs
       const lines = content.split('\n');
       
@@ -797,105 +805,23 @@ const ChatBot = () => {
     };
   }, [currentLanguage]);
 
-  // Simplified web search status check with enhanced debugging
+  // Simplified web search status check - disabled, always available
   const checkWebSearchStatus = async (forceCheck = false) => {
-    if (!forceCheck && webSearchStatusChecked) return; // Already checked
-    
-    setWebSearchStatus(prev => ({ ...prev, loading: true }));
-    setWebSearchStatusChecked(true);
-
-    try {
-      console.log('🔍 Checking web search status...');
-      console.log('🔍 Making request to /api/ai/status');
-      
-      const response = await axios.get('/api/ai/status', {
-        timeout: 5000
-      });
-
-      console.log('🔍 Backend response received:', response.data);
-      console.log('🔍 Services object:', response.data.services);
-      console.log('🔍 TavilySearch object:', response.data.services?.tavilySearch);
-
-      if (response.data.services?.tavilySearch) {
-        const tavilyData = response.data.services.tavilySearch;
-        const status = {
-          available: tavilyData.available,
-          configured: tavilyData.configured,
-          loading: false,
-          error: null
-        };
-        
-        console.log('✅ Setting web search status:', status);
-        setWebSearchStatus(status);
-      } else {
-        console.log('❌ No tavilySearch in response');
-        const errorStatus = { 
-          available: false, 
-          configured: false, 
-          loading: false,
-          error: 'service_not_found'
-        };
-        console.log('❌ Setting error status:', errorStatus);
-        setWebSearchStatus(errorStatus);
-      }
-    } catch (error) {
-      console.error('❌ Error checking web search status:', error);
-      console.error('❌ Error details:', {
-        message: error.message,
-        code: error.code,
-        response: error.response?.data
-      });
-      const errorStatus = { 
-        available: false, 
-        configured: false, 
-        loading: false,
-        error: error.name === 'AbortError' ? 'timeout' : 'network'
-      };
-      console.log('❌ Setting network error status:', errorStatus);
-      setWebSearchStatus(errorStatus);
-    }
+    // Web search is always available, no need to check
+    console.log('✅ Web search is always available (check disabled)');
+    return;
   };
 
-  // Handle web search toggle - simplified
+  // Handle web search toggle - simplified, always available
   const handleWebSearchToggle = async () => {
-    // If there was an error, retry the check
-    if (webSearchStatus.error) {
-      console.log('Retrying web search status check due to error');
-      setWebSearchStatusChecked(false);
-      setWebSearchStatus({ available: null, configured: null, loading: false, error: null });
-      await checkWebSearchStatus(true); // Force check
-      return;
-    }
-    
-    if (!webSearchStatusChecked) {
-      await checkWebSearchStatus();
-    }
-    
-    if (webSearchStatus.available) {
-      setWebSearchMode(!webSearchMode);
-    } else {
-      console.log('Web search not available:', webSearchStatus);
-      // Show user-friendly message
-      if (webSearchStatus.configured === false) {
-        toast.error('Web search is not configured on the server');
-      } else if (webSearchStatus.error === 'timeout') {
-        toast.error('Connection timeout - please try again');
-      } else {
-        toast.error('Web search is temporarily unavailable');
-      }
-    }
+    setWebSearchMode(!webSearchMode);
+    console.log('Web search mode toggled:', !webSearchMode);
   };
 
-  // Auto-check web search status on component mount
+  // Auto-check web search status on component mount - disabled
   useEffect(() => {
-    // Auto-check web search status immediately
-    const checkStatus = async () => {
-      console.log('Auto-checking web search status on mount...');
-      await checkWebSearchStatus(false);
-    };
-    
-    // Check immediately
-    checkStatus();
+    // Web search is always available, no need to check
+    console.log('✅ Web search is always available');
   }, []);
 
   // Clean up speech synthesis and image URLs on component unmount
@@ -1004,7 +930,9 @@ const ChatBot = () => {
       const botMessage = {
         id: Date.now() + 1,
         role: 'bot',
-        content: response.data.response,
+        content: typeof response.data.response === 'string' 
+          ? response.data.response 
+          : response.data.response?.formatted || response.data.response?.text || JSON.stringify(response.data.response),
         timestamp: new Date(),
         webSearchData: response.data.webSearchData,
         searchResults: response.data.searchResults
@@ -1056,7 +984,9 @@ const ChatBot = () => {
         const botMessage = {
           id: Date.now() + 1,
           role: 'bot',
-          content: error.response.data.response,
+          content: typeof error.response.data.response === 'string'
+            ? error.response.data.response
+            : error.response.data.response?.formatted || error.response.data.response?.text || JSON.stringify(error.response.data.response),
           timestamp: new Date()
         };
         setMessages(prev => [...prev, botMessage]);
@@ -1399,49 +1329,21 @@ const ChatBot = () => {
                       : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800 cursor-not-allowed'
                   }`}
                   title={
-                    webSearchStatus.loading
-                      ? 'Checking web search availability...'
-                      : webSearchMode 
-                      ? 'Disable web search mode' 
-                      : webSearchStatus.available
-                      ? 'Enable web search mode'
-                      : webSearchStatus.error === 'timeout'
-                      ? 'Connection timeout - click to retry'
-                      : webSearchStatus.configured === false
-                      ? 'Web search not configured'
-                      : webSearchStatus.configured === null
-                      ? 'Checking web search configuration...'
-                      : 'Web search temporarily unavailable'
+                    webSearchMode ? 'Disable web search mode' : 'Enable web search mode'
                   }
                 >
-                  <Search className={`h-4 w-4 ${webSearchMode ? 'animate-pulse' : webSearchStatus.loading ? 'animate-spin' : ''}`} />
+                  <Search className={`h-4 w-4 ${webSearchMode ? 'animate-pulse' : ''}`} />
                   <span>Web Search</span>
-                  {webSearchStatus.loading && (
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
-                  )}
-                  {webSearchMode && !webSearchStatus.loading && (
+                  {webSearchMode && (
                     <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                  )}
-                  {!webSearchStatus.available && !webSearchStatus.loading && webSearchStatusChecked && (
-                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
                   )}
                 </button>
                 
                 <div className="text-xs text-gray-500 dark:text-gray-400">
-                  {webSearchStatus.loading ? (
-                    <span className="animate-pulse">Checking availability...</span>
-                  ) : webSearchMode ? (
+                  {webSearchMode ? (
                     <span className="text-blue-600 dark:text-blue-400">🔍 Will search trusted medical sources</span>
-                  ) : webSearchStatus.available ? (
-                    <span>Search current medical research and guidelines</span>
-                  ) : webSearchStatus.error === 'timeout' ? (
-                    <span className="text-red-600 dark:text-red-400">Connection timeout - click to retry</span>
-                  ) : webSearchStatus.configured === false ? (
-                    <span className="text-red-600 dark:text-red-400">Web search not configured</span>
-                  ) : webSearchStatus.configured === null ? (
-                    <span className="text-gray-500 dark:text-gray-400">Checking configuration...</span>
                   ) : (
-                    <span className="text-orange-600 dark:text-orange-400">Web search temporarily unavailable</span>
+                    <span>Search current medical research and guidelines</span>
                   )}
                 </div>
               </div>

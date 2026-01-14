@@ -526,25 +526,6 @@ END:VCALENDAR`;
     return slots;
   }
 
-  // Test the calendar connection
-  async testConnection() {
-    try {
-      if (!this.initialized) {
-        await this.initialize();
-      }
-
-      const response = await this.calendar.calendarList.list();
-      console.log('Calendar connection test successful');
-      console.log('Available calendars:', response.data.items.map(cal => ({
-        id: cal.id,
-        summary: cal.summary
-      })));
-      return true;
-    } catch (error) {
-      console.error('Calendar connection test failed:', error.message);
-      return false;
-    }
-  }
 }
 
 module.exports = new GoogleCalendarService();
