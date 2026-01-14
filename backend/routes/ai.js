@@ -826,7 +826,7 @@ router.get('/status', async (req, res) => {
   const services = {
     openrouter: { available: false, priority: 'primary' },
     calendar: { available: true },
-    tavilySearch: { available: true }
+    tavilySearch: { available: false, configured: false }
   };
 
   // Check OpenRouter availability
@@ -836,6 +836,19 @@ router.get('/status', async (req, res) => {
     }
   } catch (error) {
     console.log('OpenRouter status check failed:', error.message);
+  }
+
+  // Check Tavily Search availability
+  try {
+    if (tavilySearch.initialized) {
+      services.tavilySearch.available = true;
+      services.tavilySearch.configured = true;
+      console.log('✅ Tavily Search is configured and available');
+    } else {
+      console.log('⚠️  Tavily Search not configured - TAVILY_API_KEY missing');
+    }
+  } catch (error) {
+    console.log('Tavily Search status check failed:', error.message);
   }
 
   let message = 'OpenRouter AI service';
