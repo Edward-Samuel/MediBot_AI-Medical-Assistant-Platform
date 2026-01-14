@@ -9,7 +9,7 @@ class OpenRouterService {
     });
     
     // Default model with reasoning capabilities
-    this.defaultModel = 'nvidia/nemotron-nano-12b-v2-vl:free';
+    this.defaultModel = 'openai/gpt-oss-120b';
   }
 
   /**
@@ -34,7 +34,7 @@ class OpenRouterService {
 
       // Use vision model if images are provided
       const selectedModel = images && images.length > 0 
-        ? 'nvidia/nemotron-nano-12b-v2-vl:free' // Vision-capable model
+        ? 'openai/gpt-oss-120b' // Vision-capable model
         : model;
 
       // Check for emergency situations first
@@ -522,7 +522,7 @@ IMPORTANT GUIDELINES:
       // Return a list of commonly available models
       return [
         {
-          id: 'nvidia/nemotron-nano-12b-v2-vl:free',
+          id: 'openai/gpt-oss-120b',
           name: 'Nemotron Nano 12B VL (Free)',
           description: 'NVIDIA\'s vision-language model with reasoning capabilities',
           reasoning: true,
