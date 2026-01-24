@@ -92,17 +92,18 @@ class OpenRouterService {
     } catch (error) {
       console.error('OpenRouter API error:', error);
       
-      // Fallback to template response
-      const symptom = responseTemplates.extractSymptom(message, language);
-      const fallbackResponse = responseTemplates.generateMedicalResponse(message, symptom, language);
+      // Return a simple error message instead of template fallback
+      const errorMessage = language === 'ta' 
+        ? 'மன்னிக்கவும், தற்போது AI சேவை கிடைக்கவில்லை. பின்னர் முயற்சிக்கவும்.'
+        : 'Sorry, the AI service is currently unavailable. Please try again later.';
       
       return {
-        content: fallbackResponse.formatted, // Use formatted string, not the whole object
+        content: errorMessage,
         reasoning_details: null,
-        model: 'fallback_template',
+        model: 'error',
         usage: { total_tokens: 0 },
-        finishReason: 'fallback_template',
-        isTemplate: true,
+        finishReason: 'error',
+        isTemplate: false,
         error: error.message
       };
     }
@@ -115,54 +116,40 @@ class OpenRouterService {
     const messages = [];
 
     // System message with strict medical guidelines
-    let systemPrompt = `You are MEDIBOT, a medical information assistant. You must follow these STRICT guidelines:
+    let systemPrompt = `You are MEDIBOT, a medical AI assistant.
 
-CRITICAL RULES:
-1. NEVER provide specific medical diagnoses
-2. ALWAYS recommend consulting healthcare professionals
-3. Only provide general, educational health information
-4. Use structured, factual responses
-5. Include appropriate disclaimers
-6. For emergencies, direct to immediate medical care
-
-RESPONSE STRUCTURE:
-1. Acknowledge the concern
-2. Provide general, factual information only
-3. List when to seek professional help
-4. Emphasize professional consultation
-5. Include medical disclaimer
+RULES:
+1. Answer user's question directly first
+2. Use natural, conversational language
+3. No bold titles, headers, or numbered sections
+4. Write in flowing paragraphs
+5. Add medical disclaimers after answering
+6. For emergencies, direct to immediate care
 
 FORBIDDEN:
-- Specific diagnoses ("You have...")
-- Specific treatment recommendations
-- Medication dosages or prescriptions
-- Definitive medical statements
-- Unverified medical claims`;
+- Bold titles (**Title:** format)
+- Numbered sections (1., 2., 3.)
+- Template phrases
+- Specific diagnoses
+- Medication dosages`;
 
     // Add image analysis guidelines if images are present
     if (images && images.length > 0) {
       systemPrompt += `
 
-IMAGE ANALYSIS GUIDELINES:
-- Describe what you observe in general terms only
-- NEVER provide specific diagnoses based on images
-- Always recommend professional medical evaluation for any visual concerns
-- Focus on general educational information about visible symptoms
-- Emphasize that images cannot replace professional examination
-- Suggest appropriate medical specialists for visual concerns`;
+IMAGE ANALYSIS:
+- Describe observations in general terms only
+- Never diagnose from images
+- Recommend professional evaluation
+- Images cannot replace medical examination`;
     }
 
     // Add language-specific instructions
     if (language !== 'en') {
-      systemPrompt += `\n\nLanguage: Respond in ${languageInfo?.name || language}. Use clear, respectful medical terminology.`;
+      systemPrompt += `\n\nRespond in ${languageInfo?.name || language}. Use clear medical terms.`;
       
       if (language === 'ta') {
-        systemPrompt += `
-Tamil Guidelines:
-- Use respectful Tamil medical terms
-- Include common Tamil phrases for medical conditions
-- Use simple, easily understood Tamil words
-- Be culturally sensitive to Tamil healthcare practices`;
+        systemPrompt += ` Use simple Tamil words and respectful medical terminology.`;
       }
     }
 
@@ -194,20 +181,15 @@ Tamil Guidelines:
     let userMessageContent = [];
     
     // Add text content
-    const structuredUserMessage = `User concern: ${message}
+    const structuredUserMessage = `${message}
 
-Please provide a structured response following the medical guidelines. Focus on:
-1. General information about ${symptom}
-2. When to seek professional medical help
-3. Clear disclaimer about professional consultation
-
-Keep response factual, helpful, and safe.`;
+Answer directly without titles or sections. Use natural paragraphs.`;
 
     // Handle images if present
     if (images && images.length > 0) {
       userMessageContent.push({
         type: 'text',
-        text: structuredUserMessage + `\n\nI have uploaded ${images.length} image(s) for your review. Please analyze them according to the medical guidelines above.`
+        text: structuredUserMessage + ` Analyze the ${images.length} uploaded image(s) in natural paragraphs.`
       });
 
       // Add each image
@@ -233,70 +215,10 @@ Keep response factual, helpful, and safe.`;
   }
 
   /**
-   * Post-process AI response to ensure medical safety
+   * Post-process AI response - simplified to just return content as-is
    */
   postProcessMedicalResponse(content, symptom, language, hasImages = false) {
-    const lang = language === 'ta' ? 'ta' : 'en';
-    
-    // Check for problematic content
-    const problematicPhrases = {
-      en: [
-        'you have', 'you are diagnosed', 'you definitely', 'you certainly have',
-        'take this medication', 'dosage', 'prescription', 'you should take'
-      ],
-      ta: [
-        'உங்களுக்கு உள்ளது', 'நீங்கள் நோயறிதல்', 'நீங்கள் நிச்சயமாக',
-        'இந்த மருந்தை எடுங்கள்', 'மருந்து அளவு', 'மருந்து பரிந்துரை'
-      ]
-    };
-
-    const phrases = problematicPhrases[lang] || problematicPhrases.en;
-    const lowerContent = content.toLowerCase();
-    
-    // If problematic content detected, use template response
-    if (phrases.some(phrase => lowerContent.includes(phrase.toLowerCase()))) {
-      console.log('⚠️ Problematic content detected, using template response');
-      return responseTemplates.generateMedicalResponse('', symptom, language);
-    }
-
-    // Ensure professional consultation reminder is present
-    const consultationPhrases = {
-      en: ['consult', 'healthcare professional', 'doctor', 'medical attention'],
-      ta: ['மருத்துவர்', 'சுகாதார நிபுணர்', 'மருத்துவ ஆலோசனை', 'மருத்துவ கவனிப்பு']
-    };
-
-    const consultationWords = consultationPhrases[lang] || consultationPhrases.en;
-    const hasConsultationReminder = consultationWords.some(word => 
-      lowerContent.includes(word.toLowerCase())
-    );
-
-    // Add consultation reminder if missing
-    if (!hasConsultationReminder) {
-      const reminder = lang === 'ta'
-        ? '\n\n**முக்கியம்**: சரியான நோயறிதல் மற்றும் சிகிச்சைக்கு மருத்துவ நிபுணரை அணுகவும்.'
-        : '\n\n**Important**: Please consult a healthcare professional for proper diagnosis and treatment.';
-      
-      content += reminder;
-    }
-
-    // Ensure disclaimer is present
-    const disclaimerWords = {
-      en: ['educational', 'information only', 'not a substitute'],
-      ta: ['கல்வி', 'தகவல் மட்டுமே', 'மாற்றாக அல்ல']
-    };
-
-    const disclaimerPresent = disclaimerWords[lang].some(word => 
-      lowerContent.includes(word.toLowerCase())
-    );
-
-    if (!disclaimerWords) {
-      const disclaimer = lang === 'ta'
-        ? '\n\nமறுப்பு: இது கல்வி நோக்கங்களுக்காக மட்டுமே மற்றும் தொழில்முறை மருத்துவ ஆலோசனைக்கு மாற்றாக அல்ல.'
-        : '\n\nDisclaimer: This information is for educational purposes only and not a substitute for professional medical advice.';
-      
-      content += disclaimer;
-    }
-
+    // Return content without any filtering or modifications
     return content;
   }
 
@@ -425,30 +347,27 @@ Keep response factual, helpful, and safe.`;
     const messages = [];
 
     // System message for medical context
-    let systemPrompt = `You are MEDIBOT, a helpful medical AI assistant. You provide general health information and guidance but always remind users to consult healthcare professionals for proper diagnosis and treatment.
+    let systemPrompt = `You are MEDIBOT, a medical AI assistant.
 
-IMPORTANT GUIDELINES:
-- Provide helpful, accurate medical information in a clear, easy-to-read format
-- Use simple formatting with **bold** for important points
-- Always recommend consulting a healthcare professional for diagnosis
-- Never provide specific medical diagnoses
+GUIDELINES:
+- Answer user's question directly first
+- Use natural, conversational language
+- No bold titles or numbered sections
 - Be empathetic and supportive
-- Ask clarifying questions when needed
-- Suggest when to seek immediate medical attention
-- Keep responses concise and well-structured
-- Use bullet points or numbered lists when appropriate`;
+- Add medical disclaimers after answering
+- Recommend professional consultation when needed
+
+FORBIDDEN:
+- Generic template phrases
+- Bold headers or titles
+- Formal structured responses`;
 
     // Add language-specific instructions
     if (language !== 'en') {
-      systemPrompt += `\n\nPlease respond in ${languageInfo?.name || language}. Use natural, clear language appropriate for medical communication in this language.`;
+      systemPrompt += `\n\nRespond in ${languageInfo?.name || language}.`;
       
       if (language === 'ta') {
-        systemPrompt += `
-        - Use respectful Tamil medical terminology
-        - Include common Tamil phrases for medical conditions when appropriate
-        - Use simple Tamil words that are easily understood
-        - For body parts use: தலை (head), கண் (eye), காது (ear), மார்பு (chest), வயிறு (stomach), கை (hand), கால் (leg)
-        - For symptoms use: வலி (pain), காய்ச்சல் (fever), இருமல் (cough), தலைவலி (headache)`;
+        systemPrompt += ` Use simple Tamil medical terms.`;
       }
     }
 

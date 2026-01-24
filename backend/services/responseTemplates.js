@@ -243,7 +243,7 @@ class ResponseTemplates {
             ]
           }
         ],
-        formatted: "அப்பாயிண்ட்மென்ட் புக் செய்ய, முதலில் உங்கள் கணக்கில் உள்நுழையவும்.\n\n**உள்நுழைய:**\n• உங்கள் கணக்கு உள்ளதா? உள்நுழைய பொத்தானை அழுத்தவும்\n• புதிய பயனரா? பதிவு செய்யவும்\n\n**அப்பாயிண்ட்மென்ட் புக்கிங் நன்மைகள்:**\n• உங்கள் மருத்துவ வரலாறு சேமிக்கப்படும்\n• அப்பாயிண்ட்மென்ட் நினைவூட்டல்கள்\n• மருத்துவர்களுடன் எளிதான தொடர்பு\n• பாதுகாப்பான மருத்துவ பதிவுகள்"
+        formatted: "அப்பாயிண்ட்மென்ட் புக் செய்ய, முதலில் உங்கள் கணக்கில் உள்நுழையவும்.\n\n• உங்கள் கணக்கு உள்ளதா? உள்நுழைய பொத்தானை அழுத்தவும்\n• புதிய பயனரா? பதிவு செய்யவும்\n\n• உங்கள் மருத்துவ வரலாறு சேமிக்கப்படும்\n• அப்பாயிண்ட்மென்ட் நினைவூட்டல்கள்\n• மருத்துவர்களுடன் எளிதான தொடர்பு\n• பாதுகாப்பான மருத்துவ பதிவுகள்"
       };
     } else {
       return {
@@ -266,7 +266,7 @@ class ResponseTemplates {
             ]
           }
         ],
-        formatted: "To book an appointment, please log in to your account first.\n\n**To Login:**\n• Have an account? Click the login button\n• New user? Sign up to create an account\n\n**Appointment Booking Benefits:**\n• Your medical history is saved\n• Appointment reminders\n• Easy communication with doctors\n• Secure medical records"
+        formatted: "To book an appointment, please log in to your account first.\n\n• Have an account? Click the login button\n• New user? Sign up to create an account\n\n• Your medical history is saved\n• Appointment reminders\n• Easy communication with doctors\n• Secure medical records"
       };
     }
   }
@@ -292,7 +292,7 @@ class ResponseTemplates {
           }
         ],
         instruction: "உங்கள் விருப்பத்தை தெரிவிக்கவும், நான் உங்களுக்கு கிடைக்கும் மருத்துவர்களை கண்டுபிடிப்பேன்.",
-        formatted: "நான் உங்களுக்கு அப்பாயிண்ட்மென்ட் புக் செய்ய உதவ முடியும்! எந்த வகையான மருத்துவரை பார்க்க விரும்புகிறீர்கள்?\n\n**உதாரணம்:**\n• **இதயநோய் மருத்துவர்** - இதய தொடர்பான கவலைகளுக்கு\n• **தோல் மருத்துவர்** - தோல் பிரச்சினைகளுக்கு\n• **பொது மருத்துவம்** - பொதுவான சுகாதார பரிசோதனைகளுக்கு\n• **நரம்பியல் மருத்துவர்** - நரம்பியல் கவலைகளுக்கு\n\nஉங்கள் விருப்பத்தை தெரிவிக்கவும், நான் உங்களுக்கு கிடைக்கும் மருத்துவர்களை கண்டுபிடிப்பேன்."
+        formatted: "நான் உங்களுக்கு அப்பாயிண்ட்மென்ட் புக் செய்ய உதவ முடியும்! எந்த வகையான மருத்துவரை பார்க்க விரும்புகிறீர்கள்?\n\n• **இதயநோய் மருத்துவர்** - இதய தொடர்பான கவலைகளுக்கு\n• **தோல் மருத்துவர்** - தோல் பிரச்சினைகளுக்கு\n• **பொது மருத்துவம்** - பொதுவான சுகாதார பரிசோதனைகளுக்கு\n• **நரம்பியல் மருத்துவர்** - நரம்பியல் கவலைகளுக்கு\n\nஉங்கள் விருப்பத்தை தெரிவிக்கவும், நான் உங்களுக்கு கிடைக்கும் மருத்துவர்களை கண்டுபிடிப்பேன்."
       };
     } else {
       return {
@@ -309,7 +309,7 @@ class ResponseTemplates {
           }
         ],
         instruction: "Please let me know your preference and I'll find available doctors for you.",
-        formatted: "I can help you book an appointment! What type of doctor would you like to see?\n\n**Examples:**\n• **Cardiologist** - for heart-related concerns\n• **Dermatologist** - for skin issues\n• **General Medicine** - for general health checkups\n• **Neurologist** - for neurological concerns\n\nPlease let me know your preference and I'll find available doctors for you."
+        formatted: "I can help you book an appointment! What type of doctor would you like to see?\n\n• **Cardiologist** - for heart-related concerns\n• **Dermatologist** - for skin issues\n• **General Medicine** - for general health checkups\n• **Neurologist** - for neurological concerns\n\nPlease let me know your preference and I'll find available doctors for you."
       };
     }
   }
@@ -418,9 +418,7 @@ class ResponseTemplates {
     let formatted = responseData.text + '\n\n';
     
     responseData.sections.forEach(section => {
-      if (section.title) {
-        formatted += `**${section.title}**\n`;
-      }
+      // Skip adding section titles
       section.items.forEach(item => {
         if (section.type === 'warning' || section.type === 'guidance') {
           formatted += `• ${item}\n`;
@@ -483,9 +481,7 @@ class ResponseTemplates {
     let formatted = responseData.text + '\n\n';
     
     responseData.sections.forEach(section => {
-      if (section.title) {
-        formatted += `**${section.title}**\n`;
-      }
+      // Skip adding section titles
       section.items.forEach(item => {
         if (section.type === 'guidance') {
           formatted += `• ${item}\n`;
