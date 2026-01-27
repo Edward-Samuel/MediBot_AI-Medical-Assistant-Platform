@@ -11,10 +11,19 @@
     "build": "cd frontend && npm run build",
     "start": "cd backend && npm start"
   },
-  "keywords": ["medical", "ai", "healthcare", "gemini", "rag"],
+  "keywords": [
+    "medical",
+    "ai",
+    "healthcare",
+    "gemini",
+    "rag"
+  ],
   "author": "MEDIBOT Team",
   "license": "MIT",
   "devDependencies": {
     "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "@pinecone-database/pinecone": "^6.1.4"
   }
 }

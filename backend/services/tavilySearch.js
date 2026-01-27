@@ -239,6 +239,11 @@ class TavilySearchService {
       return false;
     }
   }
+
+  // Backward compatibility method - alias for searchMedical
+  async search(query, options = {}) {
+    return await this.searchMedical(query, options);
+  }
 }
 
 module.exports = new TavilySearchService();

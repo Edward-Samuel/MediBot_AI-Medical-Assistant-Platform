@@ -67,24 +67,35 @@ const Navbar = () => {
 
             {user ? (
               <div className="flex items-center space-x-4">
-                <Link 
-                  to={getDashboardLink()}
-                  className="text-gray-700 dark:text-gray-300 hover:text-medical-600 dark:hover:text-medical-400 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-                >
-                  Dashboard
-                </Link>
-                <Link 
-                  to="/profile"
-                  className="text-gray-700 dark:text-gray-300 hover:text-medical-600 dark:hover:text-medical-400 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-                >
-                  Profile
-                </Link>
-                <Link 
-                  to="/appointments"
-                  className="text-gray-700 dark:text-gray-300 hover:text-medical-600 dark:hover:text-medical-400 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-                >
-                  Appointments
-                </Link>
+                {user.type === 'admin' ? (
+                  <Link 
+                    to="/admin/dashboard"
+                    className="text-gray-700 dark:text-gray-300 hover:text-medical-600 dark:hover:text-medical-400 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                  >
+                    Admin Dashboard
+                  </Link>
+                ) : (
+                  <>
+                    <Link 
+                      to={getDashboardLink()}
+                      className="text-gray-700 dark:text-gray-300 hover:text-medical-600 dark:hover:text-medical-400 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                    >
+                      Dashboard
+                    </Link>
+                    <Link 
+                      to="/profile"
+                      className="text-gray-700 dark:text-gray-300 hover:text-medical-600 dark:hover:text-medical-400 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                    >
+                      Profile
+                    </Link>
+                    <Link 
+                      to="/appointments"
+                      className="text-gray-700 dark:text-gray-300 hover:text-medical-600 dark:hover:text-medical-400 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                    >
+                      Appointments
+                    </Link>
+                  </>
+                )}
                 <button
                   onClick={handleLogout}
                   className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-1"
@@ -106,6 +117,13 @@ const Navbar = () => {
                   className="btn-medical"
                 >
                   Register
+                </Link>
+                <Link 
+                  to="/admin/login"
+                  className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 px-2 py-1 rounded transition-colors"
+                  title="Admin Login"
+                >
+                  Admin
                 </Link>
               </div>
             )}
@@ -155,30 +173,43 @@ const Navbar = () => {
 
               {user ? (
                 <>
-                  <Link 
-                    to={getDashboardLink()}
-                    className="text-gray-700 dark:text-gray-300 hover:text-medical-600 dark:hover:text-medical-400 block px-3 py-2 rounded-md text-base font-medium"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <Calendar className="inline h-4 w-4 mr-2" />
-                    Dashboard
-                  </Link>
-                  <Link 
-                    to="/profile"
-                    className="text-gray-700 dark:text-gray-300 hover:text-medical-600 dark:hover:text-medical-400 block px-3 py-2 rounded-md text-base font-medium"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <User className="inline h-4 w-4 mr-2" />
-                    Profile
-                  </Link>
-                  <Link 
-                    to="/appointments"
-                    className="text-gray-700 dark:text-gray-300 hover:text-medical-600 dark:hover:text-medical-400 block px-3 py-2 rounded-md text-base font-medium"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <Calendar className="inline h-4 w-4 mr-2" />
-                    My Appointments
-                  </Link>
+                  {user.type === 'admin' ? (
+                    <Link 
+                      to="/admin/dashboard"
+                      className="text-gray-700 dark:text-gray-300 hover:text-medical-600 dark:hover:text-medical-400 block px-3 py-2 rounded-md text-base font-medium"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <Calendar className="inline h-4 w-4 mr-2" />
+                      Admin Dashboard
+                    </Link>
+                  ) : (
+                    <>
+                      <Link 
+                        to={getDashboardLink()}
+                        className="text-gray-700 dark:text-gray-300 hover:text-medical-600 dark:hover:text-medical-400 block px-3 py-2 rounded-md text-base font-medium"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <Calendar className="inline h-4 w-4 mr-2" />
+                        Dashboard
+                      </Link>
+                      <Link 
+                        to="/profile"
+                        className="text-gray-700 dark:text-gray-300 hover:text-medical-600 dark:hover:text-medical-400 block px-3 py-2 rounded-md text-base font-medium"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <User className="inline h-4 w-4 mr-2" />
+                        Profile
+                      </Link>
+                      <Link 
+                        to="/appointments"
+                        className="text-gray-700 dark:text-gray-300 hover:text-medical-600 dark:hover:text-medical-400 block px-3 py-2 rounded-md text-base font-medium"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <Calendar className="inline h-4 w-4 mr-2" />
+                        My Appointments
+                      </Link>
+                    </>
+                  )}
                   <button
                     onClick={handleLogout}
                     className="text-red-600 hover:text-red-700 block px-3 py-2 rounded-md text-base font-medium w-full text-left"
@@ -202,6 +233,13 @@ const Navbar = () => {
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Register
+                  </Link>
+                  <Link 
+                    to="/admin/login"
+                    className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 block px-3 py-2 rounded-md text-sm font-medium"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Admin Login
                   </Link>
                 </>
               )}

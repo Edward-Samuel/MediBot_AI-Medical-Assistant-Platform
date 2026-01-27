@@ -38,7 +38,7 @@ const EmbeddedCalendar = ({
 
   const fetchAppointments = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
       if (token) {
         const response = await axios.get('/api/ai/appointments', {
           headers: { Authorization: `Bearer ${token}` }

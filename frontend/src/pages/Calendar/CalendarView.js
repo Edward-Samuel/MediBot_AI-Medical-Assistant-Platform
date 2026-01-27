@@ -22,7 +22,7 @@ const CalendarView = () => {
 
   const fetchAppointmentStats = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
       const response = await axios.get('/api/ai/appointments', {
         headers: { Authorization: `Bearer ${token}` }
       });

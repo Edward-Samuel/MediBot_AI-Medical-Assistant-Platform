@@ -19,7 +19,7 @@ const AppointmentHistory = () => {
 
   const fetchAppointments = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
       const response = await axios.get('/api/ai/appointments', {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -35,7 +35,7 @@ const AppointmentHistory = () => {
   const handleCancelAppointment = async (appointmentId) => {
     setCancelling(appointmentId);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
       await axios.put(`/api/ai/appointments/${appointmentId}/cancel`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });

@@ -60,10 +60,11 @@ const ChatHistory = ({ onLoadSession, currentSessionId, isOpen, onClose, onNewSe
 
   // Simple axios instance
   const api = useMemo(() => {
+    const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
     return axios.create({
       timeout: 8000,
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
+        'Authorization': `Bearer ${token}`
       }
     });
   }, []);

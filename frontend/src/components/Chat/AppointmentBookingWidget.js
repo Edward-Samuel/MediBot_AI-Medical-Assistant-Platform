@@ -33,7 +33,7 @@ const AppointmentBookingWidget = ({ appointmentData, onClose, onBookingComplete 
     setIsLoadingDoctors(true);
     
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
       const response = await axios.post('/api/ai/recommend-doctor', {
         symptoms: [specialization.toLowerCase()],
         age: 30,
@@ -109,7 +109,7 @@ const AppointmentBookingWidget = ({ appointmentData, onClose, onBookingComplete 
 
     setIsBooking(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
       const response = await axios.post('/api/ai/book-appointment', {
         doctorId: selectedDoctor.id,
         dateTime: selectedSlot.dateTime,

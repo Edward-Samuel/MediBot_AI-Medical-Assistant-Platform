@@ -68,6 +68,13 @@ TAVILY_API_KEY=your-tavily-api-key
 # ElevenLabs API (for text-to-speech)
 ELEVENLABS_API_KEY=your-elevenlabs-api-key
 
+# Pinecone API (for FAQ RAG system - optional)
+PINECONE_API_KEY=your-pinecone-api-key
+PINECONE_INDEX_NAME=medibot-faq
+
+# Embedding Model (BioClinical ModernBERT - no API key needed)
+# Uses local Hugging Face transformers model: neuml/bioclinical-modernbert-base-embeddings
+
 # Server
 PORT=3002
 NODE_ENV=development
@@ -153,7 +160,21 @@ To use all features, you'll need API keys from:
    - Multi-language voice synthesis
    - Sign up at [ElevenLabs](https://elevenlabs.io/)
 
-5. **MongoDB** - Database (local or cloud)
+5. **ElevenLabs** - For text-to-speech (optional)
+   - Multi-language voice synthesis
+   - Sign up at [ElevenLabs](https://elevenlabs.io/)
+
+6. **Pinecone** - For FAQ vector database (optional)
+   - Semantic search for FAQ documents
+   - Sign up at [Pinecone](https://www.pinecone.io/)
+
+7. **ClinicalBERT** - For medical document embeddings (automatic)
+   - Specialized medical/clinical BERT model from Hugging Face
+   - No API key required - runs locally using @xenova/transformers
+   - 768-dimensional embeddings optimized for clinical text
+   - Supports up to 512 token context length
+
+8. **MongoDB** - Database (local or cloud)
    - Local installation or MongoDB Atlas
 
 ## Key Features
@@ -163,6 +184,13 @@ To use all features, you'll need API keys from:
 - **Natural Responses**: Conversational AI without structured formatting
 - **Multi-modal**: Text and image analysis capabilities
 - **Emergency Detection**: Automatic emergency situation recognition
+
+### RAG-based FAQ System
+- **Document Processing**: Support for PDF, DOCX, TXT, CSV, MD files
+- **Vector Search**: Pinecone integration for semantic search
+- **Admin Management**: Secure admin panel for FAQ management
+- **Strict Responses**: Answers only from uploaded documents, never fabricated
+- **Multi-format Support**: Automatic chunking and embedding of documents
 
 ### Appointment System
 - **Smart Booking**: AI-powered doctor recommendations based on symptoms
@@ -203,6 +231,10 @@ medibot/
 
 ## Recent Updates
 
+- **RAG-based FAQ System**: Complete FAQ management with Pinecone vector search
+- **Admin Panel**: Secure admin authentication and document management
+- **Document Processing**: Support for PDF, DOCX, TXT, CSV, MD files with chunking
+- **Semantic Search**: Vector-based FAQ search with strict answer generation
 - **OpenRouter Integration**: Migrated from Gemini to OpenRouter for better model variety
 - **Token Optimization**: Reduced prompt tokens by 77% for cost efficiency
 - **Natural Responses**: Removed structured formatting for conversational AI

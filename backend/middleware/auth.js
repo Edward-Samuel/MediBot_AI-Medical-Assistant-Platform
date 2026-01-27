@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const Admin = require('../models/Admin');
 
 const authenticateToken = async (req, res, next) => {
   try {
@@ -11,19 +12,52 @@ const authenticateToken = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.userId).select('-password');
     
-    if (!user) {
-      return res.status(401).json({ message: 'Invalid token. User not found.' });
-    }
+    // Handle different token types
+    if (decoded.type === 'admin') {
+      // Admin token - look up in Admin collection
+      const admin = await Admin.findById(decoded.userId).select('-password');
+      
+      if (!admin) {
+        return res.status(401).json({ message: 'Invalid token. Admin not found.' });
+      }
 
-    if (!user.isActive) {
-      return res.status(401).json({ message: 'Account is deactivated.' });
-    }
+      if (!admin.isActive) {
+        return res.status(401).json({ message: 'Account is deactivated.' });
+      }
 
-    // Set both user object and id for compatibility
-    req.user = user;
-    req.user.id = user._id; // Ensure id field is available
+      // Set user object with admin data for compatibility with chat history
+      req.user = {
+        _id: admin._id,
+        id: admin._id,
+        username: admin.username,
+        email: admin.email,
+        role: admin.role,
+        type: 'admin',
+        permissions: admin.permissions,
+        isActive: admin.isActive,
+        profile: {
+          firstName: admin.username,
+          lastName: 'Admin'
+        }
+      };
+    } else {
+      // Regular user token - look up in User collection
+      const user = await User.findById(decoded.userId).select('-password');
+      
+      if (!user) {
+        return res.status(401).json({ message: 'Invalid token. User not found.' });
+      }
+
+      if (!user.isActive) {
+        return res.status(401).json({ message: 'Account is deactivated.' });
+      }
+
+      // Set both user object and id for compatibility
+      req.user = user;
+      req.user.id = user._id; // Ensure id field is available
+    }
+    
     next();
   } catch (error) {
     if (error.name === 'JsonWebTokenError') {

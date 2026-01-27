@@ -6,6 +6,7 @@ const auth = require('../middleware/auth');
 const { v4: uuidv4 } = require('uuid');
 const tavilySearch = require('../services/tavilySearch');
 const openRouterService = require('../services/openRouterService');
+const intentClassifier = require('../services/intentClassifier');
 // const appointmentAgent = require('../services/appointmentAgent');
 
 const router = express.Router();
@@ -48,11 +49,7 @@ function generateFallbackResponse(message, language = 'en', languageInfo) {
   try {
     const responseTemplates = require('../services/responseTemplates');
     
-    // Check for emergency
-    if (responseTemplates.isEmergency(message, language)) {
-      const emergencyResponse = responseTemplates.generateEmergencyResponse(language);
-      return emergencyResponse.formatted; // Use formatted version for backward compatibility
-    }
+    // Emergency detection removed - proceed directly to symptom extraction
     
     // Extract symptom and generate structured response
     const symptom = responseTemplates.extractSymptom(message, language);
@@ -408,7 +405,7 @@ function fallbackSpecializationMatch(symptoms) {
 // Medical consultation chat
 router.post('/chat', async (req, res) => {
   try {
-    const { message, images, conversationHistory, language = 'en', languageInfo, sessionId } = req.body;
+    const { message, images, conversationHistory, language = 'en', languageInfo, sessionId, forceWebSearch = false } = req.body;
 
     if (!message && (!images || images.length === 0)) {
       return res.status(400).json({ message: 'Message or images are required' });
@@ -436,97 +433,235 @@ router.post('/chat', async (req, res) => {
     let usingFallback = false;
     let appointmentData = null;
     let webSearchData = null;
+    let faqData = null;
+    let searchResults = null; // Declare at top level
+    let intentData = null;
 
-    // Check for appointment booking intent
-    if (message.toLowerCase().includes('appointment') || message.toLowerCase().includes('book')) {
-      try {
-        // Check if user is authenticated for appointment booking
-        if (!userId) {
-          appointmentData = {
-            intent: 'appointment_booking_login_required',
-            message: 'To book an appointment, please log in to your account first.',
-            requiresLogin: true
-          };
-          
-          const responseTemplates = require('../services/responseTemplates');
-          const loginResponse = responseTemplates.generateLoginRequiredResponse(language);
-          botResponse = loginResponse.formatted; // Use formatted version for backward compatibility
-          
-          // Add structured data for frontend
-          appointmentData.structuredResponse = loginResponse;
-        } else {
-          // User is authenticated, proceed with appointment booking
-          appointmentData = {
-            intent: 'appointment_booking',
-            message: 'I can help you book an appointment! Please let me know what type of doctor you need.',
-            simpleBooking: true
-          };
-          
-          const responseTemplates = require('../services/responseTemplates');
-          const bookingResponse = responseTemplates.generateAppointmentBookingResponse(language);
-          botResponse = bookingResponse.formatted; // Use formatted version for backward compatibility
-          
-          // Add structured data for frontend
-          appointmentData.structuredResponse = bookingResponse;
-        }
-      } catch (appointmentError) {
-        console.error('Appointment detection error:', appointmentError);
-        // Continue with normal chat if appointment processing fails
-      }
-    }
+    // Classify user intent first
+    console.log('🎯 Classifying user intent...');
+    const intentResult = await intentClassifier.classifyIntent(message, conversationHistory || [], { forceWebSearch });
+    console.log('🎯 Intent classification result:', intentResult);
+    
+    intentData = {
+      intent: intentResult.intent,
+      confidence: intentResult.confidence,
+      method: intentResult.method,
+      reasoning: intentResult.reasoning
+    };
 
-    // Check for web search intent
-    let searchResults = null;
-    if (!botResponse && tavilySearch.isWebSearchQuery(message)) {
-      try {
-        console.log('🔍 Web search mode detected');
-        searchResults = await tavilySearch.searchMedical(message, {
-          maxResults: 5,
-          language: language
-        });
-        
-        webSearchData = {
-          query: message,
-          resultsCount: searchResults.totalResults,
-          searchTime: searchResults.searchTime
-        };
-        
-        console.log(`✅ Found ${searchResults.totalResults} medical search results`);
-      } catch (searchError) {
-        console.error('⚠️  Web search failed:', searchError.message);
-        webSearchData = {
-          query: message,
-          error: searchError.message,
-          fallback: true
-        };
-        // Continue with normal AI chat if search fails
-      }
-    }
-
-    // If no appointment intent or processing failed, use OpenRouter AI chat
-    if (!botResponse) {
-      try {
-        console.log('🤖 Using OpenRouter for AI response...');
-        
-        const response = await generateAIResponse(message, conversationHistory, language, languageInfo, images);
-        botResponse = response;
-        
-        console.log('✅ Successfully generated AI response');
-
-      } catch (aiError) {
-        console.log(`❌ OpenRouter failed: ${aiError.message}, using fallback response`);
-        usingFallback = true;
-        
-        // Final fallback to simple text responses
+    // Route based on intent
+    switch (intentResult.intent) {
+      case 'web_search':
+        console.log('🔍 Web search intent detected - using search API');
         try {
-          botResponse = generateFallbackResponse(message, language, languageInfo);
-          console.log('✅ Using simple text fallback response');
-        } catch (fallbackError) {
-          // If even simple fallback fails, provide a basic response
-          console.error('❌ All fallbacks failed:', fallbackError);
+          console.log('🌐 Performing web search for:', message);
+          searchResults = await tavilySearch.searchMedical(message, { maxResults: 5 });
+          
+          if (searchResults && searchResults.results && searchResults.results.length > 0) {
+            webSearchData = {
+              query: message,
+              results: searchResults.results,
+              usedWebSearch: true,
+              bypassedRAG: true,
+              totalResults: searchResults.totalResults
+            };
+            
+            // Generate response with web search context
+            const searchContext = searchResults.results.map(result => 
+              `**${result.title}**\n${result.content}\nSource: ${result.url}`
+            ).join('\n\n---\n\n');
+            
+            const contextualMessage = `Based on current web search results for "${message}":\n\n${searchContext}`;
+            botResponse = await generateAIResponse(contextualMessage, conversationHistory, language, languageInfo, images);
+            console.log('✅ Generated response with web search results');
+          } else {
+            console.log('⚠️  No web search results found');
+            botResponse = language === 'ta' 
+              ? "மன்னிக்கவும், தற்போது வலை தேடல் முடிவுகள் கிடைக்கவில்லை."
+              : "I apologize, but I couldn't find current web search results for your query.";
+          }
+        } catch (searchError) {
+          console.error('⚠️  Web search failed:', searchError.message);
+          webSearchData = {
+            query: message,
+            error: searchError.message,
+            fallback: true
+          };
           botResponse = language === 'ta' 
-            ? "மன்னிக்கவும், தற்போது நான் பதிலளிக்க முடியவில்லை. மருத்துவ நிபுணரை அணுகவும்."
-            : "I apologize for the technical difficulty. Please consult a healthcare professional for your medical concerns.";
+            ? "மன்னிக்கவும், வலை தேடல் தற்போது கிடைக்கவில்லை."
+            : "I apologize, but web search is currently unavailable.";
+        }
+        break;
+
+      case 'appointment':
+        console.log('📅 Appointment intent detected');
+        try {
+          // Check if user is authenticated for appointment booking
+          if (!userId) {
+            appointmentData = {
+              intent: 'appointment_booking_login_required',
+              message: 'To book an appointment, please log in to your account first.',
+              requiresLogin: true
+            };
+            
+            const responseTemplates = require('../services/responseTemplates');
+            const loginResponse = responseTemplates.generateLoginRequiredResponse(language);
+            botResponse = loginResponse.formatted;
+            appointmentData.structuredResponse = loginResponse;
+          } else {
+            // User is authenticated, proceed with appointment booking
+            appointmentData = {
+              intent: 'appointment_booking',
+              message: 'I can help you book an appointment! Please let me know what type of doctor you need.',
+              simpleBooking: true
+            };
+            
+            const responseTemplates = require('../services/responseTemplates');
+            const bookingResponse = responseTemplates.generateAppointmentBookingResponse(language);
+            botResponse = bookingResponse.formatted;
+            appointmentData.structuredResponse = bookingResponse;
+          }
+        } catch (appointmentError) {
+          console.error('Appointment detection error:', appointmentError);
+          // Continue with normal chat if appointment processing fails
+        }
+        break;
+
+      case 'faq':
+        console.log('❓ FAQ intent detected - searching knowledge base');
+        // Check for FAQ query
+        const faqService = require('../services/faqService');
+        if (faqService.isInitialized()) {
+          try {
+            console.log('🔍 Searching FAQ database for query:', message);
+            const faqResults = await faqService.searchFAQ(message, { limit: 3 });
+            
+            console.log(`📊 FAQ search results: ${faqResults.results?.length || 0} results found`);
+            if (faqResults.results?.length > 0) {
+              console.log('📋 FAQ results preview:', faqResults.results.map(r => ({
+                title: r.title,
+                isQAPair: r.isQAPair,
+                score: r.score,
+                hasQuestion: !!r.question,
+                hasAnswer: !!r.answer
+              })));
+            }
+            
+            if (faqResults.results && faqResults.results.length > 0) {
+              const faqAnswer = await faqService.generateAnswer(message, faqResults);
+              
+              console.log('🤖 Generated FAQ answer:', faqAnswer?.substring(0, 100) + '...');
+              
+              // If we got a meaningful FAQ answer (check for various fallback phrases)
+              const fallbackPhrases = [
+                "I don't have this information yet",
+                "I don't have specific information about that topic yet",
+                "I don't have information about that topic",
+                "I don't have specific information",
+                "I don't have that information",
+                "I cannot find information about that topic"
+              ];
+              
+              const isFallbackResponse = fallbackPhrases.some(phrase => 
+                faqAnswer && faqAnswer.includes(phrase)
+              );
+              
+              if (faqAnswer && !isFallbackResponse) {
+                botResponse = faqAnswer;
+                faqData = {
+                  query: message,
+                  resultsCount: faqResults.totalResults,
+                  source: faqResults.source,
+                  usedFAQ: true,
+                  searchResults: faqResults.results.map(r => ({
+                    title: r.title,
+                    category: r.category,
+                    isQAPair: r.isQAPair,
+                    score: r.score,
+                    question: r.question,
+                    answer: r.answer
+                  }))
+                };
+                console.log('✅ Using FAQ answer for query');
+              } else {
+                console.log('⚠️  FAQ answer was fallback response, switching to AI chat');
+                // Fall through to general chat - this will be handled by the general AI processing below
+              }
+            }
+          } catch (faqError) {
+            console.error('⚠️  FAQ search failed:', faqError.message);
+            // Continue with normal AI processing
+          }
+        }
+        break;
+
+      case 'general_chat':
+      default:
+        console.log('💬 General chat intent detected');
+        // Will be handled by the general AI processing below
+        break;
+    }
+
+    // If no specific response was generated, proceed with general AI processing
+    if (!botResponse) {
+      // For FAQ intent that didn't get a good answer, treat as general chat
+      if (intentResult.intent === 'faq') {
+        console.log('💬 FAQ intent switching to general AI chat due to no relevant FAQ data');
+      }
+      
+      // Only check for web search in general chat if not already handled
+      if (intentResult.intent === 'general_chat' && !forceWebSearch) {
+        // Legacy web search detection for backward compatibility
+        if (message.toLowerCase().includes('search') || message.toLowerCase().includes('latest') || message.toLowerCase().includes('recent')) {
+          try {
+            console.log('🔍 Legacy web search intent detected');
+            searchResults = await tavilySearch.searchMedical(message, { maxResults: 3 });
+            
+            if (searchResults && searchResults.results && searchResults.results.length > 0) {
+              webSearchData = {
+                query: message,
+                results: searchResults.results,
+                usedWebSearch: true,
+                legacyDetection: true,
+                totalResults: searchResults.totalResults
+              };
+              
+              // Generate response with web search context
+              const searchContext = searchResults.results.map(result => 
+                `${result.title}: ${result.content}`
+              ).join('\n\n');
+              
+              const contextualMessage = `Based on recent information: ${message}\n\nContext:\n${searchContext}`;
+              botResponse = await generateAIResponse(contextualMessage, conversationHistory, language, languageInfo, images);
+              console.log('✅ Generated response with legacy web search context');
+            }
+          } catch (searchError) {
+            console.error('⚠️  Legacy web search failed:', searchError.message);
+            // Continue with normal AI processing
+          }
+        }
+      }
+
+      // If still no response, use general AI processing
+      if (!botResponse) {
+        try {
+          console.log('🤖 Using general AI processing');
+          botResponse = await generateAIResponse(message, conversationHistory, language, languageInfo, images);
+        } catch (aiError) {
+          console.log(`❌ OpenRouter failed: ${aiError.message}, using fallback response`);
+          usingFallback = true;
+          
+          // Final fallback to simple text responses
+          try {
+            botResponse = generateFallbackResponse(message, language, languageInfo);
+            console.log('✅ Using simple text fallback response');
+          } catch (fallbackError) {
+            // If even simple fallback fails, provide a basic response
+            console.error('❌ All fallbacks failed:', fallbackError);
+            botResponse = language === 'ta' 
+              ? "மன்னிக்கவும், தற்போது நான் பதிலளிக்க முடியவில்லை. மருத்துவ நிபுணரை அணுகவும்."
+              : "I apologize for the technical difficulty. Please consult a healthcare professional for your medical concerns.";
+          }
         }
       }
     }
@@ -653,9 +788,11 @@ router.post('/chat', async (req, res) => {
       sessionId: currentSessionId,
       saved: !!userId, // Indicate if the chat was saved
       usingFallback: usingFallback, // Indicate if fallback was used
+      intentData: intentData, // Include intent classification data
       appointmentData: appointmentData, // Include appointment data if detected
       webSearchData: webSearchData, // Include web search data if used
-      searchResults: searchResults ? {
+      faqData: faqData, // Include FAQ data if used
+      searchResults: (webSearchData && searchResults) ? {
         query: searchResults.query,
         totalResults: searchResults.totalResults,
         sources: searchResults.results?.map(r => ({
@@ -706,6 +843,121 @@ router.post('/chat', async (req, res) => {
         fallbackReason: 'Emergency fallback - all systems unavailable'
       });
     }
+  }
+});
+
+// Test intent classification endpoint
+router.post('/classify-intent', async (req, res) => {
+  try {
+    const { message, conversationHistory = [] } = req.body;
+
+    if (!message) {
+      return res.status(400).json({ message: 'Message is required' });
+    }
+
+    const intentResult = await intentClassifier.classifyIntent(message, conversationHistory);
+    
+    res.json({
+      message,
+      intent: intentResult.intent,
+      confidence: intentResult.confidence,
+      method: intentResult.method,
+      reasoning: intentResult.reasoning,
+      scores: intentResult.scores || null,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Intent classification error:', error);
+    res.status(500).json({ 
+      message: 'Error classifying intent',
+      error: error.message 
+    });
+  }
+});
+
+// Get intent classifier statistics
+router.get('/intent-stats', (req, res) => {
+  try {
+    const stats = intentClassifier.getIntentStats();
+    res.json(stats);
+  } catch (error) {
+    console.error('Error getting intent stats:', error);
+    res.status(500).json({ 
+      message: 'Error getting intent statistics',
+      error: error.message 
+    });
+  }
+});
+
+// Dedicated web search endpoint (bypasses RAG/FAQ)
+router.post('/web-search', async (req, res) => {
+  try {
+    const { query, maxResults = 5, language = 'en' } = req.body;
+
+    if (!query) {
+      return res.status(400).json({ message: 'Search query is required' });
+    }
+
+    console.log('🌐 Direct web search request:', query);
+
+    // Perform web search using searchMedical method
+    const searchResults = await tavilySearch.searchMedical(query, { maxResults });
+    
+    if (!searchResults || !searchResults.results || searchResults.results.length === 0) {
+      return res.json({
+        query,
+        results: [],
+        totalResults: 0,
+        message: language === 'ta' 
+          ? 'தேடல் முடிவுகள் எதுவும் கிடைக்கவில்லை'
+          : 'No search results found',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Format results for response
+    const formattedResults = searchResults.results.map(result => ({
+      title: result.title,
+      content: result.content,
+      url: result.url,
+      domain: new URL(result.url).hostname,
+      publishedDate: result.publishedDate || null,
+      score: result.score || 0
+    }));
+
+    // Generate AI summary of search results
+    let aiSummary = null;
+    try {
+      const searchContext = searchResults.results.map(result => 
+        `**${result.title}**\n${result.content}\nSource: ${result.url}`
+      ).join('\n\n---\n\n');
+      
+      const summaryPrompt = `Based on the following web search results for "${query}", provide a comprehensive summary:\n\n${searchContext}`;
+      
+      aiSummary = await generateAIResponse(summaryPrompt, [], language, null, []);
+      console.log('✅ Generated AI summary of search results');
+    } catch (summaryError) {
+      console.error('⚠️  Failed to generate AI summary:', summaryError.message);
+    }
+
+    res.json({
+      query,
+      results: formattedResults,
+      totalResults: searchResults.totalResults || formattedResults.length,
+      aiSummary,
+      answer: searchResults.answer || null,
+      bypassedRAG: true,
+      searchMethod: 'web_api',
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Web search error:', error);
+    res.status(500).json({ 
+      message: 'Web search failed',
+      error: error.message 
+    });
   }
 });
 

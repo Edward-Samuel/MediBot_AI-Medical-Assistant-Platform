@@ -5,6 +5,12 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
+const memoryMonitor = require('./utils/memoryMonitor');
+
+// Initialize memory monitoring
+memoryMonitor.startMonitoring(5000); // Check every 5 seconds
+memoryMonitor.logMemoryUsage('Server startup');
+
 const authRoutes = require('./routes/auth');
 const appointmentRoutes = require('./routes/appointments');
 const doctorRoutes = require('./routes/doctors');
@@ -13,6 +19,11 @@ const aiRoutes = require('./routes/ai');
 const calendarRoutes = require('./routes/calendar');
 const ttsRoutes = require('./routes/tts');
 const chatHistoryRoutes = require('./routes/chatHistory');
+const adminRoutes = require('./routes/admin');
+const faqRoutes = require('./routes/faq');
+
+// Initialize services
+const faqService = require('./services/faqService');
 
 const app = express();
 
@@ -46,6 +57,17 @@ mongoose.connect(process.env.MONGODB_URI)
 .then(() => console.log('Connected to MongoDB'))
 .catch(err => console.error('MongoDB connection error:', err));
 
+// Initialize FAQ service
+faqService.initialize()
+.then(initialized => {
+  if (initialized) {
+    console.log('✅ FAQ service with Pinecone initialized');
+  } else {
+    console.log('⚠️  FAQ service initialized without Pinecone');
+  }
+})
+.catch(err => console.error('FAQ service initialization error:', err));
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/appointments', appointmentRoutes);
@@ -55,10 +77,19 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/calendar', calendarRoutes);
 app.use('/api/tts', ttsRoutes);
 app.use('/api/chat-history', chatHistoryRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/faq', faqRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    services: {
+      database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+      faqService: faqService.isInitialized() ? 'initialized' : 'limited'
+    }
+  });
 });
 
 // Error handling middleware

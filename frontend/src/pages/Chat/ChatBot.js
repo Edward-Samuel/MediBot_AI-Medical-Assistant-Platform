@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader, AlertCircle, Mic, MicOff, Copy, Volume2, VolumeX, Save, Menu, Search, Globe, Image, X, Camera } from 'lucide-react';
+import { Send, Bot, User, Loader, AlertCircle, Mic, MicOff, Copy, Volume2, VolumeX, Save, Menu, Search, Globe, Image, X, Camera, History } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -11,8 +11,8 @@ const ChatBot = () => {
   const { t, getCurrentLanguageInfo, currentLanguage } = useLanguage();
   const { user } = useAuth();
   
-  // Get token from localStorage
-  const getToken = () => localStorage.getItem('token');
+  // Get token from localStorage (check both admin and regular tokens)
+  const getToken = () => localStorage.getItem('adminToken') || localStorage.getItem('token');
   
   // Create initial message based on current language
   const getInitialMessage = () => {
@@ -1068,10 +1068,11 @@ const ChatBot = () => {
           <div className="flex items-center space-x-3">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+              className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
               title="Open chat history"
             >
-              <Menu className="h-5 w-5" />
+              <Menu className="h-5 w-5 lg:hidden" />
+              <History className="h-5 w-5 hidden lg:block" />
             </button>
             
             <div className="flex items-center space-x-2">

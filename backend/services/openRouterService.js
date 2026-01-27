@@ -37,18 +37,7 @@ class OpenRouterService {
         ? 'openai/gpt-oss-120b' // Vision-capable model
         : model;
 
-      // Check for emergency situations first
-      if (responseTemplates.isEmergency(message, language)) {
-        console.log('🚨 Emergency detected - using emergency template');
-        return {
-          content: responseTemplates.generateEmergencyResponse(language),
-          reasoning_details: null,
-          model: 'emergency_template',
-          usage: { total_tokens: 0 },
-          finishReason: 'emergency_template',
-          isTemplate: true
-        };
-      }
+      // Emergency detection removed - proceed directly to AI generation
 
       // Extract symptom for structured response
       const symptom = responseTemplates.extractSymptom(message, language);
@@ -233,29 +222,7 @@ Answer directly without titles or sections. Use natural paragraphs.`;
         temperature = 0.3 // Lower temperature for consistency
       } = options;
 
-      // Check for emergency in new message
-      if (responseTemplates.isEmergency(newMessage, options.language)) {
-        console.log('🚨 Emergency detected in continuation - using emergency template');
-        return {
-          content: responseTemplates.generateEmergencyResponse(options.language),
-          reasoning_details: null,
-          model: 'emergency_template',
-          usage: { total_tokens: 0 },
-          finishReason: 'emergency_template',
-          isTemplate: true,
-          fullConversation: [
-            ...messages,
-            {
-              role: 'user',
-              content: newMessage
-            },
-            {
-              role: 'assistant',
-              content: responseTemplates.generateEmergencyResponse(options.language)
-            }
-          ]
-        };
-      }
+      // Emergency detection removed from continuation
 
       // Add new user message to conversation
       const updatedMessages = [
@@ -478,27 +445,7 @@ FORBIDDEN:
     try {
       const { age, gender, urgency } = patientInfo;
       
-      // Check for emergency symptoms first
-      const emergencySymptoms = symptoms.some(symptom => 
-        responseTemplates.isEmergency(symptom, 'en')
-      );
-      
-      if (emergencySymptoms) {
-        console.log('🚨 Emergency symptoms detected in analysis');
-        return {
-          analysis: {
-            primarySpecialization: 'Emergency Medicine',
-            alternativeSpecializations: [],
-            urgencyLevel: 'high',
-            reasoning: 'Emergency symptoms detected - immediate medical attention required',
-            redFlags: symptoms,
-            confidence: 1.0,
-            isEmergency: true
-          },
-          reasoning: null,
-          model: 'emergency_template'
-        };
-      }
+      // Emergency detection removed from symptom analysis
 
       // Use structured prompt for symptom analysis
       const prompt = `Analyze these symptoms for medical specialization recommendation:
