@@ -33,30 +33,20 @@ class IntentClassifier {
       /trust/i
     ];
 
-    this.appointmentPatterns = this.config.patterns.appointment;
+    // Appointment patterns from config
+    this.appointmentPatterns = [
+      ...this.config.patterns.appointment.directRequests,
+      ...this.config.patterns.appointment.doctorConsultation,
+      ...this.config.patterns.appointment.specialistAppointments,
+      ...this.config.patterns.appointment.timeBasedRequests,
+      ...this.config.patterns.appointment.appointmentManagement
+    ];
 
-    // Web search patterns - explicit search requests
+    // Web search patterns from config
     this.webSearchPatterns = [
-      /search for/i,
-      /look up/i,
-      /find information about/i,
-      /search the web/i,
-      /google/i,
-      /latest news/i,
-      /recent updates/i,
-      /current information/i,
-      /web search/i,
-      /online search/i,
-      /search online/i,
-      /find online/i,
-      // Emergency-related searches (should be web search, not emergency)
-      /search.*chest pain/i,
-      /look up.*heart attack/i,
-      /find.*stroke/i,
-      /search.*emergency/i,
-      /research.*symptoms/i,
-      /studies.*about/i,
-      /information.*emergency/i
+      ...this.config.patterns.webSearch.directSearch,
+      ...this.config.patterns.webSearch.currentInfo,
+      ...this.config.patterns.webSearch.emergencySearch
     ];
 
     this.conversationalPatterns = [
@@ -82,14 +72,10 @@ class IntentClassifier {
         };
       }
 
-      // Check for appointment booking
-      if (this.isAppointmentIntent(message)) {
-        return {
-          intent: this.intents.APPOINTMENT,
-          confidence: 0.9,
-          method: 'rule_based',
-          reasoning: 'Appointment booking patterns detected'
-        };
+      // Check for appointment booking with enhanced scoring
+      const appointmentResult = this.classifyAppointmentIntent(message);
+      if (appointmentResult.confidence >= 0.8) {
+        return appointmentResult;
       }
 
       // Rule-based classification for FAQ vs General Chat
@@ -217,36 +203,94 @@ class IntentClassifier {
   }
 
   /**
+   * Classify appointment intent with enhanced scoring
+   */
+  classifyAppointmentIntent(message) {
+    const lowerMessage = message.toLowerCase().trim();
+    let appointmentScore = 0;
+
+    // Check appointment patterns
+    for (const pattern of this.appointmentPatterns) {
+      if (pattern.test(message)) {
+        appointmentScore += this.config.scoring.appointment.patternMatch;
+        if (this.config.debug.logPatternMatches) {
+          console.log(`Appointment pattern matched: ${pattern}`);
+        }
+      }
+    }
+
+    // Appointment keywords
+    const appointmentKeywords = this.config.languages.en.appointmentKeywords;
+    const appointmentKeywordCount = appointmentKeywords.filter(keyword => lowerMessage.includes(keyword)).length;
+    appointmentScore += appointmentKeywordCount * this.config.scoring.appointment.appointmentKeywordWeight;
+
+    // Time indicators
+    const timeIndicators = this.config.languages.en.timeIndicators;
+    const timeIndicatorCount = timeIndicators.filter(indicator => lowerMessage.includes(indicator)).length;
+    appointmentScore += timeIndicatorCount * this.config.scoring.appointment.timeIndicatorWeight;
+
+    // Ensure score doesn't exceed maximum
+    appointmentScore = Math.min(appointmentScore, this.config.scoring.appointment.maxScore);
+
+    // Calculate confidence
+    let confidence = Math.min(appointmentScore, 1.0);
+
+    // Boost confidence for strong appointment indicators
+    if (appointmentScore > 0.6) {
+      confidence = Math.min(confidence + 0.2, 1.0);
+    }
+
+    if (this.config.debug.logScores) {
+      console.log(`Appointment score: ${appointmentScore.toFixed(2)}, confidence: ${confidence.toFixed(2)}`);
+    }
+
+    return {
+      intent: this.intents.APPOINTMENT,
+      confidence,
+      method: 'rule_based',
+      reasoning: `Appointment score: ${appointmentScore.toFixed(2)}`,
+      scores: { appointment: appointmentScore }
+    };
+  }
+
+  /**
    * AI-based intent classification for ambiguous cases
    */
   async classifyWithAI(message, conversationHistory = []) {
     try {
-      const prompt = `Classify the following user message into one of these intents:
-
-1. FAQ - User is seeking factual information, explanations, or answers to specific questions about medical topics, procedures, policies, or general healthcare information
-2. GENERAL_CHAT - User is describing personal symptoms, seeking personalized medical advice, having a conversational interaction, or sharing personal health experiences
-
-Message: "${message}"
-
-Consider:
-- FAQ: Questions starting with what/how/why, requests for information, explanations, definitions, procedures
-- GENERAL_CHAT: Personal symptoms, "I feel...", "I have...", conversational greetings, personalized medical concerns
-
-Respond with only: FAQ or GENERAL_CHAT`;
-
-      const response = await openRouterService.generateResponse(prompt, [], {
-        maxTokens: 10,
-        temperature: 0.1
+      const response = await openRouterService.generateResponse(this.config.aiClassification.prompt.replace('{message}', message), [], {
+        maxTokens: this.config.aiClassification.maxTokens,
+        temperature: this.config.aiClassification.temperature
       });
 
       const aiIntent = response.content.trim().toUpperCase();
-      const intent = aiIntent === 'FAQ' ? this.intents.FAQ : this.intents.GENERAL_CHAT;
+      let intent;
+      
+      switch (aiIntent) {
+        case 'FAQ':
+          intent = this.intents.FAQ;
+          break;
+        case 'APPOINTMENT':
+          intent = this.intents.APPOINTMENT;
+          break;
+        case 'WEB_SEARCH':
+          intent = this.intents.WEB_SEARCH;
+          break;
+        case 'GENERAL_CHAT':
+        default:
+          intent = this.intents.GENERAL_CHAT;
+          break;
+      }
+
+      if (this.config.debug.logAIClassification) {
+        console.log(`AI classified as: ${aiIntent} -> ${intent}`);
+      }
 
       return {
         intent,
         confidence: 0.7,
         method: 'ai_classification',
-        reasoning: 'AI classification result'
+        reasoning: `AI classification result: ${aiIntent}`
       };
 
     } catch (error) {
@@ -339,7 +383,10 @@ Respond with only: FAQ or GENERAL_CHAT`;
       faqPatternCount: this.faqPatterns.length,
       appointmentPatternCount: this.appointmentPatterns.length,
       webSearchPatternCount: this.webSearchPatterns.length,
-      conversationalPatternCount: this.conversationalPatterns.length
+      conversationalPatternCount: this.conversationalPatterns.length,
+      totalPatterns: this.faqPatterns.length + this.appointmentPatterns.length + 
+                    this.webSearchPatterns.length + this.conversationalPatterns.length,
+      configVersion: '2.0.0'
     };
   }
 }

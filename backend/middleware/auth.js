@@ -1,6 +1,5 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const Admin = require('../models/Admin');
 
 const authenticateToken = async (req, res, next) => {
   try {
@@ -13,50 +12,20 @@ const authenticateToken = async (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    // Handle different token types
-    if (decoded.type === 'admin') {
-      // Admin token - look up in Admin collection
-      const admin = await Admin.findById(decoded.userId).select('-password');
-      
-      if (!admin) {
-        return res.status(401).json({ message: 'Invalid token. Admin not found.' });
-      }
-
-      if (!admin.isActive) {
-        return res.status(401).json({ message: 'Account is deactivated.' });
-      }
-
-      // Set user object with admin data for compatibility with chat history
-      req.user = {
-        _id: admin._id,
-        id: admin._id,
-        username: admin.username,
-        email: admin.email,
-        role: admin.role,
-        type: 'admin',
-        permissions: admin.permissions,
-        isActive: admin.isActive,
-        profile: {
-          firstName: admin.username,
-          lastName: 'Admin'
-        }
-      };
-    } else {
-      // Regular user token - look up in User collection
-      const user = await User.findById(decoded.userId).select('-password');
-      
-      if (!user) {
-        return res.status(401).json({ message: 'Invalid token. User not found.' });
-      }
-
-      if (!user.isActive) {
-        return res.status(401).json({ message: 'Account is deactivated.' });
-      }
-
-      // Set both user object and id for compatibility
-      req.user = user;
-      req.user.id = user._id; // Ensure id field is available
+    // Look up user in User collection
+    const user = await User.findById(decoded.userId).select('-password');
+    
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid token. User not found.' });
     }
+
+    if (!user.isActive) {
+      return res.status(401).json({ message: 'Account is deactivated.' });
+    }
+
+    // Set user object with id compatibility
+    req.user = user;
+    req.user.id = user._id; // Ensure id field is available
     
     next();
   } catch (error) {
@@ -88,7 +57,41 @@ const authorizeRoles = (...roles) => {
   };
 };
 
+// Middleware to check if user is admin
+const requireAdmin = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Authentication required.' });
+  }
+
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ message: 'Access denied. Admin privileges required.' });
+  }
+
+  next();
+};
+
+// Middleware to check specific admin permissions
+const requirePermission = (permission) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Authentication required.' });
+    }
+
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin privileges required.' });
+    }
+
+    if (!req.user.adminPermissions || !req.user.adminPermissions[permission]) {
+      return res.status(403).json({ message: `Access denied. ${permission} permission required.` });
+    }
+
+    next();
+  };
+};
+
 module.exports = {
   authenticateToken,
-  authorizeRoles
+  authorizeRoles,
+  requireAdmin,
+  requirePermission
 };

@@ -28,7 +28,6 @@ import Profile from './pages/Profile/Profile';
 
 // Admin Components
 import AdminDashboard from './components/Admin/AdminDashboard';
-import AdminLogin from './components/Admin/AdminLogin';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -41,7 +40,7 @@ const queryClient = new QueryClient({
 });
 
 // Protected Route Component
-const ProtectedRoute = ({ children, allowedRoles = [], adminOnly = false }) => {
+const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -52,13 +51,8 @@ const ProtectedRoute = ({ children, allowedRoles = [], adminOnly = false }) => {
     return <Navigate to="/login" replace />;
   }
 
-  // Check for admin access
-  if (adminOnly && user.type !== 'admin') {
-    return <Navigate to="/" replace />;
-  }
-
-  // Check for regular user roles
-  if (allowedRoles.length > 0 && !allowedRoles.includes(user.role) && user.type !== 'admin') {
+  // Check for role access
+  if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
     return <Navigate to="/" replace />;
   }
 
@@ -74,12 +68,10 @@ const PublicRoute = ({ children }) => {
   }
 
   if (user) {
-    // Redirect based on user type and role
-    if (user.type === 'admin') {
-      return <Navigate to="/admin/dashboard" replace />;
-    }
-    
-    const dashboardPath = user.role === 'doctor' ? '/doctor/dashboard' : '/patient/dashboard';
+    // Redirect based on user role
+    const dashboardPath = user.role === 'doctor' ? '/doctor/dashboard' : 
+                         user.role === 'admin' ? '/admin/dashboard' : 
+                         '/patient/dashboard';
     return <Navigate to={dashboardPath} replace />;
   }
 
@@ -179,17 +171,9 @@ function AppContent() {
 
           {/* Admin Routes */}
           <Route 
-            path="/admin/login" 
-            element={
-              <PublicRoute>
-                <AdminLogin />
-              </PublicRoute>
-            } 
-          />
-          <Route 
             path="/admin/dashboard" 
             element={
-              <ProtectedRoute adminOnly={true}>
+              <ProtectedRoute allowedRoles={['admin']}>
                 <AdminDashboard />
               </ProtectedRoute>
             } 

@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const Admin = require('../models/Admin');
+const User = require('../models/User');
 require('dotenv').config();
 
 async function createFirstAdmin() {
@@ -9,36 +9,39 @@ async function createFirstAdmin() {
     console.log('Connected to MongoDB');
 
     // Check if any admin exists
-    const existingAdmin = await Admin.findOne();
+    const existingAdmin = await User.findOne({ role: 'admin' });
     if (existingAdmin) {
-      console.log('❌ Admin already exists. Use the admin panel to create additional admins.');
+      console.log('❌ Admin user already exists. Use the registration form to create additional admins.');
       process.exit(1);
     }
 
-    // Create first super admin
+    // Create first admin user
     const adminData = {
-      username: 'admin',
       email: 'admin@medibot.com',
       password: 'admin123', // Change this in production!
-      role: 'super_admin',
-      permissions: {
+      role: 'admin',
+      profile: {
+        firstName: 'Admin',
+        lastName: 'User'
+      },
+      adminPermissions: {
         canUpload: true,
         canDelete: true,
         canManageAdmins: true
       }
     };
 
-    const admin = new Admin(adminData);
+    const admin = new User(adminData);
     await admin.save();
 
-    console.log('✅ First admin created successfully!');
+    console.log('✅ First admin user created successfully!');
     console.log('📋 Login credentials:');
-    console.log(`   Username: ${adminData.username}`);
     console.log(`   Email: ${adminData.email}`);
     console.log(`   Password: ${adminData.password}`);
     console.log('');
     console.log('⚠️  IMPORTANT: Change the default password after first login!');
-    console.log('🔗 Admin login URL: http://localhost:3000/admin/login');
+    console.log('🔗 Login URL: http://localhost:3000/login');
+    console.log('   After login, you can access the admin dashboard at: http://localhost:3000/admin/dashboard');
 
   } catch (error) {
     console.error('❌ Error creating first admin:', error.message);
@@ -48,4 +51,5 @@ async function createFirstAdmin() {
   }
 }
 
+// Run the script
 createFirstAdmin();

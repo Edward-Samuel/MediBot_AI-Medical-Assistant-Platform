@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, FileText, X, Loader, CheckCircle } from 'lucide-react';
+import { Upload, FileText, X, Loader } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
@@ -77,7 +77,7 @@ const FAQUpload = ({ adminData, onUploadSuccess }) => {
       uploadData.append('tags', formData.tags);
 
       const token = localStorage.getItem('adminToken');
-      const response = await axios.post('/api/faq/upload', uploadData, {
+      await axios.post('/api/faq/upload', uploadData, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'

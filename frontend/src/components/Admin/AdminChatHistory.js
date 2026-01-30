@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   MessageCircle, 
   Search, 
@@ -6,7 +6,6 @@ import {
   Eye, 
   Trash2, 
   Download,
-  Calendar,
   User,
   Clock,
   ChevronLeft,
@@ -37,9 +36,9 @@ const AdminChatHistory = () => {
 
   useEffect(() => {
     loadChatSessions();
-  }, [pagination.currentPage, searchTerm, filters]);
+  }, [pagination.currentPage, searchTerm, filters, loadChatSessions]);
 
-  const loadChatSessions = async () => {
+  const loadChatSessions = useCallback(async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('adminToken');
@@ -67,7 +66,7 @@ const AdminChatHistory = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [pagination.currentPage, searchTerm, filters]);
 
   const loadSessionDetails = async (sessionId) => {
     try {

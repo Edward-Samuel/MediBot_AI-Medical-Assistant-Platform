@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   FileText, 
   Search, 
-  Filter, 
   Eye, 
   EyeOff, 
   Trash2, 
@@ -31,9 +30,9 @@ const FAQManagement = ({ adminData, onUpdate }) => {
   useEffect(() => {
     loadFAQs();
     loadCategories();
-  }, [currentPage, selectedCategory, statusFilter]);
+  }, [currentPage, selectedCategory, statusFilter, loadFAQs]);
 
-  const loadFAQs = async () => {
+  const loadFAQs = useCallback(async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('adminToken');
@@ -61,7 +60,7 @@ const FAQManagement = ({ adminData, onUpdate }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, selectedCategory, statusFilter]);
 
   const loadCategories = async () => {
     try {

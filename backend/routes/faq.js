@@ -3,7 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
 const faqService = require('../services/faqService');
-const { adminAuth, checkPermission } = require('../middleware/adminAuth');
+const { authenticateToken, requireAdmin, requirePermission } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -107,7 +107,7 @@ router.get('/categories', async (req, res) => {
 });
 
 // Admin route: Upload FAQ file
-router.post('/upload', adminAuth, checkPermission('canUpload'), upload.single('file'), async (req, res) => {
+router.post('/upload', authenticateToken, requirePermission('canUpload'), upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -170,7 +170,7 @@ router.post('/upload', adminAuth, checkPermission('canUpload'), upload.single('f
 });
 
 // Admin route: Get all FAQs
-router.get('/admin/list', adminAuth, async (req, res) => {
+router.get('/admin/list', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { 
       page = 1, 
@@ -203,7 +203,7 @@ router.get('/admin/list', adminAuth, async (req, res) => {
 });
 
 // Admin route: Get FAQ statistics
-router.get('/admin/stats', adminAuth, async (req, res) => {
+router.get('/admin/stats', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const stats = await faqService.getStats();
     res.json({ stats });
@@ -216,7 +216,7 @@ router.get('/admin/stats', adminAuth, async (req, res) => {
 });
 
 // Admin route: Test FAQ search (for debugging)
-router.post('/admin/test-search', adminAuth, async (req, res) => {
+router.post('/admin/test-search', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { query, category, limit = 5 } = req.body;
 
@@ -251,7 +251,7 @@ router.post('/admin/test-search', adminAuth, async (req, res) => {
 });
 
 // Admin route: Get FAQ by ID
-router.get('/admin/:faqId', adminAuth, async (req, res) => {
+router.get('/admin/:faqId', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { faqId } = req.params;
     const faq = await faqService.getFAQById(faqId);
@@ -273,7 +273,7 @@ router.get('/admin/:faqId', adminAuth, async (req, res) => {
 });
 
 // Admin route: Update FAQ status
-router.put('/admin/:faqId/status', adminAuth, async (req, res) => {
+router.put('/admin/:faqId/status', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { faqId } = req.params;
     const { isActive } = req.body;
@@ -306,7 +306,7 @@ router.put('/admin/:faqId/status', adminAuth, async (req, res) => {
 });
 
 // Admin route: Delete FAQ
-router.delete('/admin/:faqId', adminAuth, checkPermission('canDelete'), async (req, res) => {
+router.delete('/admin/:faqId', authenticateToken, requirePermission('canDelete'), async (req, res) => {
   try {
     const { faqId } = req.params;
     

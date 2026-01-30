@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Star, MapPin, Clock, User, Loader2 } from 'lucide-react';
+import { Search, Star, Clock, User, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -73,7 +73,7 @@ const DoctorList = () => {
   // Load doctors on component mount and when filters change
   useEffect(() => {
     fetchDoctors(currentPage, selectedSpecialization, searchTerm);
-  }, [currentPage, selectedSpecialization]);
+  }, [currentPage, selectedSpecialization, searchTerm]);
 
   // Handle search with debounce
   useEffect(() => {
@@ -83,7 +83,7 @@ const DoctorList = () => {
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [searchTerm]);
+  }, [searchTerm, selectedSpecialization]);
 
   const handleSpecializationChange = (specialization) => {
     setSelectedSpecialization(specialization);

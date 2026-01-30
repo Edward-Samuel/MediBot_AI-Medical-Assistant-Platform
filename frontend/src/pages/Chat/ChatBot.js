@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Loader, AlertCircle, Mic, MicOff, Copy, Volume2, VolumeX, Save, Menu, Search, Globe, Image, X, Camera, History } from 'lucide-react';
 import axios from 'axios';
@@ -240,13 +241,9 @@ const ChatBot = () => {
     }
   };
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
   // Auto-scroll disabled - users can manually scroll
   // useEffect(() => {
-  //   scrollToBottom();
+  //   messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   // }, [messages]);
 
   // Initialize speech recognition

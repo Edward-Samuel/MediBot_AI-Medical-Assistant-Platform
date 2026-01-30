@@ -18,6 +18,21 @@ const userSchema = new mongoose.Schema({
     enum: ['patient', 'doctor', 'admin'],
     required: true
   },
+  // Admin permissions (only used when role is 'admin')
+  adminPermissions: {
+    canUpload: {
+      type: Boolean,
+      default: true
+    },
+    canDelete: {
+      type: Boolean,
+      default: true
+    },
+    canManageAdmins: {
+      type: Boolean,
+      default: false
+    }
+  },
   profile: {
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },

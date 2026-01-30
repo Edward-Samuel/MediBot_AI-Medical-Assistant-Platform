@@ -6,8 +6,7 @@ import {
   FileText, 
   RefreshCw,
   BarChart3,
-  PieChart,
-  Users
+  PieChart
 } from 'lucide-react';
 
 const AdminStats = ({ stats, onRefresh }) => {

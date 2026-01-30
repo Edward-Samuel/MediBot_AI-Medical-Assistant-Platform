@@ -18,9 +18,7 @@ export const AuthProvider = ({ children }) => {
 
   // Set up axios defaults
   useEffect(() => {
-    const adminToken = localStorage.getItem('adminToken');
-    const regularToken = localStorage.getItem('token');
-    const token = adminToken || regularToken;
+    const token = localStorage.getItem('token');
     
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
@@ -34,11 +32,7 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuth = async () => {
     try {
-      // Check for admin token first
-      const adminToken = localStorage.getItem('adminToken');
-      const regularToken = localStorage.getItem('token');
-      
-      const token = adminToken || regularToken;
+      const token = localStorage.getItem('token');
       
       if (!token) {
         setLoading(false);
@@ -54,8 +48,6 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Auth check failed:', error);
       localStorage.removeItem('token');
-      localStorage.removeItem('adminToken');
-      localStorage.removeItem('adminData');
       delete axios.defaults.headers.common['Authorization'];
     } finally {
       setLoading(false);
@@ -71,14 +63,7 @@ export const AuthProvider = ({ children }) => {
 
       const { token, user } = response.data;
       
-      // Handle admin vs regular user tokens
-      if (user.type === 'admin') {
-        localStorage.setItem('adminToken', token);
-        localStorage.setItem('adminData', JSON.stringify(user));
-      } else {
-        localStorage.setItem('token', token);
-      }
-      
+      localStorage.setItem('token', token);
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       setUser(user);
       
@@ -105,15 +90,12 @@ export const AuthProvider = ({ children }) => {
       return { success: true };
     } catch (error) {
       const message = error.response?.data?.message || 'Registration failed';
-      toast.error(message);
       return { success: false, error: message };
     }
   };
 
   const logout = () => {
     localStorage.removeItem('token');
-    localStorage.removeItem('adminToken');
-    localStorage.removeItem('adminData');
     delete axios.defaults.headers.common['Authorization'];
     setUser(null);
     toast.success('Logged out successfully');

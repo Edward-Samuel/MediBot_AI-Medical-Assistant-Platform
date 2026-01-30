@@ -3,16 +3,14 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Doctor = require('../models/Doctor');
 const Patient = require('../models/Patient');
-const Admin = require('../models/Admin');
 const { body, validationResult } = require('express-validator');
 
 const router = express.Router();
 
 // Generate JWT token
-const generateToken = (userId, userType = 'user') => {
+const generateToken = (userId) => {
   return jwt.sign({ 
-    userId, 
-    type: userType 
+    userId
   }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRE
   });
@@ -22,7 +20,7 @@ const generateToken = (userId, userType = 'user') => {
 router.post('/register', [
   body('email').isEmail().normalizeEmail(),
   body('password').isLength({ min: 6 }),
-  body('role').isIn(['patient', 'doctor']),
+  body('role').isIn(['patient', 'doctor', 'admin']),
   body('firstName').notEmpty().trim(),
   body('lastName').notEmpty().trim()
 ], async (req, res) => {
@@ -83,6 +81,14 @@ router.post('/register', [
         emergencyContact: req.body.emergencyContact
       });
       await patient.save();
+    } else if (role === 'admin') {
+      // Set admin permissions
+      user.adminPermissions = {
+        canUpload: true,
+        canDelete: true,
+        canManageAdmins: req.body.canManageAdmins || false
+      };
+      await user.save();
     }
 
     const token = generateToken(user._id);
@@ -110,63 +116,20 @@ router.post('/login', async (req, res) => {
 
     if (!email || !password) {
       return res.status(400).json({ 
-        message: 'Email/username and password are required' 
+        message: 'Email and password are required' 
       });
     }
 
-    let user = null;
-    let userType = 'user';
-    let additionalData = {};
-
-    // Normalize the email/username input
-    const loginIdentifier = email.toLowerCase();
-
-    // First, try to find admin by email or username
-    const admin = await Admin.findOne({
-      $or: [
-        { email: loginIdentifier },
-        { username: loginIdentifier }
-      ]
-    });
-
-    if (admin) {
-      if (!admin.isActive) {
-        return res.status(403).json({ message: 'Account is deactivated' });
-      }
-
-      const isPasswordValid = await admin.comparePassword(password);
-      if (!isPasswordValid) {
-        return res.status(401).json({ message: 'Invalid credentials' });
-      }
-
-      // Update last login
-      admin.lastLogin = new Date();
-      await admin.save();
-
-      const token = generateToken(admin._id, 'admin');
-
-      return res.json({
-        message: 'Login successful',
-        token,
-        user: {
-          id: admin._id,
-          email: admin.email,
-          username: admin.username,
-          role: admin.role,
-          type: 'admin',
-          permissions: admin.permissions,
-          lastLogin: admin.lastLogin
-        }
-      });
-    }
-
-    // If not admin, try regular user (only by email for regular users)
-    if (loginIdentifier.includes('@')) {
-      user = await User.findOne({ email: loginIdentifier });
-    }
+    // Find user by email
+    const user = await User.findOne({ email: email.toLowerCase() });
     
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // Check if user is active
+    if (!user.isActive) {
+      return res.status(403).json({ message: 'Account is deactivated' });
     }
 
     // Check password
@@ -174,6 +137,8 @@ router.post('/login', async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
+
+    let additionalData = {};
 
     // Get role-specific data
     if (user.role === 'doctor') {
@@ -195,13 +160,17 @@ router.post('/login', async (req, res) => {
           medicalHistory: patient.medicalHistory
         };
       }
+    } else if (user.role === 'admin') {
+      additionalData = {
+        adminPermissions: user.adminPermissions
+      };
     }
 
     // Update last login
     user.lastLogin = new Date();
     await user.save();
 
-    const token = generateToken(user._id, 'user');
+    const token = generateToken(user._id);
 
     res.json({
       message: 'Login successful',
@@ -210,7 +179,6 @@ router.post('/login', async (req, res) => {
         id: user._id,
         email: user.email,
         role: user.role,
-        type: 'user',
         profile: user.profile,
         ...additionalData
       }
@@ -231,67 +199,51 @@ router.get('/me', async (req, res) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    if (decoded.type === 'admin') {
-      // Handle admin user
-      const admin = await Admin.findById(decoded.userId).select('-password');
-      if (!admin) {
-        return res.status(401).json({ message: 'Admin not found' });
-      }
-
-      return res.json({ 
-        user: {
-          id: admin._id,
-          email: admin.email,
-          username: admin.username,
-          role: admin.role,
-          type: 'admin',
-          permissions: admin.permissions,
-          lastLogin: admin.lastLogin,
-          createdAt: admin.createdAt
-        }
-      });
-    } else {
-      // Handle regular user (patient/doctor)
-      const user = await User.findById(decoded.userId).select('-password');
-      if (!user) {
-        return res.status(401).json({ message: 'User not found' });
-      }
-
-      let additionalData = {};
-      
-      // Get role-specific data
-      if (user.role === 'doctor') {
-        const doctor = await Doctor.findOne({ userId: user._id });
-        if (doctor) {
-          additionalData = {
-            licenseNumber: doctor.licenseNumber,
-            specialization: doctor.specialization,
-            experience: doctor.experience,
-            availability: doctor.availability
-          };
-        }
-      } else if (user.role === 'patient') {
-        const patient = await Patient.findOne({ userId: user._id });
-        if (patient) {
-          additionalData = {
-            bloodType: patient.bloodType,
-            emergencyContact: patient.emergencyContact,
-            medicalHistory: patient.medicalHistory
-          };
-        }
-      }
-
-      return res.json({ 
-        user: {
-          id: user._id,
-          email: user.email,
-          role: user.role,
-          type: 'user',
-          profile: user.profile,
-          ...additionalData
-        }
-      });
+    // Handle user lookup
+    const user = await User.findById(decoded.userId).select('-password');
+    if (!user) {
+      return res.status(401).json({ message: 'User not found' });
     }
+
+    let additionalData = {};
+    
+    // Get role-specific data
+    if (user.role === 'doctor') {
+      const doctor = await Doctor.findOne({ userId: user._id });
+      if (doctor) {
+        additionalData = {
+          licenseNumber: doctor.licenseNumber,
+          specialization: doctor.specialization,
+          experience: doctor.experience,
+          availability: doctor.availability
+        };
+      }
+    } else if (user.role === 'patient') {
+      const patient = await Patient.findOne({ userId: user._id });
+      if (patient) {
+        additionalData = {
+          bloodType: patient.bloodType,
+          emergencyContact: patient.emergencyContact,
+          medicalHistory: patient.medicalHistory
+        };
+      }
+    } else if (user.role === 'admin') {
+      additionalData = {
+        adminPermissions: user.adminPermissions
+      };
+    }
+
+    return res.json({ 
+      user: {
+        id: user._id,
+        email: user.email,
+        role: user.role,
+        profile: user.profile,
+        lastLogin: user.lastLogin,
+        createdAt: user.createdAt,
+        ...additionalData
+      }
+    });
   } catch (error) {
     console.error('Auth error:', error);
     res.status(401).json({ message: 'Invalid token' });

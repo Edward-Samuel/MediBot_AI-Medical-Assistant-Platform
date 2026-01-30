@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Upload, 
@@ -6,7 +6,6 @@ import {
   BarChart3, 
   Settings, 
   LogOut, 
-  Users,
   Database,
   Activity,
   TrendingUp,
@@ -29,9 +28,9 @@ const AdminDashboard = () => {
   useEffect(() => {
     checkAuth();
     loadStats();
-  }, []);
+  }, [checkAuth]);
 
-  const checkAuth = () => {
+  const checkAuth = useCallback(() => {
     const token = localStorage.getItem('adminToken');
     const admin = localStorage.getItem('adminData');
     
@@ -46,7 +45,7 @@ const AdminDashboard = () => {
       console.error('Error parsing admin data:', error);
       handleLogout();
     }
-  };
+  }, [navigate]);
 
   const loadStats = async () => {
     try {
