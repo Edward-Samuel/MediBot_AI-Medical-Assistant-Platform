@@ -67,8 +67,13 @@ class GoogleCalendarService {
 
       this.calendar = google.calendar({ version: 'v3', auth });
       
-      // Test the connection
-      await this.testConnection();
+      // Test the connection (but don't fail initialization if test fails)
+      try {
+        await this.testConnection();
+      } catch (testError) {
+        console.log('⚠️  Calendar connection test failed during initialization:', testError.message);
+        // Don't fail initialization - the calendar object is still valid
+      }
       
       this.initialized = true;
       console.log('✅ Google Calendar service initialized successfully');
@@ -188,14 +193,22 @@ class GoogleCalendarService {
     try {
       console.log('🔍 Testing Google Calendar connection...');
       
-      // Test 1: List calendars
-      const calendarListResponse = await this.calendar.calendarList.list();
-      const calendars = calendarListResponse.data.items || [];
-      
-      console.log('📋 Available calendars:');
-      calendars.forEach(cal => {
-        console.log(`   - ${cal.summary} (${cal.id}) - Access: ${cal.accessRole}`);
-      });
+      // Test 1: List calendars (optional - service accounts may not have full access)
+      try {
+        const calendarListResponse = await this.calendar.calendarList.list();
+        const calendars = calendarListResponse.data.items || [];
+        
+        console.log('📋 Available calendars:');
+        if (calendars.length > 0) {
+          calendars.forEach(cal => {
+            console.log(`   - ${cal.summary} (${cal.id}) - Access: ${cal.accessRole}`);
+          });
+        } else {
+          console.log('   (Service account has limited calendar list access)');
+        }
+      } catch (listError) {
+        console.log('📋 Calendar list access limited (this is normal for service accounts)');
+      }
 
       // Test 2: Check target calendar access
       const targetCalendarId = this.calendarId === 'primary' ? 'primary' : this.calendarId;
@@ -212,6 +225,7 @@ class GoogleCalendarService {
         if (targetCalendarId !== 'primary') {
           console.log('   💡 Suggestion: Try using "primary" as GOOGLE_CALENDAR_ID');
         }
+        throw calError;
       }
 
       // Test 3: Try creating a test event (and immediately delete it)
@@ -246,10 +260,19 @@ class GoogleCalendarService {
         throw writeError;
       }
 
-      return true;
+      return {
+        success: true,
+        calendarId: this.calendarId,
+        authType: this.authType
+      };
     } catch (error) {
       console.error('❌ Calendar connection test failed:', error.message);
-      throw error;
+      return {
+        success: false,
+        error: error.message,
+        calendarId: this.calendarId,
+        authType: this.authType
+      };
     }
   }
 

@@ -479,29 +479,70 @@ Respond in this EXACT JSON format:
 
       // Try to parse JSON from response
       try {
-        const jsonMatch = response.content.match(/\{[\s\S]*\}/);
-        let analysis = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+        let jsonContent = response.content;
         
-        // Validate and sanitize analysis
-        if (analysis) {
-          analysis = this.validateSymptomAnalysis(analysis, symptoms, patientInfo);
+        // Clean up the response to extract JSON
+        const jsonMatch = jsonContent.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          jsonContent = jsonMatch[0];
+        } else {
+          // Try to find JSON-like structure with different patterns
+          const altMatch = jsonContent.match(/```json\s*(\{[\s\S]*?\})\s*```/) ||
+                          jsonContent.match(/```\s*(\{[\s\S]*?\})\s*```/) ||
+                          jsonContent.match(/(\{[^{}]*"primarySpecialization"[^{}]*\})/);
+          
+          if (altMatch) {
+            jsonContent = altMatch[1];
+          } else {
+            throw new Error('No JSON structure found in response');
+          }
         }
         
-        return {
-          analysis,
-          reasoning: response.reasoning_details,
-          model: response.model,
-          isTemplate: response.isTemplate
-        };
+        // Clean up common JSON formatting issues
+        jsonContent = jsonContent
+          .replace(/,\s*}/g, '}')  // Remove trailing commas
+          .replace(/,\s*]/g, ']')  // Remove trailing commas in arrays
+          .replace(/\n/g, ' ')     // Replace newlines with spaces
+          .replace(/\s+/g, ' ')    // Normalize whitespace
+          .trim();
+        
+        let analysis = JSON.parse(jsonContent);
+        
+        // Validate and sanitize analysis
+        if (analysis && typeof analysis === 'object') {
+          analysis = this.validateSymptomAnalysis(analysis, symptoms, patientInfo);
+          
+          console.log('✅ OpenRouter analysis parsed successfully:', {
+            primary: analysis.primarySpecialization,
+            alternatives: analysis.alternativeSpecializations,
+            confidence: analysis.confidence
+          });
+          
+          return {
+            analysis,
+            reasoning: response.reasoning_details,
+            model: response.model,
+            isTemplate: response.isTemplate
+          };
+        } else {
+          throw new Error('Invalid analysis structure');
+        }
+        
       } catch (parseError) {
-        console.error('Error parsing OpenRouter analysis:', parseError);
+        console.error('❌ Error parsing OpenRouter analysis:', parseError.message);
+        console.log('📝 Raw response content:', response.content.substring(0, 500) + '...');
         
         // Fallback to rule-based analysis
         const fallbackAnalysis = this.generateFallbackAnalysis(symptoms, patientInfo);
         
+        console.log('🔄 Using fallback analysis:', {
+          primary: fallbackAnalysis.primarySpecialization,
+          confidence: fallbackAnalysis.confidence
+        });
+        
         return {
           analysis: fallbackAnalysis,
-          reasoning: null,
+          reasoning: 'Fallback analysis due to parsing error',
           model: 'fallback_rules',
           isTemplate: true
         };
@@ -574,59 +615,124 @@ Respond in this EXACT JSON format:
   generateFallbackAnalysis(symptoms, patientInfo) {
     const { age, urgency } = patientInfo;
     
-    // Simple rule-based mapping
+    // Enhanced rule-based mapping
     const symptomMap = {
       'chest pain': 'Cardiology',
       'heart': 'Cardiology',
+      'cardiac': 'Cardiology',
+      'palpitation': 'Cardiology',
       'skin': 'Dermatology',
       'rash': 'Dermatology',
+      'acne': 'Dermatology',
+      'eczema': 'Dermatology',
       'headache': 'Neurology',
+      'migraine': 'Neurology',
+      'seizure': 'Neurology',
       'back pain': 'Orthopedics',
       'joint': 'Orthopedics',
+      'fracture': 'Orthopedics',
+      'arthritis': 'Orthopedics',
       'stomach': 'Gastroenterology',
       'nausea': 'Gastroenterology',
+      'diarrhea': 'Gastroenterology',
+      'constipation': 'Gastroenterology',
       'ear': 'ENT',
       'throat': 'ENT',
+      'nose': 'ENT',
+      'sinus': 'ENT',
       'eye': 'Ophthalmology',
       'vision': 'Ophthalmology',
+      'blind': 'Ophthalmology',
       'breathing': 'Pulmonology',
       'cough': 'Pulmonology',
+      'asthma': 'Pulmonology',
+      'lung': 'Pulmonology',
       'anxiety': 'Psychiatry',
-      'depression': 'Psychiatry'
+      'depression': 'Psychiatry',
+      'mental': 'Psychiatry',
+      'diabetes': 'Endocrinology',
+      'thyroid': 'Endocrinology',
+      'hormone': 'Endocrinology',
+      'pregnancy': 'Gynecology',
+      'menstrual': 'Gynecology',
+      'gynecological': 'Gynecology',
+      'urinary': 'Urology',
+      'kidney': 'Urology',
+      'bladder': 'Urology'
     };
 
     let primarySpecialization = 'General Medicine';
     const alternativeSpecializations = [];
+    let confidence = 0.6;
 
     // Find matching specialization
     const lowerSymptoms = symptoms.map(s => s.toLowerCase()).join(' ');
+    
+    // Check for multiple matches to increase confidence
+    let matchCount = 0;
     for (const [keyword, specialization] of Object.entries(symptomMap)) {
       if (lowerSymptoms.includes(keyword)) {
-        primarySpecialization = specialization;
-        break;
+        if (matchCount === 0) {
+          primarySpecialization = specialization;
+        } else if (!alternativeSpecializations.includes(specialization)) {
+          alternativeSpecializations.push(specialization);
+        }
+        matchCount++;
       }
+    }
+
+    // Increase confidence based on matches
+    if (matchCount > 0) {
+      confidence = Math.min(0.6 + (matchCount * 0.1), 0.9);
     }
 
     // Age-based adjustments
     if (age && age < 18) {
-      alternativeSpecializations.push('Pediatrics');
+      if (primarySpecialization !== 'Pediatrics') {
+        alternativeSpecializations.unshift('Pediatrics');
+      }
     }
 
     // Urgency-based adjustments
     let urgencyLevel = 'medium';
     if (urgency === 'urgent' || urgency === 'high') {
       urgencyLevel = 'high';
+      // For urgent cases, consider Emergency Medicine
+      if (!alternativeSpecializations.includes('Emergency Medicine')) {
+        alternativeSpecializations.push('Emergency Medicine');
+      }
     }
 
     return {
       primarySpecialization,
-      alternativeSpecializations,
+      alternativeSpecializations: alternativeSpecializations.slice(0, 2), // Limit to 2
       urgencyLevel,
-      reasoning: 'Based on symptom keyword matching - please consult a healthcare professional for proper evaluation',
-      redFlags: [],
-      confidence: 0.6,
+      reasoning: `Based on symptom analysis (${matchCount} matches found) - please consult a healthcare professional for proper evaluation`,
+      redFlags: this.identifyRedFlags(symptoms),
+      confidence,
       isFallback: true
     };
+  }
+
+  /**
+   * Identify potential red flag symptoms
+   */
+  identifyRedFlags(symptoms) {
+    const redFlagKeywords = [
+      'severe chest pain',
+      'difficulty breathing',
+      'loss of consciousness',
+      'severe bleeding',
+      'severe headache',
+      'sudden vision loss',
+      'severe abdominal pain',
+      'high fever',
+      'seizure',
+      'stroke symptoms'
+    ];
+
+    const lowerSymptoms = symptoms.map(s => s.toLowerCase()).join(' ');
+    return redFlagKeywords.filter(flag => lowerSymptoms.includes(flag.toLowerCase()));
   }
 }
 
