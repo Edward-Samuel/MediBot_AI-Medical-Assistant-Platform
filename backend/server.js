@@ -48,6 +48,16 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
+// Initialize services in background (non-blocking)
+Promise.all([
+  faqService.initialize().catch(err => console.warn('⚠️  FAQ service unavailable:', err.message)),
+  // Add other service initializations here
+]).then(() => {
+  console.log('✅ Optional services initialization completed');
+}).catch(err => {
+  console.warn('⚠️  Some services failed to initialize:', err.message);
+});
+
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));

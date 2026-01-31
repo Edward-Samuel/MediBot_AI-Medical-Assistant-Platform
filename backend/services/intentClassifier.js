@@ -58,7 +58,7 @@ class IntentClassifier {
   }
 
   /**
-   * Classify user intent using rule-based approach with AI fallback
+   * Classify user intent using parallel rule-based + AI approach
    */
   async classifyIntent(message, conversationHistory = [], options = {}) {
     try {
@@ -78,19 +78,37 @@ class IntentClassifier {
         return appointmentResult;
       }
 
-      // Rule-based classification for FAQ vs General Chat
-      const ruleBasedResult = this.classifyWithRules(message, conversationHistory);
-      
-      // If confidence is high enough, return rule-based result
-      if (ruleBasedResult.confidence >= 0.8) {
-        return ruleBasedResult;
+      // Run rule-based and AI classification in parallel for speed
+      const [ruleBasedResult, aiResult] = await Promise.allSettled([
+        Promise.resolve(this.classifyWithRules(message, conversationHistory)),
+        this.classifyWithAI(message, conversationHistory)
+      ]);
+
+      // Use rule-based result if it has high confidence
+      const ruleResult = ruleBasedResult.status === 'fulfilled' ? ruleBasedResult.value : null;
+      if (ruleResult && ruleResult.confidence >= 0.8) {
+        return ruleResult;
       }
 
-      // Use AI classification for ambiguous cases
-      const aiResult = await this.classifyWithAI(message, conversationHistory);
+      // Use AI result if available, otherwise fall back to rule-based
+      const aiResultValue = aiResult.status === 'fulfilled' ? aiResult.value : null;
       
-      // Combine rule-based and AI results
-      return this.combineResults(ruleBasedResult, aiResult);
+      if (aiResultValue && aiResultValue.confidence >= 0.7) {
+        return aiResultValue;
+      }
+
+      // Combine results if both available but low confidence
+      if (ruleResult && aiResultValue) {
+        return this.combineResults(ruleResult, aiResultValue);
+      }
+
+      // Final fallback to rule-based result
+      return ruleResult || {
+        intent: this.intents.GENERAL_CHAT,
+        confidence: 0.5,
+        method: 'fallback',
+        reasoning: 'Default classification due to processing errors'
+      };
 
     } catch (error) {
       console.error('Intent classification error:', error);

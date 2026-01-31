@@ -1,4 +1,5 @@
 const { pipeline, env } = require('@xenova/transformers');
+const cacheService = require('./cacheService');
 
 // Configure transformers for memory efficiency
 env.allowLocalModels = false;
@@ -52,6 +53,13 @@ class EmbeddingService {
     }
 
     try {
+      // Check cache first
+      const cacheKey = `embedding:${Buffer.from(text.substring(0, 100)).toString('base64')}`;
+      const cached = await cacheService.get(cacheKey);
+      if (cached) {
+        return cached;
+      }
+
       // For Q&A pairs, allow longer text; for regular content, keep it shorter
       const isQAPair = text.includes('Q:') && text.includes('A:');
       const maxLength = isQAPair ? 200 : 100;
@@ -102,6 +110,9 @@ class EmbeddingService {
       if (memoryUsed > 50) { // More than 50MB
         console.warn(`⚠️  High memory usage for embedding: ${memoryUsed.toFixed(2)}MB`);
       }
+      
+      // Cache the result for 24 hours
+      await cacheService.set(cacheKey, embedding, 86400);
       
       // Force garbage collection
       if (global.gc) {

@@ -3,6 +3,7 @@ const pineconeService = require('./pineconeService');
 const documentProcessor = require('./documentProcessor');
 const openRouterService = require('./openRouterService');
 const memoryMonitor = require('../utils/memoryMonitor');
+const cacheService = require('./cacheService');
 
 class FAQService {
   constructor() {
@@ -11,7 +12,11 @@ class FAQService {
 
   async initialize() {
     try {
-      const pineconeReady = await pineconeService.initialize();
+      const [pineconeReady, cacheReady] = await Promise.all([
+        pineconeService.initialize(),
+        cacheService.initialize()
+      ]);
+      
       this.initialized = pineconeReady;
       
       if (this.initialized) {
@@ -119,10 +124,28 @@ class FAQService {
   async searchFAQ(query, options = {}) {
     try {
       const { limit = 5, category, includeInactive = false } = options;
+      
+      // Generate cache key
+      const cacheKey = cacheService.generateKey('faq_search', 
+        query.toLowerCase().trim(), 
+        limit, 
+        category || 'all', 
+        includeInactive
+      );
+      
+      // Try to get from cache first
+      const cachedResult = await cacheService.get(cacheKey);
+      if (cachedResult) {
+        console.log('🚀 FAQ search cache hit');
+        return cachedResult;
+      }
 
       if (!this.initialized) {
         // Fallback to database search if Pinecone is not available
-        return this.searchFAQDatabase(query, options);
+        const result = await this.searchFAQDatabase(query, options);
+        // Cache database results for shorter time (15 minutes)
+        await cacheService.set(cacheKey, result, 900);
+        return result;
       }
 
       // Search using Pinecone with Q&A prioritization
@@ -195,12 +218,17 @@ class FAQService {
         }
       }
 
-      return {
+      const result = {
         results,
         query,
         totalResults: results.length,
         source: 'pinecone'
       };
+
+      // Cache the result for 1 hour
+      await cacheService.set(cacheKey, result, 3600);
+      
+      return result;
 
     } catch (error) {
       console.error('❌ Error searching FAQ:', error.message);
