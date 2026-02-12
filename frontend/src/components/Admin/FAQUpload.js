@@ -1,41 +1,44 @@
-import React, { useState } from 'react';
-import { Upload, FileText, X, Loader } from 'lucide-react';
-import axios from 'axios';
-import toast from 'react-hot-toast';
+import React, { useState } from "react";
+import { Upload, FileText, X, Loader } from "lucide-react";
+import axios from "axios";
+import toast from "react-hot-toast";
 
 const FAQUpload = ({ adminData, onUploadSuccess }) => {
   const [file, setFile] = useState(null);
   const [formData, setFormData] = useState({
-    title: '',
-    category: 'General',
-    description: '',
-    tags: ''
+    title: "",
+    category: "General",
+    description: "",
+    tags: "",
   });
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  const supportedTypes = ['pdf', 'docx', 'txt', 'csv', 'md'];
+  const supportedTypes = ["pdf", "docx", "txt", "csv", "md"];
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     if (!selectedFile) return;
 
-    const fileExtension = selectedFile.name.split('.').pop().toLowerCase();
+    const fileExtension = selectedFile.name.split(".").pop().toLowerCase();
     if (!supportedTypes.includes(fileExtension)) {
-      toast.error(`Unsupported file type. Supported types: ${supportedTypes.join(', ')}`);
+      toast.error(
+        `Unsupported file type. Supported types: ${supportedTypes.join(", ")}`,
+      );
       return;
     }
 
-    if (selectedFile.size > 10 * 1024 * 1024) { // 10MB limit
-      toast.error('File size must be less than 10MB');
+    if (selectedFile.size > 10 * 1024 * 1024) {
+      // 10MB limit
+      toast.error("File size must be less than 10MB");
       return;
     }
 
     setFile(selectedFile);
     if (!formData.title) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        title: selectedFile.name.replace(/\.[^/.]+$/, '')
+        title: selectedFile.name.replace(/\.[^/.]+$/, ""),
       }));
     }
   };
@@ -43,7 +46,7 @@ const FAQUpload = ({ adminData, onUploadSuccess }) => {
   const handleInputChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
@@ -54,14 +57,14 @@ const FAQUpload = ({ adminData, onUploadSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!file) {
-      toast.error('Please select a file to upload');
+      toast.error("Please select a file to upload");
       return;
     }
 
     if (!formData.title.trim()) {
-      toast.error('Please enter a title');
+      toast.error("Please enter a title");
       return;
     }
 
@@ -70,33 +73,35 @@ const FAQUpload = ({ adminData, onUploadSuccess }) => {
 
     try {
       const uploadData = new FormData();
-      uploadData.append('file', file);
-      uploadData.append('title', formData.title.trim());
-      uploadData.append('category', formData.category);
-      uploadData.append('description', formData.description.trim());
-      uploadData.append('tags', formData.tags);
+      uploadData.append("file", file);
+      uploadData.append("title", formData.title.trim());
+      uploadData.append("category", formData.category);
+      uploadData.append("description", formData.description.trim());
+      uploadData.append("tags", formData.tags);
 
-      const token = localStorage.getItem('adminToken');
-      await axios.post('/api/faq/upload', uploadData, {
+      const token = localStorage.getItem("token");
+      await axios.post("/api/faq/upload", uploadData, {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
         },
         onUploadProgress: (progressEvent) => {
-          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          const progress = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total,
+          );
           setUploadProgress(progress);
-        }
+        },
       });
 
-      toast.success('FAQ uploaded successfully!');
-      
+      toast.success("FAQ uploaded successfully!");
+
       // Reset form
       setFile(null);
       setFormData({
-        title: '',
-        category: 'General',
-        description: '',
-        tags: ''
+        title: "",
+        category: "General",
+        description: "",
+        tags: "",
       });
       setUploadProgress(0);
 
@@ -104,10 +109,10 @@ const FAQUpload = ({ adminData, onUploadSuccess }) => {
       if (onUploadSuccess) {
         onUploadSuccess();
       }
-
     } catch (error) {
-      console.error('Upload error:', error);
-      const message = error.response?.data?.message || 'Upload failed. Please try again.';
+      console.error("Upload error:", error);
+      const message =
+        error.response?.data?.message || "Upload failed. Please try again.";
       toast.error(message);
     } finally {
       setIsUploading(false);
@@ -115,11 +120,11 @@ const FAQUpload = ({ adminData, onUploadSuccess }) => {
   };
 
   const formatFileSize = (bytes) => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return "0 Bytes";
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   return (
@@ -137,7 +142,7 @@ const FAQUpload = ({ adminData, onUploadSuccess }) => {
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Select File
           </label>
-          
+
           {!file ? (
             <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center hover:border-blue-400 dark:hover:border-blue-500 transition-colors">
               <input
@@ -157,10 +162,13 @@ const FAQUpload = ({ adminData, onUploadSuccess }) => {
                   <span className="text-blue-600 dark:text-blue-400 font-medium">
                     Click to upload
                   </span>
-                  <span className="text-gray-500 dark:text-gray-400"> or drag and drop</span>
+                  <span className="text-gray-500 dark:text-gray-400">
+                    {" "}
+                    or drag and drop
+                  </span>
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Supported formats: {supportedTypes.join(', ').toUpperCase()}
+                  Supported formats: {supportedTypes.join(", ").toUpperCase()}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   Maximum file size: 10MB
@@ -191,7 +199,7 @@ const FAQUpload = ({ adminData, onUploadSuccess }) => {
                   </button>
                 )}
               </div>
-              
+
               {isUploading && (
                 <div className="mt-3">
                   <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-1">
@@ -311,11 +319,16 @@ const FAQUpload = ({ adminData, onUploadSuccess }) => {
           Upload Guidelines
         </h3>
         <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
-          <li>• Ensure documents contain accurate and up-to-date medical information</li>
+          <li>
+            • Ensure documents contain accurate and up-to-date medical
+            information
+          </li>
           <li>• Use clear, descriptive titles for easy identification</li>
           <li>• Categorize documents appropriately for better organization</li>
           <li>• Add relevant tags to improve searchability</li>
-          <li>• Review content before uploading to maintain quality standards</li>
+          <li>
+            • Review content before uploading to maintain quality standards
+          </li>
         </ul>
       </div>
     </div>

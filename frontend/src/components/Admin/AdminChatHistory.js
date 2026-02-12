@@ -1,129 +1,132 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  MessageCircle, 
-  Search, 
-  Filter, 
-  Eye, 
-  Trash2, 
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  MessageCircle,
+  Search,
+  Filter,
+  Eye,
+  Trash2,
   Download,
   User,
   Clock,
   ChevronLeft,
   ChevronRight,
-  RefreshCw
-} from 'lucide-react';
-import axios from 'axios';
-import toast from 'react-hot-toast';
+  RefreshCw,
+} from "lucide-react";
+import axios from "axios";
+import toast from "react-hot-toast";
 
 const AdminChatHistory = () => {
   const [sessions, setSessions] = useState([]);
   const [selectedSession, setSelectedSession] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState({
-    language: '',
-    userId: '',
-    dateFrom: '',
-    dateTo: ''
+    language: "",
+    userId: "",
+    dateFrom: "",
+    dateTo: "",
   });
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
     totalSessions: 0,
-    limit: 20
+    limit: 20,
   });
   const [showFilters, setShowFilters] = useState(false);
-
-  useEffect(() => {
-    loadChatSessions();
-  }, [pagination.currentPage, searchTerm, filters, loadChatSessions]);
 
   const loadChatSessions = useCallback(async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = localStorage.getItem("token");
       const params = new URLSearchParams({
         page: pagination.currentPage,
         limit: pagination.limit,
         ...(searchTerm && { search: searchTerm }),
         ...(filters.language && { language: filters.language }),
-        ...(filters.userId && { userId: filters.userId })
+        ...(filters.userId && { userId: filters.userId }),
       });
 
       const response = await axios.get(`/api/admin/chat-history?${params}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       setSessions(response.data.sessions);
-      setPagination(prev => ({
+      setPagination((prev) => ({
         ...prev,
         totalPages: response.data.totalPages,
-        totalSessions: response.data.totalSessions
+        totalSessions: response.data.totalSessions,
       }));
     } catch (error) {
-      console.error('Error loading chat sessions:', error);
-      toast.error('Failed to load chat sessions');
+      console.error("Error loading chat sessions:", error);
+      toast.error("Failed to load chat sessions");
     } finally {
       setLoading(false);
     }
   }, [pagination.currentPage, searchTerm, filters]);
 
+  useEffect(() => {
+    loadChatSessions();
+  }, [pagination.currentPage, searchTerm, filters, loadChatSessions]);
+
   const loadSessionDetails = async (sessionId) => {
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = localStorage.getItem("token");
       const response = await axios.get(`/api/admin/chat-history/${sessionId}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       setSelectedSession(response.data);
     } catch (error) {
-      console.error('Error loading session details:', error);
-      toast.error('Failed to load session details');
+      console.error("Error loading session details:", error);
+      toast.error("Failed to load session details");
     }
   };
 
   const deleteSession = async (sessionId) => {
-    if (!window.confirm('Are you sure you want to delete this chat session?')) {
+    if (!window.confirm("Are you sure you want to delete this chat session?")) {
       return;
     }
 
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = localStorage.getItem("token");
       await axios.delete(`/api/admin/chat-history/${sessionId}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
-      toast.success('Session deleted successfully');
+      toast.success("Session deleted successfully");
       loadChatSessions();
       if (selectedSession?.sessionId === sessionId) {
         setSelectedSession(null);
       }
     } catch (error) {
-      console.error('Error deleting session:', error);
-      toast.error('Failed to delete session');
+      console.error("Error deleting session:", error);
+      toast.error("Failed to delete session");
     }
   };
 
-  const exportSessions = async (format = 'json') => {
+  const exportSessions = async (format = "json") => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const response = await axios.get(`/api/admin/chat-history/export/${format}`, {
-        headers: { Authorization: `Bearer ${token}` },
-        responseType: 'blob'
-      });
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `/api/admin/chat-history/export/${format}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: "blob",
+        },
+      );
 
-      const blob = new Blob([response.data], { 
-        type: format === 'json' ? 'application/json' : 'text/csv' 
+      const blob = new Blob([response.data], {
+        type: format === "json" ? "application/json" : "text/csv",
       });
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.download = `chat-history-${new Date().toISOString().split('T')[0]}.${format}`;
+      link.download = `chat-history-${new Date().toISOString().split("T")[0]}.${format}`;
       link.click();
       window.URL.revokeObjectURL(url);
-      
+
       toast.success(`Chat history exported as ${format.toUpperCase()}`);
     } catch (error) {
-      console.error('Error exporting sessions:', error);
-      toast.error('Failed to export sessions');
+      console.error("Error exporting sessions:", error);
+      toast.error("Failed to export sessions");
     }
   };
 
@@ -132,8 +135,12 @@ const AdminChatHistory = () => {
   };
 
   const formatMessageContent = (content) => {
+    if (!content) {
+      return "";
+    }
+
     if (content.length > 100) {
-      return content.substring(0, 100) + '...';
+      return content.substring(0, 100) + "...";
     }
     return content;
   };
@@ -166,27 +173,40 @@ const AdminChatHistory = () => {
         <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">User</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                User
+              </label>
               <p className="mt-1 text-sm text-gray-900 dark:text-white">
-                {selectedSession.user?.profile?.firstName} {selectedSession.user?.profile?.lastName}
+                {selectedSession.user?.profile?.firstName}{" "}
+                {selectedSession.user?.profile?.lastName}
                 <br />
-                <span className="text-gray-500">{selectedSession.user?.email}</span>
+                <span className="text-gray-500">
+                  {selectedSession.user?.email}
+                </span>
               </p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Session Info</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Session Info
+              </label>
               <p className="mt-1 text-sm text-gray-900 dark:text-white">
                 {selectedSession.title}
                 <br />
-                <span className="text-gray-500">Language: {selectedSession.language}</span>
+                <span className="text-gray-500">
+                  Language: {selectedSession.language}
+                </span>
               </p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Timing</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Timing
+              </label>
               <p className="mt-1 text-sm text-gray-900 dark:text-white">
                 Started: {formatDate(selectedSession.createdAt)}
                 <br />
-                <span className="text-gray-500">Last: {formatDate(selectedSession.updatedAt)}</span>
+                <span className="text-gray-500">
+                  Last: {formatDate(selectedSession.updatedAt)}
+                </span>
               </p>
             </div>
           </div>
@@ -202,19 +222,21 @@ const AdminChatHistory = () => {
               <div
                 key={message.id || index}
                 className={`p-4 rounded-lg ${
-                  message.role === 'user'
-                    ? 'bg-blue-50 dark:bg-blue-900/20 ml-8'
-                    : 'bg-gray-50 dark:bg-gray-700 mr-8'
+                  message.role === "user"
+                    ? "bg-blue-50 dark:bg-blue-900/20 ml-8"
+                    : "bg-gray-50 dark:bg-gray-700 mr-8"
                 }`}
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center space-x-2">
-                    <span className={`text-sm font-medium ${
-                      message.role === 'user' 
-                        ? 'text-blue-700 dark:text-blue-300' 
-                        : 'text-gray-700 dark:text-gray-300'
-                    }`}>
-                      {message.role === 'user' ? 'User' : 'Bot'}
+                    <span
+                      className={`text-sm font-medium ${
+                        message.role === "user"
+                          ? "text-blue-700 dark:text-blue-300"
+                          : "text-gray-700 dark:text-gray-300"
+                      }`}
+                    >
+                      {message.role === "user" ? "User" : "Bot"}
                     </span>
                   </div>
                   <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -247,19 +269,20 @@ const AdminChatHistory = () => {
             Chat History Management
           </h2>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            View and manage all user chat sessions ({pagination.totalSessions} total)
+            View and manage all user chat sessions ({pagination.totalSessions}{" "}
+            total)
           </p>
         </div>
         <div className="flex items-center space-x-2">
           <button
-            onClick={() => exportSessions('json')}
+            onClick={() => exportSessions("json")}
             className="flex items-center space-x-2 px-3 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
           >
             <Download className="h-4 w-4" />
             <span>Export JSON</span>
           </button>
           <button
-            onClick={() => exportSessions('csv')}
+            onClick={() => exportSessions("csv")}
             className="flex items-center space-x-2 px-3 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
           >
             <Download className="h-4 w-4" />
@@ -308,7 +331,12 @@ const AdminChatHistory = () => {
                 </label>
                 <select
                   value={filters.language}
-                  onChange={(e) => setFilters(prev => ({ ...prev, language: e.target.value }))}
+                  onChange={(e) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      language: e.target.value,
+                    }))
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">All Languages</option>
@@ -324,7 +352,9 @@ const AdminChatHistory = () => {
                   type="text"
                   placeholder="Filter by user ID"
                   value={filters.userId}
-                  onChange={(e) => setFilters(prev => ({ ...prev, userId: e.target.value }))}
+                  onChange={(e) =>
+                    setFilters((prev) => ({ ...prev, userId: e.target.value }))
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -335,7 +365,12 @@ const AdminChatHistory = () => {
                 <input
                   type="date"
                   value={filters.dateFrom}
-                  onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))}
+                  onChange={(e) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      dateFrom: e.target.value,
+                    }))
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -346,7 +381,9 @@ const AdminChatHistory = () => {
                 <input
                   type="date"
                   value={filters.dateTo}
-                  onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))}
+                  onChange={(e) =>
+                    setFilters((prev) => ({ ...prev, dateTo: e.target.value }))
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -360,12 +397,16 @@ const AdminChatHistory = () => {
         {loading ? (
           <div className="p-8 text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-2 text-gray-600 dark:text-gray-400">Loading sessions...</p>
+            <p className="mt-2 text-gray-600 dark:text-gray-400">
+              Loading sessions...
+            </p>
           </div>
         ) : sessions.length === 0 ? (
           <div className="p-8 text-center">
             <MessageCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600 dark:text-gray-400">No chat sessions found</p>
+            <p className="text-gray-600 dark:text-gray-400">
+              No chat sessions found
+            </p>
           </div>
         ) : (
           <>
@@ -392,13 +433,17 @@ const AdminChatHistory = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
                   {sessions.map((session) => (
-                    <tr key={session.sessionId} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <tr
+                      key={session.sessionId}
+                      className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                    >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <User className="h-4 w-4 text-gray-400 mr-2" />
                           <div>
                             <div className="text-sm font-medium text-gray-900 dark:text-white">
-                              {session.user?.profile?.firstName} {session.user?.profile?.lastName}
+                              {session.user?.profile?.firstName}{" "}
+                              {session.user?.profile?.lastName}
                             </div>
                             <div className="text-sm text-gray-500 dark:text-gray-400">
                               {session.user?.email}
@@ -412,7 +457,8 @@ const AdminChatHistory = () => {
                             {session.title}
                           </div>
                           <div className="text-sm text-gray-500 dark:text-gray-400">
-                            {session.language} • {session.sessionId.substring(0, 8)}...
+                            {session.language} •{" "}
+                            {session.sessionId.substring(0, 8)}...
                           </div>
                         </div>
                       </td>
@@ -433,7 +479,9 @@ const AdminChatHistory = () => {
                             </div>
                             {session.lastMessage && (
                               <div className="text-sm text-gray-500 dark:text-gray-400">
-                                {formatMessageContent(session.lastMessage.content)}
+                                {formatMessageContent(
+                                  session.lastMessage.content,
+                                )}
                               </div>
                             )}
                           </div>
@@ -442,7 +490,9 @@ const AdminChatHistory = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex items-center space-x-2">
                           <button
-                            onClick={() => loadSessionDetails(session.sessionId)}
+                            onClick={() =>
+                              loadSessionDetails(session.sessionId)
+                            }
                             className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
                           >
                             <Eye className="h-4 w-4" />
@@ -466,12 +516,18 @@ const AdminChatHistory = () => {
               <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-600">
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-gray-700 dark:text-gray-300">
-                    Showing page {pagination.currentPage} of {pagination.totalPages} 
-                    ({pagination.totalSessions} total sessions)
+                    Showing page {pagination.currentPage} of{" "}
+                    {pagination.totalPages}({pagination.totalSessions} total
+                    sessions)
                   </div>
                   <div className="flex items-center space-x-2">
                     <button
-                      onClick={() => setPagination(prev => ({ ...prev, currentPage: prev.currentPage - 1 }))}
+                      onClick={() =>
+                        setPagination((prev) => ({
+                          ...prev,
+                          currentPage: prev.currentPage - 1,
+                        }))
+                      }
                       disabled={pagination.currentPage === 1}
                       className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
                     >
@@ -482,8 +538,15 @@ const AdminChatHistory = () => {
                       {pagination.currentPage} / {pagination.totalPages}
                     </span>
                     <button
-                      onClick={() => setPagination(prev => ({ ...prev, currentPage: prev.currentPage + 1 }))}
-                      disabled={pagination.currentPage === pagination.totalPages}
+                      onClick={() =>
+                        setPagination((prev) => ({
+                          ...prev,
+                          currentPage: prev.currentPage + 1,
+                        }))
+                      }
+                      disabled={
+                        pagination.currentPage === pagination.totalPages
+                      }
                       className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Next

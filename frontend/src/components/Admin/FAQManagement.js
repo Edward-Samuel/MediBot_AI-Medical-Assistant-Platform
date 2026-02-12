@@ -1,62 +1,58 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  FileText, 
-  Search, 
-  Eye, 
-  EyeOff, 
-  Trash2, 
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  FileText,
+  Search,
+  Eye,
+  EyeOff,
+  Trash2,
   RefreshCw,
   ChevronLeft,
   ChevronRight,
   Calendar,
   Tag,
   Database,
-  AlertCircle
-} from 'lucide-react';
-import axios from 'axios';
-import toast from 'react-hot-toast';
+  AlertCircle,
+} from "lucide-react";
+import axios from "axios";
+import toast from "react-hot-toast";
 
 const FAQManagement = ({ adminData, onUpdate }) => {
   const [faqs, setFaqs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalFAQs, setTotalFAQs] = useState(0);
   const [categories, setCategories] = useState([]);
 
-  useEffect(() => {
-    loadFAQs();
-    loadCategories();
-  }, [currentPage, selectedCategory, statusFilter, loadFAQs]);
-
   const loadFAQs = useCallback(async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('adminToken');
-      
+      const token = localStorage.getItem("token");
+
       const params = new URLSearchParams({
         page: currentPage,
         limit: 10,
-        sortBy: 'uploadedAt',
-        sortOrder: 'desc'
+        sortBy: "uploadedAt",
+        sortOrder: "desc",
       });
 
-      if (selectedCategory) params.append('category', selectedCategory);
-      if (statusFilter !== 'all') params.append('isActive', statusFilter === 'active');
+      if (selectedCategory) params.append("category", selectedCategory);
+      if (statusFilter !== "all")
+        params.append("isActive", statusFilter === "active");
 
       const response = await axios.get(`/api/faq/admin/list?${params}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       setFaqs(response.data.faqs || []);
       setTotalPages(response.data.totalPages || 1);
       setTotalFAQs(response.data.totalFAQs || 0);
     } catch (error) {
-      console.error('Error loading FAQs:', error);
-      toast.error('Failed to load FAQs');
+      console.error("Error loading FAQs:", error);
+      toast.error("Failed to load FAQs");
     } finally {
       setLoading(false);
     }
@@ -64,76 +60,92 @@ const FAQManagement = ({ adminData, onUpdate }) => {
 
   const loadCategories = async () => {
     try {
-      const response = await axios.get('/api/faq/categories');
+      const response = await axios.get("/api/faq/categories");
       setCategories(response.data.categories || []);
     } catch (error) {
-      console.error('Error loading categories:', error);
+      console.error("Error loading categories:", error);
     }
   };
 
+  useEffect(() => {
+    loadFAQs();
+    loadCategories();
+  }, [currentPage, selectedCategory, statusFilter, loadFAQs]);
+
   const handleStatusToggle = async (faqId, currentStatus) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.put(`/api/faq/admin/${faqId}/status`, {
-        isActive: !currentStatus
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const token = localStorage.getItem("token");
+      await axios.put(
+        `/api/faq/admin/${faqId}/status`,
+        {
+          isActive: !currentStatus,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
 
-      toast.success(`FAQ ${!currentStatus ? 'activated' : 'deactivated'} successfully`);
+      toast.success(
+        `FAQ ${!currentStatus ? "activated" : "deactivated"} successfully`,
+      );
       loadFAQs();
       if (onUpdate) onUpdate();
     } catch (error) {
-      console.error('Error updating FAQ status:', error);
-      toast.error('Failed to update FAQ status');
+      console.error("Error updating FAQ status:", error);
+      toast.error("Failed to update FAQ status");
     }
   };
 
   const handleDelete = async (faqId, title) => {
     if (!adminData.permissions.canDelete) {
-      toast.error('You do not have permission to delete FAQs');
+      toast.error("You do not have permission to delete FAQs");
       return;
     }
 
-    if (!window.confirm(`Are you sure you want to delete "${title}"? This action cannot be undone.`)) {
+    if (
+      !window.confirm(
+        `Are you sure you want to delete "${title}"? This action cannot be undone.`,
+      )
+    ) {
       return;
     }
 
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = localStorage.getItem("token");
       await axios.delete(`/api/faq/admin/${faqId}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-      toast.success('FAQ deleted successfully');
+      toast.success("FAQ deleted successfully");
       loadFAQs();
       if (onUpdate) onUpdate();
     } catch (error) {
-      console.error('Error deleting FAQ:', error);
-      toast.error('Failed to delete FAQ');
+      console.error("Error deleting FAQ:", error);
+      toast.error("Failed to delete FAQ");
     }
   };
 
-  const filteredFAQs = faqs.filter(faq =>
-    faq.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    faq.category.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredFAQs = faqs.filter(
+    (faq) =>
+      faq.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      faq.category.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const formatFileSize = (bytes) => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return "0 Bytes";
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -211,17 +223,20 @@ const FAQManagement = ({ adminData, onUpdate }) => {
       {loading ? (
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading FAQs...</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">
+            Loading FAQs...
+          </p>
         </div>
       ) : filteredFAQs.length === 0 ? (
         <div className="text-center py-12">
           <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No FAQs found</h3>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            No FAQs found
+          </h3>
           <p className="text-gray-600 dark:text-gray-400">
-            {searchTerm || selectedCategory || statusFilter !== 'all'
-              ? 'Try adjusting your search criteria'
-              : 'Upload your first FAQ document to get started'
-            }
+            {searchTerm || selectedCategory || statusFilter !== "all"
+              ? "Try adjusting your search criteria"
+              : "Upload your first FAQ document to get started"}
           </p>
         </div>
       ) : (
@@ -237,12 +252,14 @@ const FAQManagement = ({ adminData, onUpdate }) => {
                     <h3 className="text-lg font-medium text-gray-900 dark:text-white">
                       {faq.title}
                     </h3>
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      faq.isActive
-                        ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
-                        : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
-                    }`}>
-                      {faq.isActive ? 'Active' : 'Inactive'}
+                    <span
+                      className={`px-2 py-1 text-xs font-medium rounded-full ${
+                        faq.isActive
+                          ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
+                          : "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200"
+                      }`}
+                    >
+                      {faq.isActive ? "Active" : "Inactive"}
                     </span>
                   </div>
 
@@ -285,12 +302,16 @@ const FAQManagement = ({ adminData, onUpdate }) => {
                     onClick={() => handleStatusToggle(faq._id, faq.isActive)}
                     className={`p-2 rounded-md transition-colors ${
                       faq.isActive
-                        ? 'text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900'
-                        : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600'
+                        ? "text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900"
+                        : "text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600"
                     }`}
-                    title={faq.isActive ? 'Deactivate FAQ' : 'Activate FAQ'}
+                    title={faq.isActive ? "Deactivate FAQ" : "Activate FAQ"}
                   >
-                    {faq.isActive ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                    {faq.isActive ? (
+                      <Eye className="h-4 w-4" />
+                    ) : (
+                      <EyeOff className="h-4 w-4" />
+                    )}
                   </button>
 
                   {/* Delete */}
@@ -314,7 +335,7 @@ const FAQManagement = ({ adminData, onUpdate }) => {
       {totalPages > 1 && (
         <div className="mt-6 flex items-center justify-between">
           <button
-            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}
             className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-300 dark:border-gray-600 rounded-md hover:border-gray-400 dark:hover:border-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
@@ -331,8 +352,8 @@ const FAQManagement = ({ adminData, onUpdate }) => {
                   onClick={() => setCurrentPage(page)}
                   className={`px-3 py-2 text-sm rounded-md transition-colors ${
                     currentPage === page
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                      ? "bg-blue-600 text-white"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
                   }`}
                 >
                   {page}
@@ -342,7 +363,9 @@ const FAQManagement = ({ adminData, onUpdate }) => {
           </div>
 
           <button
-            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+            onClick={() =>
+              setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+            }
             disabled={currentPage === totalPages}
             className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-300 dark:border-gray-600 rounded-md hover:border-gray-400 dark:hover:border-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >

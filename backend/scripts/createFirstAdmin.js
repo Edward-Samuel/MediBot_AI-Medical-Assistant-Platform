@@ -1,10 +1,19 @@
 const mongoose = require('mongoose');
+const path = require('path');
 const User = require('../models/User');
-require('dotenv').config();
+
+require('dotenv').config({
+  path: path.resolve(__dirname, '../.env')
+});
 
 async function createFirstAdmin() {
   try {
     // Connect to MongoDB
+    if (!process.env.MONGODB_URI) {
+      console.error('❌ MONGODB_URI is missing. Create backend/.env from backend/.env.example.');
+      process.exit(1);
+    }
+
     await mongoose.connect(process.env.MONGODB_URI);
     console.log('Connected to MongoDB');
 

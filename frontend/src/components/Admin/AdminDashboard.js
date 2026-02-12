@@ -1,77 +1,84 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { 
-  Upload, 
-  FileText, 
-  BarChart3, 
-  Settings, 
-  LogOut, 
+import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Upload,
+  FileText,
+  BarChart3,
+  Settings,
+  LogOut,
   Database,
   Activity,
   TrendingUp,
   Shield,
-  MessageCircle
-} from 'lucide-react';
-import axios from 'axios';
-import toast from 'react-hot-toast';
-import FAQUpload from './FAQUpload';
-import FAQManagement from './FAQManagement';
-import AdminStats from './AdminStats';
-import AdminChatHistory from './AdminChatHistory';
+  MessageCircle,
+} from "lucide-react";
+import axios from "axios";
+import toast from "react-hot-toast";
+import FAQUpload from "./FAQUpload";
+import FAQManagement from "./FAQManagement";
+import AdminStats from "./AdminStats";
+import AdminChatHistory from "./AdminChatHistory";
+import { useAuth } from "../../contexts/AuthContext";
 
 const AdminDashboard = () => {
-  const [activeTab, setActiveTab] = useState('stats');
+  const [activeTab, setActiveTab] = useState("stats");
   const [adminData, setAdminData] = useState(null);
   const [stats, setStats] = useState(null);
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const checkAuth = useCallback(() => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+
+    if (user.role !== "admin") {
+      navigate("/");
+      return;
+    }
+
+    setAdminData({
+      username: user.profile?.firstName || user.email,
+      email: user.email,
+      role: user.role,
+      lastLogin: user.lastLogin,
+      permissions: user.adminPermissions || {
+        canUpload: true,
+        canDelete: true,
+        canManageAdmins: false,
+      },
+    });
+  }, [navigate, user]);
 
   useEffect(() => {
     checkAuth();
     loadStats();
   }, [checkAuth]);
 
-  const checkAuth = useCallback(() => {
-    const token = localStorage.getItem('adminToken');
-    const admin = localStorage.getItem('adminData');
-    
-    if (!token || !admin) {
-      navigate('/admin/login');
-      return;
-    }
-
-    try {
-      setAdminData(JSON.parse(admin));
-    } catch (error) {
-      console.error('Error parsing admin data:', error);
-      handleLogout();
-    }
-  }, [navigate]);
-
   const loadStats = async () => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const response = await axios.get('/api/faq/admin/stats', {
-        headers: { Authorization: `Bearer ${token}` }
+      const token = localStorage.getItem("token");
+      const response = await axios.get("/api/faq/admin/stats", {
+        headers: { Authorization: `Bearer ${token}` },
       });
       setStats(response.data.stats);
     } catch (error) {
-      console.error('Error loading stats:', error);
+      console.error("Error loading stats:", error);
     }
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('adminToken');
-    localStorage.removeItem('adminData');
-    toast.success('Logged out successfully');
-    navigate('/admin/login');
+    toast.success("Logged out successfully");
+    navigate("/login");
   };
 
   const tabs = [
-    { id: 'stats', label: 'Dashboard', icon: BarChart3 },
-    { id: 'chat-history', label: 'Chat History', icon: MessageCircle },
-    { id: 'upload', label: 'Upload FAQ', icon: Upload },
-    { id: 'manage', label: 'Manage FAQs', icon: FileText },
-    { id: 'settings', label: 'Settings', icon: Settings }
+    { id: "stats", label: "Dashboard", icon: BarChart3 },
+    { id: "chat-history", label: "Chat History", icon: MessageCircle },
+    { id: "upload", label: "Upload FAQ", icon: Upload },
+    { id: "manage", label: "Manage FAQs", icon: FileText },
+    { id: "settings", label: "Settings", icon: Settings },
   ];
 
   if (!adminData) {
@@ -102,14 +109,14 @@ const AdminDashboard = () => {
                 </p>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-4">
               <div className="text-right">
                 <p className="text-sm font-medium text-gray-900 dark:text-white">
                   {adminData.username}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {adminData.role === 'super_admin' ? 'Super Admin' : 'Admin'}
+                  {adminData.role === "super_admin" ? "Super Admin" : "Admin"}
                 </p>
               </div>
               <button
@@ -138,8 +145,8 @@ const AdminDashboard = () => {
                       onClick={() => setActiveTab(tab.id)}
                       className={`w-full flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                         activeTab === tab.id
-                          ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
-                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                          ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
+                          : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                       }`}
                     >
                       <Icon className="h-4 w-4" />
@@ -160,7 +167,9 @@ const AdminDashboard = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <Database className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Total FAQs</span>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Total FAQs
+                      </span>
                     </div>
                     <span className="text-sm font-medium text-gray-900 dark:text-white">
                       {stats.database.totalFAQs}
@@ -169,7 +178,9 @@ const AdminDashboard = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <Activity className="h-4 w-4 text-green-600 dark:text-green-400" />
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Active</span>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Active
+                      </span>
                     </div>
                     <span className="text-sm font-medium text-gray-900 dark:text-white">
                       {stats.database.activeFAQs}
@@ -178,7 +189,9 @@ const AdminDashboard = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <TrendingUp className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Chunks</span>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Chunks
+                      </span>
                     </div>
                     <span className="text-sm font-medium text-gray-900 dark:text-white">
                       {stats.database.totalChunks}
@@ -192,25 +205,17 @@ const AdminDashboard = () => {
           {/* Main Content */}
           <div className="flex-1">
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-              {activeTab === 'stats' && (
+              {activeTab === "stats" && (
                 <AdminStats stats={stats} onRefresh={loadStats} />
               )}
-              {activeTab === 'chat-history' && (
-                <AdminChatHistory />
+              {activeTab === "chat-history" && <AdminChatHistory />}
+              {activeTab === "upload" && (
+                <FAQUpload adminData={adminData} onUploadSuccess={loadStats} />
               )}
-              {activeTab === 'upload' && (
-                <FAQUpload 
-                  adminData={adminData} 
-                  onUploadSuccess={loadStats}
-                />
+              {activeTab === "manage" && (
+                <FAQManagement adminData={adminData} onUpdate={loadStats} />
               )}
-              {activeTab === 'manage' && (
-                <FAQManagement 
-                  adminData={adminData}
-                  onUpdate={loadStats}
-                />
-              )}
-              {activeTab === 'settings' && (
+              {activeTab === "settings" && (
                 <div className="p-6">
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
                     Settings
@@ -243,7 +248,9 @@ const AdminDashboard = () => {
                               Role
                             </label>
                             <p className="mt-1 text-sm text-gray-900 dark:text-white">
-                              {adminData.role === 'super_admin' ? 'Super Admin' : 'Admin'}
+                              {adminData.role === "super_admin"
+                                ? "Super Admin"
+                                : "Admin"}
                             </p>
                           </div>
                           <div>
@@ -251,7 +258,9 @@ const AdminDashboard = () => {
                               Last Login
                             </label>
                             <p className="mt-1 text-sm text-gray-900 dark:text-white">
-                              {adminData.lastLogin ? new Date(adminData.lastLogin).toLocaleString() : 'Never'}
+                              {adminData.lastLogin
+                                ? new Date(adminData.lastLogin).toLocaleString()
+                                : "Never"}
                             </p>
                           </div>
                         </div>
@@ -265,33 +274,47 @@ const AdminDashboard = () => {
                       <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-700 dark:text-gray-300">Can Upload Files</span>
-                            <span className={`text-sm font-medium ${
-                              adminData.permissions.canUpload 
-                                ? 'text-green-600 dark:text-green-400' 
-                                : 'text-red-600 dark:text-red-400'
-                            }`}>
-                              {adminData.permissions.canUpload ? 'Yes' : 'No'}
+                            <span className="text-sm text-gray-700 dark:text-gray-300">
+                              Can Upload Files
+                            </span>
+                            <span
+                              className={`text-sm font-medium ${
+                                adminData.permissions.canUpload
+                                  ? "text-green-600 dark:text-green-400"
+                                  : "text-red-600 dark:text-red-400"
+                              }`}
+                            >
+                              {adminData.permissions.canUpload ? "Yes" : "No"}
                             </span>
                           </div>
                           <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-700 dark:text-gray-300">Can Delete Files</span>
-                            <span className={`text-sm font-medium ${
-                              adminData.permissions.canDelete 
-                                ? 'text-green-600 dark:text-green-400' 
-                                : 'text-red-600 dark:text-red-400'
-                            }`}>
-                              {adminData.permissions.canDelete ? 'Yes' : 'No'}
+                            <span className="text-sm text-gray-700 dark:text-gray-300">
+                              Can Delete Files
+                            </span>
+                            <span
+                              className={`text-sm font-medium ${
+                                adminData.permissions.canDelete
+                                  ? "text-green-600 dark:text-green-400"
+                                  : "text-red-600 dark:text-red-400"
+                              }`}
+                            >
+                              {adminData.permissions.canDelete ? "Yes" : "No"}
                             </span>
                           </div>
                           <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-700 dark:text-gray-300">Can Manage Admins</span>
-                            <span className={`text-sm font-medium ${
-                              adminData.permissions.canManageAdmins 
-                                ? 'text-green-600 dark:text-green-400' 
-                                : 'text-red-600 dark:text-red-400'
-                            }`}>
-                              {adminData.permissions.canManageAdmins ? 'Yes' : 'No'}
+                            <span className="text-sm text-gray-700 dark:text-gray-300">
+                              Can Manage Admins
+                            </span>
+                            <span
+                              className={`text-sm font-medium ${
+                                adminData.permissions.canManageAdmins
+                                  ? "text-green-600 dark:text-green-400"
+                                  : "text-red-600 dark:text-red-400"
+                              }`}
+                            >
+                              {adminData.permissions.canManageAdmins
+                                ? "Yes"
+                                : "No"}
                             </span>
                           </div>
                         </div>
