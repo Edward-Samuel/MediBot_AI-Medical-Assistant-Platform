@@ -31,16 +31,34 @@ const app = express();
 app.set("trust proxy", 1);
 
 const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(",").map((origin) => origin.trim())
+  ? process.env.ALLOWED_ORIGINS.split(",")
+      .map((origin) => origin.trim())
+      .filter(Boolean)
   : process.env.NODE_ENV === "production"
-    ? ["https://yourdomain.com"]
+    ? ["*"]
     : ["http://localhost:3000"];
 
 // Security middleware
 app.use(helmet());
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      // Allow server-to-server and health checks with no Origin header
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      // Allow all origins when wildcard is configured
+      if (allowedOrigins.includes("*")) {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Not allowed by CORS"));
+    },
     credentials: true,
   }),
 );
@@ -58,14 +76,14 @@ app.use(limiter);
 Promise.all([
   faqService
     .initialize()
-    .catch((err) => console.warn("⚠️  FAQ service unavailable:", err.message)),
+    .catch((err) => console.warn("FAQ service unavailable:", err.message)),
   // Add other service initializations here
 ])
   .then(() => {
     console.log("Optional services initialization completed");
   })
   .catch((err) => {
-    console.warn("⚠️  Some services failed to initialize:", err.message);
+    console.warn("Some services failed to initialize:", err.message);
   });
 
 // Body parsing middleware
@@ -85,7 +103,7 @@ faqService
     if (initialized) {
       console.log("FAQ service with Pinecone initialized");
     } else {
-      console.log("⚠️  FAQ service initialized without Pinecone");
+      console.log("FAQ service initialized without Pinecone");
     }
   })
   .catch((err) => console.error("FAQ service initialization error:", err));

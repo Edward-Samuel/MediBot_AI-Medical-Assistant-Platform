@@ -10,7 +10,7 @@ class TavilySearchService {
       console.log("Tavily Search API initialized - web search available");
     } else {
       console.log(
-        "⚠️  Tavily Search API key not found - web search will be disabled",
+        "Tavily Search API key not found - web search will be disabled",
       );
     }
   }

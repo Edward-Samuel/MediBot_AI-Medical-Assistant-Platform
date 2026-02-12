@@ -101,7 +101,7 @@ class EmbeddingService {
       // Ensure correct dimension
       if (embedding.length !== this.dimension) {
         console.warn(
-          `⚠️  Embedding dimension mismatch: got ${embedding.length}, expected ${this.dimension}`,
+          `Embedding dimension mismatch: got ${embedding.length}, expected ${this.dimension}`,
         );
         // Pad or truncate to correct dimension
         if (embedding.length < this.dimension) {
@@ -119,7 +119,7 @@ class EmbeddingService {
       if (memoryUsed > 50) {
         // More than 50MB
         console.warn(
-          `⚠️  High memory usage for embedding: ${memoryUsed.toFixed(2)}MB`,
+          `High memory usage for embedding: ${memoryUsed.toFixed(2)}MB`,
         );
       }
 
@@ -146,7 +146,7 @@ class EmbeddingService {
   meanPool(output) {
     try {
       if (!output || !output.data || !output.dims) {
-        console.warn("⚠️  Invalid output format for mean pooling");
+        console.warn("Invalid output format for mean pooling");
         return new Array(this.dimension).fill(0);
       }
 
@@ -156,7 +156,7 @@ class EmbeddingService {
 
       if (hiddenSize !== this.dimension) {
         console.warn(
-          `⚠️  Dimension mismatch in mean pooling: ${hiddenSize} vs ${this.dimension}`,
+          `Dimension mismatch in mean pooling: ${hiddenSize} vs ${this.dimension}`,
         );
       }
 
@@ -215,7 +215,7 @@ class EmbeddingService {
 
           if (heapUsedMB > 1000) {
             // More than 1GB
-            console.warn(`⚠️  High memory usage: ${heapUsedMB.toFixed(2)}MB`);
+            console.warn(`High memory usage: ${heapUsedMB.toFixed(2)}MB`);
 
             // Force multiple garbage collections
             if (global.gc) {

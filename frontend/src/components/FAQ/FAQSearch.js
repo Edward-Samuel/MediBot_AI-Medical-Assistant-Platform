@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Loader, BookOpen, Tag, Calendar } from 'lucide-react';
-import axios from 'axios';
+import axios from '../../config/axios';
 
 const FAQSearch = () => {
   const [query, setQuery] = useState('');

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Calendar, ExternalLink, Maximize2, Minimize2, AlertCircle, RefreshCw } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
-import axios from 'axios';
+import axios from '../../config/axios';
 
 const EmbeddedCalendar = ({ 
   calendarId = process.env.REACT_APP_GOOGLE_CALENDAR_ID || "primary",

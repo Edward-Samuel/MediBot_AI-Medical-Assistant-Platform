@@ -20,7 +20,7 @@ import {
   Camera,
   History,
 } from "lucide-react";
-import axios from "axios";
+import axios from "../../config/axios";
 import toast from "react-hot-toast";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { useAuth } from "../../contexts/AuthContext";

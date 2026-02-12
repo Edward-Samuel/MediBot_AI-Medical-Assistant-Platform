@@ -259,7 +259,7 @@ class AdminChatHistoryTester {
       const firstSessionId = allHistory.sessions[0].sessionId;
       await this.testGetChatSessionDetails(firstSessionId);
     } else {
-      console.log("⚠️  No chat sessions found to test session details");
+      console.log("No chat sessions found to test session details");
     }
 
     // Step 4: Test statistics
@@ -273,7 +273,7 @@ class AdminChatHistoryTester {
       const firstUserId = allHistory.sessions[0].user.id;
       await this.testFilterByUser(firstUserId);
     } else {
-      console.log("⚠️  No user data found to test user filtering");
+      console.log("No user data found to test user filtering");
     }
 
     console.log("\n" + "=".repeat(60));

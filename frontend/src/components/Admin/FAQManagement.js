@@ -13,7 +13,7 @@ import {
   Database,
   AlertCircle,
 } from "lucide-react";
-import axios from "axios";
+import axios from "../../config/axios";
 import toast from "react-hot-toast";
 
 const FAQManagement = ({ adminData, onUpdate }) => {

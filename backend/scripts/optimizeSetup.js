@@ -13,7 +13,7 @@ try {
   execSync("npm install redis@^4.6.0", { stdio: "inherit" });
   console.log("Redis dependency installed\n");
 } catch (error) {
-  console.log("⚠️  Redis installation failed, will use in-memory cache\n");
+  console.log("Redis installation failed, will use in-memory cache\n");
 }
 
 // Step 2: Add database indexes
@@ -22,7 +22,7 @@ try {
   execSync("node scripts/addIndexes.js", { stdio: "inherit" });
   console.log("Database indexes added\n");
 } catch (error) {
-  console.log("⚠️  Database indexes failed:", error.message);
+  console.log("Database indexes failed:", error.message);
   console.log("   Make sure MongoDB is running and try again\n");
 }
 

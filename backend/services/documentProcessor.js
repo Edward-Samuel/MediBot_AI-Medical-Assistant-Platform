@@ -116,7 +116,7 @@ class DocumentProcessor {
         // Limit text length to prevent memory issues
         if (text.length > 8000) {
           console.warn(
-            `⚠️  PDF text truncated from ${text.length} to 8000 characters for memory efficiency`,
+            `PDF text truncated from ${text.length} to 8000 characters for memory efficiency`,
           );
           text = text.substring(0, 8000) + "...";
         }
@@ -128,7 +128,7 @@ class DocumentProcessor {
         console.log("PDF processed successfully with pdf-parse");
         return text;
       } catch (pdfParseError) {
-        console.warn(`⚠️  pdf-parse failed: ${pdfParseError.message}`);
+        console.warn(`pdf-parse failed: ${pdfParseError.message}`);
         console.log("Trying alternative PDF processing...");
 
         // Try alternative PDF processor
@@ -503,7 +503,7 @@ class DocumentProcessor {
     }
 
     if (chunkIndex >= maxChunks) {
-      console.warn(`⚠️  Document truncated to ${maxChunks} chunks`);
+      console.warn(`Document truncated to ${maxChunks} chunks`);
     }
 
     return chunks;

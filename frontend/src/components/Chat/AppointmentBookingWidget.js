@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Clock, User, CheckCircle, X } from 'lucide-react';
-import axios from 'axios';
+import axios from '../../config/axios';
 import toast from 'react-hot-toast';
 
 const AppointmentBookingWidget = ({ appointmentData, onClose, onBookingComplete }) => {

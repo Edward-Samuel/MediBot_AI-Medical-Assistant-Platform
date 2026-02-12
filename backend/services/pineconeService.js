@@ -13,9 +13,7 @@ class PineconeService {
   async initialize() {
     try {
       if (!process.env.PINECONE_API_KEY) {
-        console.log(
-          "⚠️  Pinecone API key not found - FAQ system will be disabled",
-        );
+        console.log("Pinecone API key not found - FAQ system will be disabled");
         return false;
       }
 
@@ -23,7 +21,7 @@ class PineconeService {
       const embeddingInitialized = await embeddingService.initialize();
       if (!embeddingInitialized) {
         console.log(
-          "⚠️  Embedding service failed to initialize - FAQ embeddings will be disabled",
+          "Embedding service failed to initialize - FAQ embeddings will be disabled",
         );
         return false;
       }
@@ -232,7 +230,7 @@ class PineconeService {
 
       if (regularChunks.length > maxRegularChunks) {
         console.warn(
-          `⚠️  Processed only ${maxRegularChunks} out of ${regularChunks.length} content chunks for memory efficiency`,
+          `Processed only ${maxRegularChunks} out of ${regularChunks.length} content chunks for memory efficiency`,
         );
       }
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Users, TrendingUp, AlertCircle } from 'lucide-react';
 import EmbeddedCalendar from '../../components/Calendar/EmbeddedCalendar';
-import axios from 'axios';
+import axios from '../../config/axios';
 import { useAuth } from '../../contexts/AuthContext';
 
 const CalendarView = () => {

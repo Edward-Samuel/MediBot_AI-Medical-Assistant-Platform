@@ -10,7 +10,7 @@ import {
   AlertCircle,
   Video,
 } from "lucide-react";
-import axios from "axios";
+import axios from "../../config/axios";
 import toast from "react-hot-toast";
 
 const AppointmentHistory = () => {

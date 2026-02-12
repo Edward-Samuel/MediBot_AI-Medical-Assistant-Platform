@@ -584,14 +584,14 @@ router.post("/chat", async (req, res) => {
             );
             console.log("Generated response with web search results");
           } else {
-            console.log("⚠️  No web search results found");
+            console.log("No web search results found");
             botResponse =
               language === "ta"
                 ? "மன்னிக்கவும், தற்போது வலை தேடல் முடிவுகள் கிடைக்கவில்லை."
                 : "I apologize, but I couldn't find current web search results for your query.";
           }
         } catch (searchError) {
-          console.error("⚠️  Web search failed:", searchError.message);
+          console.error("Web search failed:", searchError.message);
           webSearchData = {
             query: message,
             error: searchError.message,
@@ -713,13 +713,13 @@ router.post("/chat", async (req, res) => {
                 console.log("Using FAQ answer for query");
               } else {
                 console.log(
-                  "⚠️  FAQ answer was fallback response, switching to AI chat",
+                  "FAQ answer was fallback response, switching to AI chat",
                 );
                 // Fall through to general chat - this will be handled by the general AI processing below
               }
             }
           } catch (faqError) {
-            console.error("⚠️  FAQ search failed:", faqError.message);
+            console.error("FAQ search failed:", faqError.message);
             // Continue with normal AI processing
           }
         }
@@ -781,12 +781,10 @@ router.post("/chat", async (req, res) => {
                 languageInfo,
                 images,
               );
-              console.log(
-                "Generated response with legacy web search context",
-              );
+              console.log("Generated response with legacy web search context");
             }
           } catch (searchError) {
-            console.error("⚠️  Legacy web search failed:", searchError.message);
+            console.error("Legacy web search failed:", searchError.message);
             // Continue with normal AI processing
           }
         }
@@ -1138,7 +1136,7 @@ router.post("/web-search", async (req, res) => {
       );
       console.log("Generated AI summary of search results");
     } catch (summaryError) {
-      console.error("⚠️  Failed to generate AI summary:", summaryError.message);
+      console.error("Failed to generate AI summary:", summaryError.message);
     }
 
     res.json({
@@ -1457,7 +1455,7 @@ router.post("/book-appointment", async (req, res) => {
         );
       }
     } catch (calendarError) {
-      console.error("⚠️  Calendar integration failed:", calendarError.message);
+      console.error("Calendar integration failed:", calendarError.message);
 
       // Categorize the error for better user feedback
       if (
@@ -1736,10 +1734,7 @@ router.put("/appointments/:appointmentId/cancel", async (req, res) => {
           appointment.googleCalendarEventId,
         );
       } catch (calendarError) {
-        console.error(
-          "⚠️  Calendar cancellation failed:",
-          calendarError.message,
-        );
+        console.error("Calendar cancellation failed:", calendarError.message);
         calendarCancellationStatus = "failed";
 
         if (

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { History, MessageCircle, Trash2, Search, X, Plus, Loader2 } from 'lucide-react';
-import axios from 'axios';
+import axios from '../../config/axios';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 

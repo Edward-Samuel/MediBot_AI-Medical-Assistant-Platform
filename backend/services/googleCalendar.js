@@ -61,7 +61,7 @@ class GoogleCalendarService {
             throw fileError;
           }
         } else {
-          console.log("⚠️  Google Calendar credentials not found");
+          console.log("Google Calendar credentials not found");
           console.log("   📋 To enable calendar integration:");
           console.log("   1. Create a Google Cloud Project");
           console.log("   2. Enable Google Calendar API");
@@ -85,7 +85,7 @@ class GoogleCalendarService {
         await this.testConnection();
       } catch (testError) {
         console.log(
-          "⚠️  Calendar connection test failed during initialization:",
+          "Calendar connection test failed during initialization:",
           testError.message,
         );
         // Don't fail initialization - the calendar object is still valid
@@ -96,7 +96,7 @@ class GoogleCalendarService {
       return true;
     } catch (error) {
       console.error(
-        "⚠️  Failed to initialize Google Calendar service:",
+        "Failed to initialize Google Calendar service:",
         error.message,
       );
 
@@ -268,7 +268,7 @@ class GoogleCalendarService {
         );
       } catch (calError) {
         console.log(
-          `⚠️  Target calendar (${targetCalendarId}) not accessible:`,
+          `Target calendar (${targetCalendarId}) not accessible:`,
           calError.message,
         );
 
@@ -310,7 +310,7 @@ class GoogleCalendarService {
 
         console.log("Calendar write access confirmed");
       } catch (writeError) {
-        console.log("⚠️  Calendar write access failed:", writeError.message);
+        console.log("Calendar write access failed:", writeError.message);
         throw writeError;
       }
 

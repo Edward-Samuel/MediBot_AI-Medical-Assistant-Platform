@@ -40,7 +40,7 @@ class MemoryMonitor {
     } else if (usage.heapUsed > this.thresholds.warning) {
       return {
         status: "warning",
-        message: `⚠️  WARNING: Memory usage at ${usage.heapUsedMB}MB - monitoring closely`,
+        message: `WARNING: Memory usage at ${usage.heapUsedMB}MB - monitoring closely`,
         usage,
       };
     } else {
@@ -68,7 +68,7 @@ class MemoryMonitor {
       return afterCleanup;
     } else {
       console.warn(
-        "⚠️  Garbage collection not available - start with --expose-gc flag",
+        "Garbage collection not available - start with --expose-gc flag",
       );
       return this.getMemoryUsage();
     }
@@ -125,9 +125,7 @@ class MemoryMonitor {
 
       const memoryDiff = endUsage.heapUsedMB - startUsage.heapUsedMB;
       if (memoryDiff > 50) {
-        console.warn(
-          `⚠️  High memory increase in ${context}: +${memoryDiff}MB`,
-        );
+        console.warn(`High memory increase in ${context}: +${memoryDiff}MB`);
       }
 
       return result;

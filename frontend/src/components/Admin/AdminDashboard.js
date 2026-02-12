@@ -12,7 +12,7 @@ import {
   Shield,
   MessageCircle,
 } from "lucide-react";
-import axios from "axios";
+import axios from "../../config/axios";
 import toast from "react-hot-toast";
 import FAQUpload from "./FAQUpload";
 import FAQManagement from "./FAQManagement";

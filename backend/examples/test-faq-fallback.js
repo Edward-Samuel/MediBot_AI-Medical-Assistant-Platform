@@ -125,7 +125,7 @@ class FAQFallbackTester {
         "🎉 All tests passed! FAQ properly falls back to AI when needed.",
       );
     } else {
-      console.log("⚠️  Some tests failed. FAQ fallback may need adjustment.");
+      console.log("Some tests failed. FAQ fallback may need adjustment.");
     }
 
     return successCount === totalTests;
@@ -197,7 +197,7 @@ async function runFAQFallbackTests() {
   if (success) {
     console.log("\n🎉 FAQ fallback system is working correctly!");
   } else {
-    console.log("\n⚠️  FAQ fallback system needs attention.");
+    console.log("\nFAQ fallback system needs attention.");
   }
 }
 

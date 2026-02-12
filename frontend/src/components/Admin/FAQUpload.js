@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Upload, FileText, X, Loader } from "lucide-react";
-import axios from "axios";
+import axios from "../../config/axios";
 import toast from "react-hot-toast";
 
 const FAQUpload = ({ adminData, onUploadSuccess }) => {

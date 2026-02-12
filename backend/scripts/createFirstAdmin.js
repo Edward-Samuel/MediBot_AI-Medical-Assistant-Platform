@@ -52,9 +52,7 @@ async function createFirstAdmin() {
     console.log(`   Email: ${adminData.email}`);
     console.log(`   Password: ${adminData.password}`);
     console.log("");
-    console.log(
-      "⚠️  IMPORTANT: Change the default password after first login!",
-    );
+    console.log("IMPORTANT: Change the default password after first login!");
     console.log("🔗 Login URL: http://localhost:3000/login");
     console.log(
       "   After login, you can access the admin dashboard at: http://localhost:3000/admin/dashboard",

@@ -23,7 +23,7 @@ class FAQService {
         console.log("FAQ service initialized successfully");
       } else {
         console.log(
-          "⚠️  FAQ service initialized without Pinecone (limited functionality)",
+          "FAQ service initialized without Pinecone (limited functionality)",
         );
       }
 
@@ -128,10 +128,7 @@ class FAQService {
           faq.pineconeIds = pineconeIds;
           await faq.save();
         } catch (pineconeError) {
-          console.error(
-            "⚠️  Failed to upload to Pinecone:",
-            pineconeError.message,
-          );
+          console.error("Failed to upload to Pinecone:", pineconeError.message);
           // Continue without Pinecone - FAQ is still saved in database
         }
       }
@@ -386,7 +383,7 @@ Instructions:
       );
 
       if (isGenericResponse) {
-        console.log("⚠️  AI response was too generic, returning fallback");
+        console.log("AI response was too generic, returning fallback");
         return "I don't have specific information about that topic yet.";
       }
 

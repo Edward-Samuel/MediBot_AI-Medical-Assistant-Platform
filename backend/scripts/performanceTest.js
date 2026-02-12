@@ -162,7 +162,7 @@ class PerformanceTest {
         );
       } else {
         console.log(
-          `   ⚠️  Optimization needs work. ${Math.abs(improvement).toFixed(1)}% slower`,
+          `   Optimization needs work. ${Math.abs(improvement).toFixed(1)}% slower`,
         );
       }
     }
