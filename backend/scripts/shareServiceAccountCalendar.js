@@ -44,7 +44,7 @@ async function shareServiceAccountCalendar() {
       return;
     }
     
-    console.log('\n🔄 Adding you to the service account calendar...');
+    console.log('\nAdding you to the service account calendar...');
     
     // Add ACL rule to share calendar with your email
     const aclRule = {
@@ -61,7 +61,7 @@ async function shareServiceAccountCalendar() {
         resource: aclRule
       });
       
-      console.log('✅ Calendar shared successfully!');
+      console.log('Calendar shared successfully!');
       console.log('📧 Shared with:', yourEmail);
       console.log('🔑 Permission level: Reader (view only)');
       
@@ -78,7 +78,7 @@ async function shareServiceAccountCalendar() {
       
     } catch (aclError) {
       if (aclError.message.includes('duplicate')) {
-        console.log('✅ Calendar is already shared with your account!');
+        console.log('Calendar is already shared with your account!');
         console.log('📧 Shared with:', yourEmail);
       } else {
         console.log('❌ Failed to share calendar:', aclError.message);

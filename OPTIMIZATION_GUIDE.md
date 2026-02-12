@@ -3,29 +3,35 @@
 ## 🚀 Quick Setup (5 minutes)
 
 ### 1. **Run Optimization Setup**
+
 ```bash
 cd backend
 node scripts/optimizeSetup.js
 ```
 
 ### 2. **Install Dependencies**
+
 ```bash
 npm install redis@^4.6.0
 ```
 
 ### 3. **Add Database Indexes**
+
 ```bash
 node scripts/addIndexes.js
 ```
 
 ### 4. **Update Server Configuration**
+
 Add to your `backend/server.js`:
+
 ```javascript
-const performanceMiddleware = require('./middleware/performance');
+const performanceMiddleware = require("./middleware/performance");
 app.use(performanceMiddleware);
 ```
 
 ### 5. **Test Performance**
+
 ```bash
 # Start your server
 npm start
@@ -34,47 +40,53 @@ npm start
 node scripts/performanceTest.js
 ```
 
-## 📊 **Expected Improvements**
+## **Expected Improvements**
 
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| FAQ Search | 2-3s | 0.8-1.2s | **40-50% faster** |
-| Chat Response | 3-5s | 1.5-2.5s | **30-40% faster** |
-| Memory Usage | High | Reduced | **25-35% less** |
-| API Calls | Many | Cached | **50-60% fewer** |
-| Server Startup | 10-15s | 2-3s | **70-80% faster** |
+| Metric         | Before | After    | Improvement       |
+| -------------- | ------ | -------- | ----------------- |
+| FAQ Search     | 2-3s   | 0.8-1.2s | **40-50% faster** |
+| Chat Response  | 3-5s   | 1.5-2.5s | **30-40% faster** |
+| Memory Usage   | High   | Reduced  | **25-35% less**   |
+| API Calls      | Many   | Cached   | **50-60% fewer**  |
+| Server Startup | 10-15s | 2-3s     | **70-80% faster** |
 
 ## 🔧 **Key Optimizations Implemented**
 
 ### **1. Caching Layer**
-- ✅ Redis cache for FAQ searches (1 hour TTL)
-- ✅ In-memory cache for embeddings (24 hour TTL)
-- ✅ Chat response caching (30 minutes TTL)
-- ✅ Automatic cache invalidation
+
+- Redis cache for FAQ searches (1 hour TTL)
+- In-memory cache for embeddings (24 hour TTL)
+- Chat response caching (30 minutes TTL)
+- Automatic cache invalidation
 
 ### **2. Database Optimization**
-- ✅ Compound indexes for faster queries
-- ✅ Optimized aggregation pipelines
-- ✅ Reduced N+1 query problems
+
+- Compound indexes for faster queries
+- Optimized aggregation pipelines
+- Reduced N+1 query problems
 
 ### **3. Parallel Processing**
-- ✅ Intent classification + FAQ search + Web search run in parallel
-- ✅ Non-blocking service initialization
-- ✅ Async chat history saving
+
+- Intent classification + FAQ search + Web search run in parallel
+- Non-blocking service initialization
+- Async chat history saving
 
 ### **4. Memory Management**
-- ✅ Embedding model lazy loading
-- ✅ Aggressive garbage collection
-- ✅ Memory usage monitoring
+
+- Embedding model lazy loading
+- Aggressive garbage collection
+- Memory usage monitoring
 
 ### **5. API Optimization**
-- ✅ Request batching for embeddings
-- ✅ Connection pooling
-- ✅ Response compression
+
+- Request batching for embeddings
+- Connection pooling
+- Response compression
 
 ## 🎯 **Usage Examples**
 
 ### **Using Optimized Chat Endpoint**
+
 ```javascript
 // New optimized endpoint
 POST /api/ai/chat-optimized
@@ -104,6 +116,7 @@ POST /api/ai/chat-optimized
 ```
 
 ### **Cache Performance Headers**
+
 ```
 X-Response-Time: 850ms
 X-Memory-Delta: 12.5MB
@@ -112,7 +125,9 @@ X-Memory-Delta: 12.5MB
 ## 🔍 **Monitoring & Debugging**
 
 ### **Cache Hit Rates**
+
 Look for these logs:
+
 ```
 🚀 FAQ search cache hit
 🚀 Chat response cache hit
@@ -120,12 +135,14 @@ Look for these logs:
 ```
 
 ### **Performance Warnings**
+
 ```
 🐌 Slow request: POST /api/ai/chat - 3500ms
 🧠 High memory request: POST /api/ai/chat - 75.2MB
 ```
 
 ### **Memory Monitoring**
+
 ```javascript
 // Check memory usage
 const memUsage = process.memoryUsage();
@@ -137,6 +154,7 @@ console.log(`Heap: ${(memUsage.heapUsed / 1024 / 1024).toFixed(2)}MB`);
 ### **1. Redis Setup (Optional but Recommended)**
 
 **Local Redis:**
+
 ```bash
 # macOS
 brew install redis
@@ -151,6 +169,7 @@ sudo systemctl start redis
 ```
 
 **Environment Variable:**
+
 ```bash
 # .env
 REDIS_URL=redis://localhost:6379
@@ -162,6 +181,7 @@ REDIS_URL=redis://username:password@host:port
 ### **2. Production Deployment**
 
 **Memory Optimization:**
+
 ```bash
 # Increase Node.js memory limit
 node --max-old-space-size=4096 server.js
@@ -171,20 +191,23 @@ node --expose-gc server.js
 ```
 
 **PM2 Configuration:**
+
 ```javascript
 // ecosystem.config.js
 module.exports = {
-  apps: [{
-    name: 'medibot-backend',
-    script: 'server.js',
-    instances: 'max',
-    exec_mode: 'cluster',
-    node_args: '--max-old-space-size=4096 --expose-gc',
-    env: {
-      NODE_ENV: 'production',
-      ENABLE_PERFORMANCE_MONITORING: 'true'
-    }
-  }]
+  apps: [
+    {
+      name: "medibot-backend",
+      script: "server.js",
+      instances: "max",
+      exec_mode: "cluster",
+      node_args: "--max-old-space-size=4096 --expose-gc",
+      env: {
+        NODE_ENV: "production",
+        ENABLE_PERFORMANCE_MONITORING: "true",
+      },
+    },
+  ],
 };
 ```
 
@@ -220,6 +243,7 @@ artillery run load-test.yml
 ### **Common Issues**
 
 **1. Cache Not Working**
+
 ```bash
 # Check Redis connection
 redis-cli ping
@@ -230,6 +254,7 @@ grep "Cache.*error" logs/app.log
 ```
 
 **2. Slow Database Queries**
+
 ```bash
 # Check if indexes were created
 node scripts/addIndexes.js
@@ -240,6 +265,7 @@ mongoose.set('debug', true);
 ```
 
 **3. High Memory Usage**
+
 ```bash
 # Enable garbage collection
 node --expose-gc --max-old-space-size=4096 server.js
@@ -250,6 +276,7 @@ node --inspect server.js
 ```
 
 **4. Performance Regression**
+
 ```bash
 # Run performance comparison
 node scripts/performanceTest.js

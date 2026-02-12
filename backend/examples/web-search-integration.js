@@ -1,13 +1,13 @@
 /**
  * Web Search Integration Example
- * 
+ *
  * This example shows how to integrate web search functionality
  * that bypasses the RAG/FAQ system when explicitly requested.
  */
 
 // Example: Chat interface with web search button
 class WebSearchChatInterface {
-  constructor(apiBaseUrl = 'http://localhost:5000/api') {
+  constructor(apiBaseUrl = "http://localhost:5000/api") {
     this.apiBaseUrl = apiBaseUrl;
     this.conversationHistory = [];
   }
@@ -18,32 +18,31 @@ class WebSearchChatInterface {
   async sendMessage(message, options = {}) {
     try {
       const response = await fetch(`${this.apiBaseUrl}/ai/chat`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': options.token ? `Bearer ${options.token}` : undefined
+          "Content-Type": "application/json",
+          Authorization: options.token ? `Bearer ${options.token}` : undefined,
         },
         body: JSON.stringify({
           message,
           conversationHistory: this.conversationHistory,
-          language: options.language || 'en',
+          language: options.language || "en",
           sessionId: options.sessionId,
-          forceWebSearch: options.forceWebSearch || false
-        })
+          forceWebSearch: options.forceWebSearch || false,
+        }),
       });
 
       const data = await response.json();
-      
+
       // Update conversation history
       this.conversationHistory.push(
-        { role: 'user', content: message },
-        { role: 'bot', content: data.response }
+        { role: "user", content: message },
+        { role: "bot", content: data.response },
       );
 
       return data;
-
     } catch (error) {
-      console.error('Chat error:', error);
+      console.error("Chat error:", error);
       throw error;
     }
   }
@@ -52,11 +51,11 @@ class WebSearchChatInterface {
    * Force web search (bypasses RAG/FAQ completely)
    */
   async forceWebSearch(message, options = {}) {
-    console.log('🔍 Forcing web search for:', message);
-    
+    console.log("🔍 Forcing web search for:", message);
+
     return await this.sendMessage(message, {
       ...options,
-      forceWebSearch: true
+      forceWebSearch: true,
     });
   }
 
@@ -66,22 +65,21 @@ class WebSearchChatInterface {
   async directWebSearch(query, options = {}) {
     try {
       const response = await fetch(`${this.apiBaseUrl}/ai/web-search`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json'
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           query,
           maxResults: options.maxResults || 5,
-          language: options.language || 'en'
-        })
+          language: options.language || "en",
+        }),
       });
 
       const data = await response.json();
       return data;
-
     } catch (error) {
-      console.error('Direct web search error:', error);
+      console.error("Direct web search error:", error);
       throw error;
     }
   }
@@ -93,29 +91,35 @@ class WebSearchChatInterface {
     console.log(`\n--- Testing search methods for: "${query}" ---`);
 
     // Method 1: Regular chat (may use FAQ if detected)
-    console.log('\n1. Regular chat (with intent classification):');
+    console.log("\n1. Regular chat (with intent classification):");
     const regularChat = await this.sendMessage(query);
-    console.log('Intent:', regularChat.intentData?.intent);
-    console.log('Used FAQ:', regularChat.faqData?.usedFAQ || false);
-    console.log('Used Web Search:', regularChat.webSearchData?.usedWebSearch || false);
+    console.log("Intent:", regularChat.intentData?.intent);
+    console.log("Used FAQ:", regularChat.faqData?.usedFAQ || false);
+    console.log(
+      "Used Web Search:",
+      regularChat.webSearchData?.usedWebSearch || false,
+    );
 
     // Method 2: Force web search through chat
-    console.log('\n2. Forced web search through chat:');
+    console.log("\n2. Forced web search through chat:");
     const forcedSearch = await this.forceWebSearch(query);
-    console.log('Intent:', forcedSearch.intentData?.intent);
-    console.log('Bypassed RAG:', forcedSearch.webSearchData?.bypassedRAG || false);
+    console.log("Intent:", forcedSearch.intentData?.intent);
+    console.log(
+      "Bypassed RAG:",
+      forcedSearch.webSearchData?.bypassedRAG || false,
+    );
 
     // Method 3: Direct web search API
-    console.log('\n3. Direct web search API:');
+    console.log("\n3. Direct web search API:");
     const directSearch = await this.directWebSearch(query);
-    console.log('Total results:', directSearch.totalResults);
-    console.log('Bypassed RAG:', directSearch.bypassedRAG);
-    console.log('Has AI summary:', !!directSearch.aiSummary);
+    console.log("Total results:", directSearch.totalResults);
+    console.log("Bypassed RAG:", directSearch.bypassedRAG);
+    console.log("Has AI summary:", !!directSearch.aiSummary);
 
     return {
       regularChat,
       forcedSearch,
-      directSearch
+      directSearch,
     };
   }
 }
@@ -257,7 +261,7 @@ const WebSearchChat = () => {
             🔍 Web Search
           </button>
           <button onClick={directWebSearch} disabled={isLoading} className="direct-search-btn">
-            📊 Raw Search
+             Raw Search
           </button>
         </div>
       </div>
@@ -272,51 +276,51 @@ export default WebSearchChat;
 async function demonstrateWebSearch() {
   const chatInterface = new WebSearchChatInterface();
 
-  console.log('🔍 Web Search Integration Demo\n');
+  console.log("🔍 Web Search Integration Demo\n");
 
   // Test queries
   const testQueries = [
     "What is diabetes?", // Should use FAQ
     "Search for latest diabetes research", // Should use web search
     "Tell me about COVID-19 symptoms", // May use FAQ
-    "Find recent news about COVID-19 vaccines" // Should use web search
+    "Find recent news about COVID-19 vaccines", // Should use web search
   ];
 
   for (const query of testQueries) {
     await chatInterface.testSearchMethods(query);
-    console.log('\n' + '='.repeat(60) + '\n');
+    console.log("\n" + "=".repeat(60) + "\n");
   }
 
   // Demonstrate direct API calls
-  console.log('📡 Direct API Examples:\n');
+  console.log("📡 Direct API Examples:\n");
 
   // Force web search through chat API
-  console.log('1. Chat API with forceWebSearch=true:');
-  const forcedResult = await fetch('http://localhost:5000/api/ai/chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+  console.log("1. Chat API with forceWebSearch=true:");
+  const forcedResult = await fetch("http://localhost:5000/api/ai/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       message: "What is machine learning?",
-      forceWebSearch: true
-    })
+      forceWebSearch: true,
+    }),
   });
   const forcedData = await forcedResult.json();
-  console.log('Intent:', forcedData.intentData?.intent);
-  console.log('Bypassed RAG:', forcedData.webSearchData?.bypassedRAG);
+  console.log("Intent:", forcedData.intentData?.intent);
+  console.log("Bypassed RAG:", forcedData.webSearchData?.bypassedRAG);
 
   // Direct web search API
-  console.log('\n2. Direct web search API:');
-  const directResult = await fetch('http://localhost:5000/api/ai/web-search', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+  console.log("\n2. Direct web search API:");
+  const directResult = await fetch("http://localhost:5000/api/ai/web-search", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       query: "Latest AI developments 2024",
-      maxResults: 3
-    })
+      maxResults: 3,
+    }),
   });
   const directData = await directResult.json();
-  console.log('Results count:', directData.totalResults);
-  console.log('Has AI summary:', !!directData.aiSummary);
+  console.log("Results count:", directData.totalResults);
+  console.log("Has AI summary:", !!directData.aiSummary);
 }
 
 // CSS for the React component
@@ -467,7 +471,7 @@ const componentCSS = `
 }
 `;
 
-console.log('React Component CSS:');
+console.log("React Component CSS:");
 console.log(componentCSS);
 
 // Export for use
@@ -475,7 +479,7 @@ module.exports = {
   WebSearchChatInterface,
   demonstrateWebSearch,
   ReactWebSearchComponent: ReactWebSearchComponent,
-  componentCSS
+  componentCSS,
 };
 
 // Run demo if executed directly

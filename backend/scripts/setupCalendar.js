@@ -25,11 +25,11 @@ async function setupCalendarIntegration() {
     const initialized = await googleCalendar.initialize();
     
     if (initialized) {
-      console.log('✅ Calendar integration is already working!');
+      console.log('Calendar integration is already working!');
       
       const testResult = await googleCalendar.testConnection();
       if (testResult.success) {
-        console.log('✅ Calendar connection test passed');
+        console.log('Calendar connection test passed');
         console.log(`📅 Using calendar: ${testResult.calendarId}`);
         console.log(`🔑 Authentication: ${testResult.authType}`);
         
@@ -81,7 +81,7 @@ async function guideSetup() {
   const hasCredentials = await askQuestion('Do you have the google-credentials.json file ready? (y/n): ');
   
   if (hasCredentials.toLowerCase() === 'y') {
-    console.log('\n🔄 Please place the file at: backend/config/google-credentials.json');
+    console.log('\nPlease place the file at: backend/config/google-credentials.json');
     console.log('Then run this script again to test the integration.');
   } else {
     console.log('\n📖 Please follow the setup guide above and run this script again.');
@@ -107,7 +107,7 @@ async function runTestAppointment() {
     const result = await googleCalendar.safeCreateEvent(testAppointment);
     
     if (result.eventId) {
-      console.log('✅ Test appointment created successfully!');
+      console.log('Test appointment created successfully!');
       console.log(`   Event ID: ${result.eventId}`);
       console.log(`   Event Link: ${result.eventLink}`);
       
@@ -116,7 +116,7 @@ async function runTestAppointment() {
       if (cleanup.toLowerCase() === 'y') {
         try {
           await googleCalendar.deleteEvent(result.eventId);
-          console.log('✅ Test event deleted successfully');
+          console.log('Test event deleted successfully');
         } catch (deleteError) {
           console.log('⚠️  Could not delete test event automatically');
           console.log('   Please delete it manually from your calendar');

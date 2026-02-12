@@ -9,7 +9,7 @@ class AlternativePdfProcessor {
 
   async processPDFWithPdftotext(filePath) {
     try {
-      console.log('🔄 Attempting PDF processing with pdftotext...');
+      console.log('Attempting PDF processing with pdftotext...');
       
       return new Promise((resolve, reject) => {
         const pdftotext = spawn('pdftotext', ['-layout', '-nopgbrk', filePath, '-']);
@@ -51,7 +51,7 @@ class AlternativePdfProcessor {
 
   async processPDFSimple(filePath) {
     try {
-      console.log('🔄 Attempting simple PDF text extraction...');
+      console.log('Attempting simple PDF text extraction...');
       
       // Check file size
       const stats = await fs.stat(filePath);
@@ -105,9 +105,9 @@ class AlternativePdfProcessor {
     
     for (let i = 0; i < methods.length; i++) {
       try {
-        console.log(`🔄 Trying PDF processing method ${i + 1}/${methods.length}...`);
+        console.log(`Trying PDF processing method ${i + 1}/${methods.length}...`);
         const result = await methods[i]();
-        console.log(`✅ PDF processing method ${i + 1} succeeded`);
+        console.log(`PDF processing method ${i + 1} succeeded`);
         return result;
       } catch (error) {
         console.warn(`⚠️  PDF processing method ${i + 1} failed: ${error.message}`);
