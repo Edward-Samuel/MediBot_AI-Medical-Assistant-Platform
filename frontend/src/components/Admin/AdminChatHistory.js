@@ -62,7 +62,7 @@ const AdminChatHistory = () => {
     } finally {
       setLoading(false);
     }
-  }, [pagination.currentPage, searchTerm, filters]);
+  }, [pagination.currentPage, pagination.limit, searchTerm, filters]);
 
   useEffect(() => {
     loadChatSessions();

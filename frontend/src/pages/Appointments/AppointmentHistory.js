@@ -1,13 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, User, FileText, Eye, X, CheckCircle, AlertCircle, Video } from 'lucide-react';
-import axios from 'axios';
-import toast from 'react-hot-toast';
-import { useAuth } from '../../contexts/AuthContext';
+import React, { useState, useEffect } from "react";
+import {
+  Calendar,
+  Clock,
+  User,
+  FileText,
+  Eye,
+  X,
+  CheckCircle,
+  AlertCircle,
+  Video,
+} from "lucide-react";
+import axios from "axios";
+import toast from "react-hot-toast";
 
 const AppointmentHistory = () => {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all'); // all, upcoming, past, cancelled
+  const [filter, setFilter] = useState("all"); // all, upcoming, past, cancelled
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
   const [cancelling, setCancelling] = useState(null);
@@ -18,14 +27,15 @@ const AppointmentHistory = () => {
 
   const fetchAppointments = async () => {
     try {
-      const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
-      const response = await axios.get('/api/ai/appointments', {
-        headers: { Authorization: `Bearer ${token}` }
+      const token =
+        localStorage.getItem("adminToken") || localStorage.getItem("token");
+      const response = await axios.get("/api/ai/appointments", {
+        headers: { Authorization: `Bearer ${token}` },
       });
       setAppointments(response.data.appointments);
     } catch (error) {
-      console.error('Error fetching appointments:', error);
-      toast.error('Failed to load appointment history');
+      console.error("Error fetching appointments:", error);
+      toast.error("Failed to load appointment history");
     } finally {
       setLoading(false);
     }
@@ -34,22 +44,28 @@ const AppointmentHistory = () => {
   const handleCancelAppointment = async (appointmentId) => {
     setCancelling(appointmentId);
     try {
-      const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
-      await axios.put(`/api/ai/appointments/${appointmentId}/cancel`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
+      const token =
+        localStorage.getItem("adminToken") || localStorage.getItem("token");
+      await axios.put(
+        `/api/ai/appointments/${appointmentId}/cancel`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+
       // Update the appointment in the list
-      setAppointments(prev => prev.map(apt => 
-        apt.id === appointmentId 
-          ? { ...apt, status: 'cancelled' }
-          : apt
-      ));
-      
-      toast.success('Appointment cancelled successfully');
+      setAppointments((prev) =>
+        prev.map((apt) =>
+          apt.id === appointmentId ? { ...apt, status: "cancelled" } : apt,
+        ),
+      );
+
+      toast.success("Appointment cancelled successfully");
     } catch (error) {
-      console.error('Error cancelling appointment:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to cancel appointment';
+      console.error("Error cancelling appointment:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to cancel appointment";
       toast.error(errorMessage);
     } finally {
       setCancelling(null);
@@ -58,42 +74,48 @@ const AppointmentHistory = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'confirmed': return 'text-green-600 bg-green-100';
-      case 'scheduled': return 'text-blue-600 bg-blue-100';
-      case 'completed': return 'text-gray-600 bg-gray-100';
-      case 'cancelled': return 'text-red-600 bg-red-100';
-      case 'in-progress': return 'text-yellow-600 bg-yellow-100';
-      default: return 'text-gray-600 bg-gray-100';
+      case "confirmed":
+        return "text-green-600 bg-green-100";
+      case "scheduled":
+        return "text-blue-600 bg-blue-100";
+      case "completed":
+        return "text-gray-600 bg-gray-100";
+      case "cancelled":
+        return "text-red-600 bg-red-100";
+      case "in-progress":
+        return "text-yellow-600 bg-yellow-100";
+      default:
+        return "text-gray-600 bg-gray-100";
     }
   };
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'confirmed':
-      case 'scheduled':
+      case "confirmed":
+      case "scheduled":
         return <CheckCircle className="h-4 w-4" />;
-      case 'completed':
+      case "completed":
         return <CheckCircle className="h-4 w-4" />;
-      case 'cancelled':
+      case "cancelled":
         return <X className="h-4 w-4" />;
-      case 'in-progress':
+      case "in-progress":
         return <AlertCircle className="h-4 w-4" />;
       default:
         return <Clock className="h-4 w-4" />;
     }
   };
 
-  const filteredAppointments = appointments.filter(appointment => {
+  const filteredAppointments = appointments.filter((appointment) => {
     const appointmentDate = new Date(appointment.dateTime);
     const now = new Date();
-    
+
     switch (filter) {
-      case 'upcoming':
-        return appointmentDate > now && appointment.status !== 'cancelled';
-      case 'past':
-        return appointmentDate < now || appointment.status === 'completed';
-      case 'cancelled':
-        return appointment.status === 'cancelled';
+      case "upcoming":
+        return appointmentDate > now && appointment.status !== "cancelled";
+      case "past":
+        return appointmentDate < now || appointment.status === "completed";
+      case "cancelled":
+        return appointment.status === "cancelled";
       default:
         return true;
     }
@@ -104,8 +126,8 @@ const AppointmentHistory = () => {
     const now = new Date();
     const timeDiff = appointmentTime.getTime() - now.getTime();
     const hoursDiff = timeDiff / (1000 * 3600);
-    
-    return appointment.status === 'scheduled' && hoursDiff >= 24;
+
+    return appointment.status === "scheduled" && hoursDiff >= 24;
   };
 
   if (loading) {
@@ -114,7 +136,9 @@ const AppointmentHistory = () => {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-            <span className="ml-2 text-gray-600 dark:text-gray-400">Loading appointments...</span>
+            <span className="ml-2 text-gray-600 dark:text-gray-400">
+              Loading appointments...
+            </span>
           </div>
         </div>
       </div>
@@ -139,18 +163,43 @@ const AppointmentHistory = () => {
           <div className="border-b border-gray-200 dark:border-gray-700">
             <nav className="-mb-px flex space-x-8">
               {[
-                { key: 'all', label: 'All Appointments', count: appointments.length },
-                { key: 'upcoming', label: 'Upcoming', count: appointments.filter(a => new Date(a.dateTime) > new Date() && a.status !== 'cancelled').length },
-                { key: 'past', label: 'Past', count: appointments.filter(a => new Date(a.dateTime) < new Date() || a.status === 'completed').length },
-                { key: 'cancelled', label: 'Cancelled', count: appointments.filter(a => a.status === 'cancelled').length }
-              ].map(tab => (
+                {
+                  key: "all",
+                  label: "All Appointments",
+                  count: appointments.length,
+                },
+                {
+                  key: "upcoming",
+                  label: "Upcoming",
+                  count: appointments.filter(
+                    (a) =>
+                      new Date(a.dateTime) > new Date() &&
+                      a.status !== "cancelled",
+                  ).length,
+                },
+                {
+                  key: "past",
+                  label: "Past",
+                  count: appointments.filter(
+                    (a) =>
+                      new Date(a.dateTime) < new Date() ||
+                      a.status === "completed",
+                  ).length,
+                },
+                {
+                  key: "cancelled",
+                  label: "Cancelled",
+                  count: appointments.filter((a) => a.status === "cancelled")
+                    .length,
+                },
+              ].map((tab) => (
                 <button
                   key={tab.key}
                   onClick={() => setFilter(tab.key)}
                   className={`py-2 px-1 border-b-2 font-medium text-sm ${
                     filter === tab.key
-                      ? 'border-green-500 text-green-600 dark:text-green-400'
-                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300'
+                      ? "border-green-500 text-green-600 dark:text-green-400"
+                      : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300"
                   }`}
                 >
                   {tab.label}
@@ -173,10 +222,9 @@ const AppointmentHistory = () => {
               No appointments found
             </h3>
             <p className="text-gray-600 dark:text-gray-400">
-              {filter === 'all' 
+              {filter === "all"
                 ? "You haven't booked any appointments yet."
-                : `No ${filter} appointments found.`
-              }
+                : `No ${filter} appointments found.`}
             </p>
           </div>
         ) : (
@@ -200,11 +248,15 @@ const AppointmentHistory = () => {
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center space-x-4">
-                    <div className={`flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(appointment.status)}`}>
+                    <div
+                      className={`flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(appointment.status)}`}
+                    >
                       {getStatusIcon(appointment.status)}
-                      <span className="ml-1 capitalize">{appointment.status}</span>
+                      <span className="ml-1 capitalize">
+                        {appointment.status}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -219,15 +271,17 @@ const AppointmentHistory = () => {
                   <div className="flex items-center text-gray-600 dark:text-gray-400">
                     <Clock className="h-4 w-4 mr-2" />
                     <span className="text-sm">
-                      {new Date(appointment.dateTime).toLocaleTimeString([], { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
+                      {new Date(appointment.dateTime).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
                       })}
                     </span>
                   </div>
                   <div className="flex items-center text-gray-600 dark:text-gray-400">
                     <FileText className="h-4 w-4 mr-2" />
-                    <span className="text-sm capitalize">{appointment.type}</span>
+                    <span className="text-sm capitalize">
+                      {appointment.type}
+                    </span>
                   </div>
                   <div className="flex items-center text-gray-600 dark:text-gray-400">
                     <span className="text-sm font-medium">
@@ -239,16 +293,18 @@ const AppointmentHistory = () => {
                 {appointment.chiefComplaint && (
                   <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                     <p className="text-sm text-gray-700 dark:text-gray-300">
-                      <strong>Chief Complaint:</strong> {appointment.chiefComplaint}
+                      <strong>Chief Complaint:</strong>{" "}
+                      {appointment.chiefComplaint}
                     </p>
                   </div>
                 )}
 
                 <div className="mt-4 flex items-center justify-between">
                   <div className="text-xs text-gray-500 dark:text-gray-400">
-                    Booked on {new Date(appointment.createdAt).toLocaleDateString()}
+                    Booked on{" "}
+                    {new Date(appointment.createdAt).toLocaleDateString()}
                   </div>
-                  
+
                   <div className="flex space-x-2">
                     <button
                       onClick={() => {
@@ -260,7 +316,7 @@ const AppointmentHistory = () => {
                       <Eye className="h-4 w-4 mr-1" />
                       View Details
                     </button>
-                    
+
                     {appointment.calendarEventLink && (
                       <a
                         href={appointment.calendarEventLink}
@@ -272,7 +328,7 @@ const AppointmentHistory = () => {
                         Calendar
                       </a>
                     )}
-                    
+
                     {appointment.meetingLink && (
                       <a
                         href={appointment.meetingLink}
@@ -284,7 +340,7 @@ const AppointmentHistory = () => {
                         Join Meeting
                       </a>
                     )}
-                    
+
                     {canCancelAppointment(appointment) && (
                       <button
                         onClick={() => handleCancelAppointment(appointment.id)}
@@ -326,7 +382,9 @@ const AppointmentHistory = () => {
                 <div className="space-y-6">
                   {/* Doctor Info */}
                   <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Doctor</h3>
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
+                      Doctor
+                    </h3>
                     <div className="flex items-center space-x-3">
                       <div className="w-10 h-10 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
                         <User className="h-5 w-5 text-green-600 dark:text-green-400" />
@@ -344,29 +402,45 @@ const AppointmentHistory = () => {
 
                   {/* Appointment Info */}
                   <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Appointment Information</h3>
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
+                      Appointment Information
+                    </h3>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Date & Time</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Date & Time
+                        </p>
                         <p className="font-medium text-gray-900 dark:text-white">
-                          {new Date(selectedAppointment.dateTime).toLocaleString()}
+                          {new Date(
+                            selectedAppointment.dateTime,
+                          ).toLocaleString()}
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Type</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Type
+                        </p>
                         <p className="font-medium text-gray-900 dark:text-white capitalize">
                           {selectedAppointment.type}
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Status</p>
-                        <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(selectedAppointment.status)}`}>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Status
+                        </p>
+                        <div
+                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(selectedAppointment.status)}`}
+                        >
                           {getStatusIcon(selectedAppointment.status)}
-                          <span className="ml-1 capitalize">{selectedAppointment.status}</span>
+                          <span className="ml-1 capitalize">
+                            {selectedAppointment.status}
+                          </span>
                         </div>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Status</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Status
+                        </p>
                         <p className="font-medium text-gray-900 dark:text-white">
                           Free Consultation
                         </p>
@@ -375,24 +449,38 @@ const AppointmentHistory = () => {
                   </div>
 
                   {/* Medical Info */}
-                  {(selectedAppointment.chiefComplaint || selectedAppointment.symptoms?.length > 0) && (
+                  {(selectedAppointment.chiefComplaint ||
+                    selectedAppointment.symptoms?.length > 0) && (
                     <div>
-                      <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Medical Information</h3>
+                      <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
+                        Medical Information
+                      </h3>
                       {selectedAppointment.chiefComplaint && (
                         <div className="mb-3">
-                          <p className="text-sm text-gray-600 dark:text-gray-400">Chief Complaint</p>
-                          <p className="text-gray-900 dark:text-white">{selectedAppointment.chiefComplaint}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            Chief Complaint
+                          </p>
+                          <p className="text-gray-900 dark:text-white">
+                            {selectedAppointment.chiefComplaint}
+                          </p>
                         </div>
                       )}
                       {selectedAppointment.symptoms?.length > 0 && (
                         <div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Symptoms</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                            Symptoms
+                          </p>
                           <div className="flex flex-wrap gap-2">
-                            {selectedAppointment.symptoms.map((symptom, index) => (
-                              <span key={index} className="bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 px-2 py-1 rounded-full text-sm">
-                                {symptom}
-                              </span>
-                            ))}
+                            {selectedAppointment.symptoms.map(
+                              (symptom, index) => (
+                                <span
+                                  key={index}
+                                  className="bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 px-2 py-1 rounded-full text-sm"
+                                >
+                                  {symptom}
+                                </span>
+                              ),
+                            )}
                           </div>
                         </div>
                       )}
@@ -400,19 +488,30 @@ const AppointmentHistory = () => {
                   )}
 
                   {/* Notes and Diagnosis */}
-                  {(selectedAppointment.notes || selectedAppointment.diagnosis) && (
+                  {(selectedAppointment.notes ||
+                    selectedAppointment.diagnosis) && (
                     <div>
-                      <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Clinical Notes</h3>
+                      <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
+                        Clinical Notes
+                      </h3>
                       {selectedAppointment.diagnosis && (
                         <div className="mb-3">
-                          <p className="text-sm text-gray-600 dark:text-gray-400">Diagnosis</p>
-                          <p className="text-gray-900 dark:text-white">{selectedAppointment.diagnosis}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            Diagnosis
+                          </p>
+                          <p className="text-gray-900 dark:text-white">
+                            {selectedAppointment.diagnosis}
+                          </p>
                         </div>
                       )}
                       {selectedAppointment.notes && (
                         <div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">Notes</p>
-                          <p className="text-gray-900 dark:text-white">{selectedAppointment.notes}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            Notes
+                          </p>
+                          <p className="text-gray-900 dark:text-white">
+                            {selectedAppointment.notes}
+                          </p>
                         </div>
                       )}
                     </div>
