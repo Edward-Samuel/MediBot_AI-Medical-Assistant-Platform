@@ -38,6 +38,12 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
     ? ["*"]
     : ["http://localhost:3000"];
 
+// Log CORS configuration on startup
+console.log("CORS Configuration:");
+console.log("- NODE_ENV:", process.env.NODE_ENV);
+console.log("- ALLOWED_ORIGINS env var:", process.env.ALLOWED_ORIGINS || "NOT SET");
+console.log("- Allowed origins:", allowedOrigins);
+
 // Security middleware
 app.use(helmet());
 app.use(
@@ -57,6 +63,8 @@ app.use(
         return callback(null, true);
       }
 
+      // Log rejected origin for debugging
+      console.error(`CORS Error: Origin "${origin}" not in allowed list:`, allowedOrigins);
       return callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
