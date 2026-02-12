@@ -7,7 +7,8 @@
     "start": "node --max-old-space-size=12288 --expose-gc --optimize-for-size server.js",
     "start-memory": "node --max-old-space-size=12288 --expose-gc start-with-memory.js",
     "dev": "nodemon --max-old-space-size=12288 --expose-gc --optimize-for-size server.js",
-    "test": "jest"
+    "test": "jest",
+    "setup": "node scripts/setupProduction.js"
   },
   "dependencies": {
     "@pinecone-database/pinecone": "^6.1.4",
