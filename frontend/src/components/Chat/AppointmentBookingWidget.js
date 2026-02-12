@@ -75,12 +75,28 @@ const AppointmentBookingWidget = ({ appointmentData, onClose, onBookingComplete 
       });
 
       if (response.data.recommendations && response.data.recommendations.length > 0) {
-        setDoctors(response.data.recommendations);
-        setAiAnalysis(response.data.analysis);
-        setSelectedSpecialization(response.data.analysis.primarySpecialization);
-        const mockSlots = generateMockSlots();
-        setAvailableSlots(mockSlots);
-        setStep('doctors');
+        const analysis = response.data.analysis;
+        setAiAnalysis(analysis);
+        setSelectedSpecialization(analysis.primarySpecialization);
+        
+        // Filter doctors to only show primary specialization
+        const primaryDoctors = response.data.recommendations.filter(
+          doctor => doctor.specialization === analysis.primarySpecialization
+        );
+        
+        if (primaryDoctors.length > 0) {
+          setDoctors(primaryDoctors);
+          const mockSlots = generateMockSlots();
+          setAvailableSlots(mockSlots);
+          setStep('doctors');
+        } else {
+          // If no doctors for primary, show all recommendations
+          setDoctors(response.data.recommendations);
+          const mockSlots = generateMockSlots();
+          setAvailableSlots(mockSlots);
+          setStep('doctors');
+          toast.info(`Showing doctors from related specializations`);
+        }
       } else {
         toast.error('No doctors found for your symptoms');
       }
