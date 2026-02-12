@@ -74,7 +74,13 @@ async function setupProduction() {
           dateOfBirth: new Date("1990-01-01"),
           gender: "male",
           phone: "+1234567890",
-          address: "123 Demo Street, Demo City",
+          address: {
+            street: "123 Demo Street",
+            city: "Demo City",
+            state: "CA",
+            zipCode: "90001",
+            country: "USA"
+          }
         },
       };
 
