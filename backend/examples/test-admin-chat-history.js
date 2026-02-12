@@ -62,10 +62,10 @@ class AdminChatHistoryTester {
         const firstSession = response.data.sessions[0];
         console.log(`Sample session: ${firstSession.sessionId}`);
         console.log(
-          `👤 User: ${firstSession.user?.name || "Unknown"} (${firstSession.user?.email || "No email"})`,
+          `User: ${firstSession.user?.name || "Unknown"} (${firstSession.user?.email || "No email"})`,
         );
         console.log(`Messages: ${firstSession.messageCount}`);
-        console.log(`🌐 Language: ${firstSession.language}`);
+        console.log(`Language: ${firstSession.language}`);
       }
 
       return response.data;
@@ -94,9 +94,9 @@ class AdminChatHistoryTester {
 
       console.log(`Retrieved session details for: ${response.data.sessionId}`);
       console.log(`Title: ${response.data.title}`);
-      console.log(`👤 User: ${response.data.user?.name || "Unknown"}`);
+      console.log(`User: ${response.data.user?.name || "Unknown"}`);
       console.log(`Total messages: ${response.data.messageCount}`);
-      console.log(`🌐 Language: ${response.data.language}`);
+      console.log(`Language: ${response.data.language}`);
 
       if (response.data.messages.length > 0) {
         console.log(
@@ -133,14 +133,14 @@ class AdminChatHistoryTester {
 
       const stats = response.data.overview;
       console.log(`Retrieved chat history statistics`);
-      console.log(`📈 Total sessions: ${stats.totalSessions}`);
+      console.log(`Total sessions: ${stats.totalSessions}`);
       console.log(`Total messages: ${stats.totalMessages}`);
       console.log(`👥 Unique users: ${stats.uniqueUsersCount}`);
-      console.log(`🌐 Languages used: ${stats.languagesUsed.join(", ")}`);
+      console.log(`Languages used: ${stats.languagesUsed.join(", ")}`);
       console.log(` Avg messages per session: ${stats.avgMessagesPerSession}`);
 
       if (response.data.languageBreakdown.length > 0) {
-        console.log("\n🌐 Language breakdown:");
+        console.log("\nLanguage breakdown:");
         response.data.languageBreakdown.forEach((lang) => {
           console.log(
             `  ${lang._id}: ${lang.count} sessions, ${lang.totalMessages} messages`,
@@ -211,7 +211,7 @@ class AdminChatHistoryTester {
    */
   async testFilterByUser(userId) {
     try {
-      console.log(`\n👤 Testing: Filter by User (${userId})`);
+      console.log(`\nTesting: Filter by User (${userId})`);
 
       const response = await axios.get(`${this.baseUrl}/admin/chat-history`, {
         headers: { Authorization: `Bearer ${this.adminToken}` },

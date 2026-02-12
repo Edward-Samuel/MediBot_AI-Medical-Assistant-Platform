@@ -127,7 +127,7 @@ router.post('/upload', authenticateToken, requirePermission('canUpload'), upload
       tags: tags ? tags.split(',').map(tag => tag.trim()) : []
     };
 
-    const faq = await faqService.uploadFAQ(fileData, req.admin._id);
+    const faq = await faqService.uploadFAQ(fileData, req.user._id);
 
     // Clean up uploaded file
     try {

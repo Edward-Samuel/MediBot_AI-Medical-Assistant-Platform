@@ -133,7 +133,7 @@ async function testIntentClassifier() {
   console.log("=".repeat(80));
   console.log(`Correct predictions: ${correctPredictions}/${totalTests}`);
   console.log(
-    `📈 Accuracy: ${((correctPredictions / totalTests) * 100).toFixed(1)}%`,
+    `Accuracy: ${((correctPredictions / totalTests) * 100).toFixed(1)}%`,
   );
 
   // Get classifier statistics

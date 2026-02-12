@@ -131,7 +131,7 @@ class PerformanceTest {
   }
 
   generateReport() {
-    console.log("\n📈 Performance Comparison Report");
+    console.log("\nPerformance Comparison Report");
     console.log("================================");
 
     const originalResults = this.results.filter(

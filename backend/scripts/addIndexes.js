@@ -57,7 +57,7 @@ async function addOptimizedIndexes() {
     });
 
     console.log("All indexes created successfully!");
-    console.log("📈 Expected performance improvement: 40-60% faster queries");
+    console.log("Expected performance improvement: 40-60% faster queries");
   } catch (error) {
     console.error("❌ Error creating indexes:", error);
   } finally {

@@ -109,7 +109,7 @@ async function testIntentClassification() {
     `Correct classifications: ${correctClassifications}/${totalTests}`,
   );
   console.log(
-    `📈 Accuracy: ${((correctClassifications / totalTests) * 100).toFixed(1)}%`,
+    `Accuracy: ${((correctClassifications / totalTests) * 100).toFixed(1)}%`,
   );
 
   // Test force web search option

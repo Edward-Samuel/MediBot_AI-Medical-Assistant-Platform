@@ -117,7 +117,7 @@ class FAQFallbackTester {
     console.log("=".repeat(70));
     console.log(`Successful fallbacks: ${successCount}/${totalTests}`);
     console.log(
-      `📈 Success rate: ${((successCount / totalTests) * 100).toFixed(1)}%`,
+      `Success rate: ${((successCount / totalTests) * 100).toFixed(1)}%`,
     );
 
     if (successCount === totalTests) {

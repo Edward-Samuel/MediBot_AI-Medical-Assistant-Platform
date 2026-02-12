@@ -777,7 +777,7 @@ const ChatBot = () => {
 
     const currentLangInfo = getCurrentLanguageInfo();
     console.log(
-      `🌐 Current Language: ${currentLangInfo.name} (${currentLangInfo.code})`,
+      `Current Language: ${currentLangInfo.name} (${currentLangInfo.code})`,
     );
     console.log(`Target Speech Lang: ${currentLangInfo.speechLang}`);
 

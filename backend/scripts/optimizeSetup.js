@@ -57,7 +57,7 @@ console.log("Environment configuration updated\n");
 console.log("Performance Optimization Complete!");
 console.log("=====================================\n");
 
-console.log("📈 Expected Improvements:");
+console.log("Expected Improvements:");
 console.log("  • FAQ search: 40-50% faster (caching + parallel processing)");
 console.log(
   "  • Chat responses: 30-40% faster (parallel intent classification)",

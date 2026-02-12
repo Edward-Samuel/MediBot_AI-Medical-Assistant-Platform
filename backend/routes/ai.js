@@ -548,7 +548,7 @@ router.post("/chat", async (req, res) => {
       case "web_search":
         console.log("🔍 Web search intent detected - using search API");
         try {
-          console.log("🌐 Performing web search for:", message);
+          console.log("Performing web search for:", message);
           searchResults = await tavilySearch.searchMedical(message, {
             maxResults: 5,
           });
@@ -1081,7 +1081,7 @@ router.post("/web-search", async (req, res) => {
       return res.status(400).json({ message: "Search query is required" });
     }
 
-    console.log("🌐 Direct web search request:", query);
+    console.log("Direct web search request:", query);
 
     // Perform web search using searchMedical method
     const searchResults = await tavilySearch.searchMedical(query, {
