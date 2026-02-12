@@ -9,11 +9,14 @@ const AppointmentBookingWidget = ({ appointmentData, onClose, onBookingComplete 
   const [isBooking, setIsBooking] = useState(false);
   const [bookingComplete, setBookingComplete] = useState(false);
   const [bookedAppointment, setBookedAppointment] = useState(null);
-  const [step, setStep] = useState('specialization'); // 'specialization', 'doctors', 'slots'
+  const [step, setStep] = useState('mode'); // 'mode', 'specialization', 'symptoms', 'doctors', 'slots'
+  const [bookingMode, setBookingMode] = useState(null); // 'manual' or 'ai'
   const [selectedSpecialization, setSelectedSpecialization] = useState('');
+  const [symptoms, setSymptoms] = useState('');
   const [doctors, setDoctors] = useState([]);
   const [availableSlots, setAvailableSlots] = useState([]);
   const [isLoadingDoctors, setIsLoadingDoctors] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState(null);
 
   const specializations = [
     'General Medicine',
@@ -33,19 +36,11 @@ const AppointmentBookingWidget = ({ appointmentData, onClose, onBookingComplete 
     setIsLoadingDoctors(true);
     
     try {
-      const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
-      const response = await axios.post('/api/ai/recommend-doctor', {
-        symptoms: [specialization.toLowerCase()],
-        age: 30,
-        gender: 'not specified',
-        urgency: 'normal'
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      // Directly fetch doctors by specialization
+      const response = await axios.get(`/api/doctors?specialization=${encodeURIComponent(specialization)}&limit=10`);
 
-      if (response.data.recommendations && response.data.recommendations.length > 0) {
-        setDoctors(response.data.recommendations);
-        // Generate mock available slots for each doctor
+      if (response.data.doctors && response.data.doctors.length > 0) {
+        setDoctors(response.data.doctors);
         const mockSlots = generateMockSlots();
         setAvailableSlots(mockSlots);
         setStep('doctors');
@@ -55,6 +50,43 @@ const AppointmentBookingWidget = ({ appointmentData, onClose, onBookingComplete 
     } catch (error) {
       console.error('Error fetching doctors:', error);
       toast.error('Failed to load doctors');
+    } finally {
+      setIsLoadingDoctors(false);
+    }
+  };
+
+  const handleSymptomAnalysis = async () => {
+    if (!symptoms.trim()) {
+      toast.error('Please describe your symptoms');
+      return;
+    }
+
+    setIsLoadingDoctors(true);
+    
+    try {
+      const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
+      const response = await axios.post('/api/ai/recommend-doctor', {
+        symptoms: [symptoms],
+        age: 30,
+        gender: 'not specified',
+        urgency: 'normal'
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (response.data.recommendations && response.data.recommendations.length > 0) {
+        setDoctors(response.data.recommendations);
+        setAiAnalysis(response.data.analysis);
+        setSelectedSpecialization(response.data.analysis.primarySpecialization);
+        const mockSlots = generateMockSlots();
+        setAvailableSlots(mockSlots);
+        setStep('doctors');
+      } else {
+        toast.error('No doctors found for your symptoms');
+      }
+    } catch (error) {
+      console.error('Error analyzing symptoms:', error);
+      toast.error('Failed to analyze symptoms');
     } finally {
       setIsLoadingDoctors(false);
     }
@@ -209,10 +241,90 @@ const AppointmentBookingWidget = ({ appointmentData, onClose, onBookingComplete 
       </div>
 
       <div className="p-4 space-y-6">
+        {/* Mode Selection */}
+        {step === 'mode' && (
+          <div>
+            <h4 className="font-medium text-gray-900 dark:text-white mb-3">How would you like to find a doctor?</h4>
+            <div className="grid grid-cols-1 gap-4">
+              <button
+                onClick={() => {
+                  setBookingMode('ai');
+                  setStep('symptoms');
+                }}
+                className="p-4 text-left border-2 border-gray-200 dark:border-gray-600 rounded-lg hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+              >
+                <div className="font-medium text-gray-900 dark:text-white mb-1">
+                  🤖 Describe Your Symptoms
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Tell us what you're experiencing and we'll recommend the right specialist
+                </div>
+              </button>
+              <button
+                onClick={() => {
+                  setBookingMode('manual');
+                  setStep('specialization');
+                }}
+                className="p-4 text-left border-2 border-gray-200 dark:border-gray-600 rounded-lg hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+              >
+                <div className="font-medium text-gray-900 dark:text-white mb-1">
+                  🏥 Choose Specialization
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  I know which type of doctor I need
+                </div>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Symptom Input */}
+        {step === 'symptoms' && (
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-medium text-gray-900 dark:text-white">Describe Your Symptoms</h4>
+              <button
+                onClick={() => setStep('mode')}
+                className="text-sm text-green-600 dark:text-green-400 hover:underline"
+              >
+                Back
+              </button>
+            </div>
+            <textarea
+              value={symptoms}
+              onChange={(e) => setSymptoms(e.target.value)}
+              placeholder="Example: I have chest pain and shortness of breath..."
+              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white min-h-[120px]"
+            />
+            <button
+              onClick={handleSymptomAnalysis}
+              disabled={isLoadingDoctors || !symptoms.trim()}
+              className="mt-3 w-full px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-md transition-colors disabled:cursor-not-allowed"
+            >
+              {isLoadingDoctors ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Analyzing...
+                </div>
+              ) : (
+                'Find Recommended Doctors'
+              )}
+            </button>
+          </div>
+        )}
+
         {/* Specialization Selection */}
         {step === 'specialization' && (
           <div>
-            <h4 className="font-medium text-gray-900 dark:text-white mb-3">Select Medical Specialization</h4>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-medium text-gray-900 dark:text-white">Select Medical Specialization</h4>
+              <button
+                onClick={() => setStep('mode')}
+                className="text-sm text-green-600 dark:text-green-400 hover:underline"
+              >
+                Back
+              </button>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               {specializations.map((specialization) => (
                 <button
@@ -240,14 +352,31 @@ const AppointmentBookingWidget = ({ appointmentData, onClose, onBookingComplete 
         {step === 'doctors' && (
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h4 className="font-medium text-gray-900 dark:text-white">Select Doctor - {selectedSpecialization}</h4>
+              <h4 className="font-medium text-gray-900 dark:text-white">
+                {aiAnalysis ? `Recommended Doctors - ${selectedSpecialization}` : `Select Doctor - ${selectedSpecialization}`}
+              </h4>
               <button
-                onClick={() => setStep('specialization')}
+                onClick={() => setStep(bookingMode === 'ai' ? 'symptoms' : 'specialization')}
                 className="text-sm text-green-600 dark:text-green-400 hover:underline"
               >
-                Change Specialization
+                {bookingMode === 'ai' ? 'Change Symptoms' : 'Change Specialization'}
               </button>
             </div>
+            
+            {/* AI Analysis Info */}
+            {aiAnalysis && (
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 mb-4">
+                <p className="text-sm text-blue-800 dark:text-blue-300">
+                  <strong>Analysis:</strong> {aiAnalysis.reasoning || 'Based on your symptoms, we recommend these specialists.'}
+                </p>
+                {aiAnalysis.urgencyLevel === 'high' && (
+                  <p className="text-sm text-red-600 dark:text-red-400 mt-1">
+                    ⚠️ High urgency detected. Please seek immediate medical attention if symptoms worsen.
+                  </p>
+                )}
+              </div>
+            )}
+            
             <div className="space-y-3">
               {doctors.map((doctor) => (
                 <div
@@ -264,7 +393,7 @@ const AppointmentBookingWidget = ({ appointmentData, onClose, onBookingComplete 
                         <h5 className="font-medium text-gray-900 dark:text-white">{doctor.name}</h5>
                         <p className="text-sm text-gray-600 dark:text-gray-400">{doctor.specialization}</p>
                         <div className="flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          <span>⭐ {doctor.rating}</span>
+                          <span>⭐ {doctor.rating?.average?.toFixed(1) || doctor.rating || '4.5'}</span>
                           <span>{doctor.experience} years</span>
                         </div>
                       </div>
