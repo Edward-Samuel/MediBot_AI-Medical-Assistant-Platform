@@ -80,6 +80,10 @@ dist
 .cache/
 public
 
+# Keep React frontend public assets tracked
+!/frontend/public/
+!/frontend/public/**
+
 # Storybook build outputs
 .out
 .storybook-out
