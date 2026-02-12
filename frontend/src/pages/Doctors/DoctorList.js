@@ -72,18 +72,12 @@ const DoctorList = () => {
 
   // Load doctors on component mount and when filters change
   useEffect(() => {
-    fetchDoctors(currentPage, selectedSpecialization, searchTerm);
-  }, [currentPage, selectedSpecialization, searchTerm]);
-
-  // Handle search with debounce
-  useEffect(() => {
     const timeoutId = setTimeout(() => {
-      setCurrentPage(1);
-      fetchDoctors(1, selectedSpecialization, searchTerm);
-    }, 500);
+      fetchDoctors(currentPage, selectedSpecialization, searchTerm);
+    }, searchTerm ? 500 : 0); // Only debounce search, not specialization
 
     return () => clearTimeout(timeoutId);
-  }, [searchTerm, selectedSpecialization]);
+  }, [currentPage, selectedSpecialization, searchTerm]);
 
   const handleSpecializationChange = (specialization) => {
     setSelectedSpecialization(specialization);

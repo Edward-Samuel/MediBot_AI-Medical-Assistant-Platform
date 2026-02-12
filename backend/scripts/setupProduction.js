@@ -140,7 +140,10 @@ async function setupProduction() {
               saturday: { available: true, slots: ["09:00-13:00"] },
               sunday: { available: false, slots: [] },
             },
-            rating: doctorData.rating,
+            rating: {
+              average: doctorData.rating,
+              count: Math.floor(Math.random() * 200) + 50 // Random review count 50-250
+            },
             consultationFee: 50 + Math.floor(Math.random() * 150),
             isVerified: true,
           });
