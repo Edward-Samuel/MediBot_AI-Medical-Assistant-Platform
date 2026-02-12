@@ -727,7 +727,7 @@ router.post("/chat", async (req, res) => {
 
       case "general_chat":
       default:
-        console.log("💬 General chat intent detected");
+        console.log("General chat intent detected");
         // Will be handled by the general AI processing below
         break;
     }
@@ -737,7 +737,7 @@ router.post("/chat", async (req, res) => {
       // For FAQ intent that didn't get a good answer, treat as general chat
       if (intentResult.intent === "faq") {
         console.log(
-          "💬 FAQ intent switching to general AI chat due to no relevant FAQ data",
+          "FAQ intent switching to general AI chat due to no relevant FAQ data",
         );
       }
 

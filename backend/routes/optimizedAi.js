@@ -148,7 +148,7 @@ router.post('/chat-optimized', async (req, res) => {
       }
 
       default: { // general_chat
-        console.log('💬 General chat intent');
+        console.log('General chat intent');
         
         // For general chat, try FAQ first, then fallback to AI
         const faqResults = await parallelOperations.faq;

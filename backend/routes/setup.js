@@ -3,6 +3,9 @@ const router = express.Router();
 const User = require("../models/User");
 const Doctor = require("../models/Doctor");
 
+// Import doctors data
+const doctorsData = require("./doctorsData");
+
 /**
  * ONE-TIME SETUP ENDPOINT
  * This endpoint should be disabled after initial setup
@@ -28,10 +31,14 @@ router.post("/initialize", async (req, res) => {
     const results = {
       admin: null,
       patient: null,
-      doctor: null,
+      doctors: [],
+      summary: {},
     };
 
+    console.log("🚀 Starting production setup...");
+
     // Create Admin User
+    console.log("Creating admin user...");
     const adminData = {
       email: "admin@medibot.com",
       password: "Admin@123456",
@@ -54,8 +61,10 @@ router.post("/initialize", async (req, res) => {
       password: adminData.password,
       role: "admin",
     };
+    console.log("✅ Admin created");
 
     // Create Demo Patient User
+    console.log("Creating demo patient...");
     const patientData = {
       email: "patient@demo.com",
       password: "password123",
@@ -77,61 +86,99 @@ router.post("/initialize", async (req, res) => {
       password: patientData.password,
       role: "patient",
     };
+    console.log("✅ Demo patient created");
 
-    // Create Demo Doctor User
-    const doctorUserData = {
-      email: "doctor@demo.com",
-      password: "password123",
-      role: "doctor",
-      profile: {
-        firstName: "Dr. Demo",
-        lastName: "Doctor",
-        phone: "+1234567891",
-      },
-    };
+    // Create all doctors
+    console.log(`Creating ${doctorsData.length} doctors...`);
+    let doctorCount = 0;
+    const specializationCount = {};
 
-    const doctorUser = new User(doctorUserData);
-    await doctorUser.save();
+    for (const doctorData of doctorsData) {
+      try {
+        // Create user account
+        const doctorUser = new User({
+          email: `${doctorData.firstName.toLowerCase()}.${doctorData.lastName.toLowerCase()}@medibot.com`,
+          password: "password123",
+          role: "doctor",
+          profile: {
+            firstName: doctorData.firstName,
+            lastName: doctorData.lastName,
+            phone: `+1-555-${Math.floor(Math.random() * 9000) + 1000}`,
+          },
+          emailVerified: true,
+          isActive: true,
+        });
 
-    // Create corresponding Doctor profile
-    const doctorProfileData = {
-      userId: doctorUser._id,
-      name: "Dr. Demo Doctor",
-      specialization: "General Medicine",
-      qualifications: ["MBBS", "MD"],
-      experience: 10,
-      email: "doctor@demo.com",
-      phone: "+1234567891",
-      availability: {
-        monday: { available: true, slots: ["09:00-17:00"] },
-        tuesday: { available: true, slots: ["09:00-17:00"] },
-        wednesday: { available: true, slots: ["09:00-17:00"] },
-        thursday: { available: true, slots: ["09:00-17:00"] },
-        friday: { available: true, slots: ["09:00-17:00"] },
-      },
-      rating: 4.5,
-      consultationFee: 50,
-    };
+        const savedUser = await doctorUser.save();
 
-    const doctorProfile = new Doctor(doctorProfileData);
-    await doctorProfile.save();
+        // Create doctor profile
+        const doctorProfile = new Doctor({
+          userId: savedUser._id,
+          name: `Dr. ${doctorData.firstName} ${doctorData.lastName}`,
+          specialization: doctorData.specialization,
+          qualifications: ["MBBS", "MD", `${doctorData.specialization} Specialist`],
+          experience: doctorData.experience,
+          email: savedUser.email,
+          phone: savedUser.profile.phone,
+          bio: doctorData.bio,
+          languages: doctorData.languages || ["English"],
+          licenseNumber: doctorData.licenseNumber,
+          availability: {
+            monday: { available: true, slots: ["09:00-17:00"] },
+            tuesday: { available: true, slots: ["09:00-17:00"] },
+            wednesday: { available: true, slots: ["09:00-17:00"] },
+            thursday: { available: true, slots: ["09:00-17:00"] },
+            friday: { available: true, slots: ["09:00-17:00"] },
+            saturday: { available: true, slots: ["09:00-13:00"] },
+            sunday: { available: false, slots: [] },
+          },
+          rating: doctorData.rating,
+          consultationFee: 50 + Math.floor(Math.random() * 150), // $50-$200
+          isVerified: true,
+        });
 
-    results.doctor = {
-      email: doctorUserData.email,
-      password: doctorUserData.password,
-      role: "doctor",
+        await doctorProfile.save();
+        
+        doctorCount++;
+        specializationCount[doctorData.specialization] = 
+          (specializationCount[doctorData.specialization] || 0) + 1;
+
+        results.doctors.push({
+          name: `Dr. ${doctorData.firstName} ${doctorData.lastName}`,
+          email: savedUser.email,
+          specialization: doctorData.specialization,
+        });
+
+      } catch (error) {
+        console.error(`Error creating doctor ${doctorData.firstName}:`, error.message);
+      }
+    }
+
+    console.log(`✅ Created ${doctorCount} doctors`);
+
+    results.summary = {
+      totalDoctors: doctorCount,
+      bySpecialization: specializationCount,
     };
 
     res.json({
-      message: "Initial users created successfully!",
-      users: results,
+      message: "Production setup completed successfully!",
+      users: {
+        admin: results.admin,
+        patient: results.patient,
+      },
+      doctors: {
+        total: doctorCount,
+        bySpecialization: specializationCount,
+        sample: results.doctors.slice(0, 5), // Show first 5 doctors
+      },
       warning:
         "IMPORTANT: Change admin password immediately and set SETUP_ENABLED=false to disable this endpoint",
     });
   } catch (error) {
     console.error("Setup error:", error);
     res.status(500).json({
-      message: "Error creating initial users",
+      message: "Error during setup",
       error: error.message,
     });
   }

@@ -28,7 +28,7 @@ class MemoryMonitor {
     if (usage.heapUsed > this.thresholds.emergency) {
       return {
         status: "emergency",
-        message: `🚨 EMERGENCY: Memory usage at ${usage.heapUsedMB}MB - immediate cleanup required`,
+        message: `EMERGENCY: Memory usage at ${usage.heapUsedMB}MB - immediate cleanup required`,
         usage,
       };
     } else if (usage.heapUsed > this.thresholds.critical) {

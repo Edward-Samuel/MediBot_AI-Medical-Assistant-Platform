@@ -109,7 +109,7 @@ class IntentAwareChatInterface {
    * Handle general chat responses
    */
   handleGeneralChatResponse(response, intentData) {
-    console.log('💬 General Chat Response Handler');
+    console.log('General Chat Response Handler');
     
     this.showMessage(response, {
       type: 'general_chat',
@@ -147,7 +147,7 @@ class IntentAwareChatInterface {
    * Handle emergency responses
    */
   handleEmergencyResponse(response, intentData) {
-    console.log('🚨 Emergency Response Handler');
+    console.log('Emergency Response Handler');
     
     // Show emergency response with high priority styling
     this.showMessage(response, {
@@ -336,7 +336,7 @@ const IntentAwareChat = () => {
       
       {currentIntent?.intent === 'emergency' && (
         <div className="emergency-banner">
-          🚨 Emergency detected - Please seek immediate medical attention
+          Emergency detected - Please seek immediate medical attention
         </div>
       )}
       

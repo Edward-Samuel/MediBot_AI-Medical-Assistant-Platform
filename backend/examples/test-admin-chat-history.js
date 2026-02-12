@@ -64,7 +64,7 @@ class AdminChatHistoryTester {
         console.log(
           `👤 User: ${firstSession.user?.name || "Unknown"} (${firstSession.user?.email || "No email"})`,
         );
-        console.log(`💬 Messages: ${firstSession.messageCount}`);
+        console.log(`Messages: ${firstSession.messageCount}`);
         console.log(`🌐 Language: ${firstSession.language}`);
       }
 
@@ -95,7 +95,7 @@ class AdminChatHistoryTester {
       console.log(`Retrieved session details for: ${response.data.sessionId}`);
       console.log(`Title: ${response.data.title}`);
       console.log(`👤 User: ${response.data.user?.name || "Unknown"}`);
-      console.log(`💬 Total messages: ${response.data.messageCount}`);
+      console.log(`Total messages: ${response.data.messageCount}`);
       console.log(`🌐 Language: ${response.data.language}`);
 
       if (response.data.messages.length > 0) {
@@ -134,7 +134,7 @@ class AdminChatHistoryTester {
       const stats = response.data.overview;
       console.log(`Retrieved chat history statistics`);
       console.log(`📈 Total sessions: ${stats.totalSessions}`);
-      console.log(`💬 Total messages: ${stats.totalMessages}`);
+      console.log(`Total messages: ${stats.totalMessages}`);
       console.log(`👥 Unique users: ${stats.uniqueUsersCount}`);
       console.log(`🌐 Languages used: ${stats.languagesUsed.join(", ")}`);
       console.log(` Avg messages per session: ${stats.avgMessagesPerSession}`);
