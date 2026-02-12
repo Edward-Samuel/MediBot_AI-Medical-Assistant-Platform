@@ -32,7 +32,7 @@ app.set("trust proxy", 1);
 
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(",")
-      .map((origin) => origin.trim())
+      .map((origin) => origin.trim().replace(/\/$/, "")) // Remove trailing slash
       .filter(Boolean)
   : process.env.NODE_ENV === "production"
     ? ["*"]
