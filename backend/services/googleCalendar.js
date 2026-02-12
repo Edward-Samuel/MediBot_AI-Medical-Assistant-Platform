@@ -339,7 +339,7 @@ class GoogleCalendarService {
     chiefComplaint,
     symptoms,
   }) {
-    let description = `🏥 MEDIBOT Medical Appointment\n\n`;
+    let description = `MEDIBOT Medical Appointment\n\n`;
 
     description += `Patient: ${patientName}`;
     if (patientEmail) description += ` (${patientEmail})`;

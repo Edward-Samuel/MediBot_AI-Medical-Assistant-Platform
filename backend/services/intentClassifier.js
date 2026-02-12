@@ -30,7 +30,24 @@ class IntentClassifier {
       /privacy/i,
       /protect/i,
       /reliable/i,
-      /trust/i
+      /trust/i,
+      // MediBot-specific FAQ patterns
+      /how (do|does|can) (i|medibot|the platform|this)/i,
+      /what (is|are) (medibot|the|your)/i,
+      /tell me about (medibot|the platform|your)/i,
+      /explain (medibot|the platform|how)/i,
+      /how to (book|cancel|reschedule|upload|access)/i,
+      /what specializations/i,
+      /which doctors/i,
+      /consultation fee/i,
+      /appointment (process|system|booking)/i,
+      /languages (support|available)/i,
+      /doctor (verification|quality|ratings)/i,
+      /medical records/i,
+      /appointment history/i,
+      /how does.*work/i,
+      /what.*available/i,
+      /can i (upload|book|cancel|access)/i,
     ];
 
     // Appointment patterns from config
@@ -142,6 +159,18 @@ class IntentClassifier {
       }
     }
 
+    // Platform-specific keywords (MediBot-related questions)
+    const platformKeywords = [
+      'medibot', 'platform', 'system', 'appointment', 'booking', 
+      'doctor', 'specialization', 'consultation', 'fee', 'upload',
+      'cancel', 'reschedule', 'verification', 'rating', 'language',
+      'medical record', 'history', 'profile', 'account'
+    ];
+    const platformKeywordCount = platformKeywords.filter(keyword => 
+      lowerMessage.includes(keyword)
+    ).length;
+    faqScore += platformKeywordCount * 0.15; // Higher weight for platform questions
+
     // Length-based scoring (longer questions often seek information)
     if (message.length > 50) {
       faqScore += this.config.scoring.faq.lengthBonus;
@@ -159,6 +188,14 @@ class IntentClassifier {
 
     // General chat scoring
     let generalChatScore = 0;
+
+    // Reduce general chat score if it's clearly a question
+    const isQuestion = message.includes('?') || 
+                      /^(what|how|when|where|why|who|which|can|do|does|is|are)/i.test(message);
+    
+    if (isQuestion) {
+      generalChatScore -= 0.2; // Penalize general chat for questions
+    }
 
     // Check conversational patterns
     for (const pattern of this.conversationalPatterns) {
@@ -179,6 +216,9 @@ class IntentClassifier {
     if (this.hasSymptomDescription(message)) {
       generalChatScore += this.config.scoring.generalChat.symptomDescription;
     }
+
+    // Ensure general chat score doesn't go negative
+    generalChatScore = Math.max(0, generalChatScore);
 
     // Context from conversation history
     if (conversationHistory.length > 0) {

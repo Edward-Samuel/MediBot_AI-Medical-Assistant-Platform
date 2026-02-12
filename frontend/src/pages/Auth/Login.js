@@ -135,15 +135,7 @@ const Login = () => {
             </button>
           </div>
 
-          <div className="text-center">
-            <p className="text-sm text-gray-600 dark:text-gray-400 transition-colors duration-200">
-              Demo Credentials:
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 transition-colors duration-200">
-              Patient: patient@demo.com / password123<br />
-              Doctor: doctor@demo.com / password123
-            </p>
-          </div>
+          
         </form>
       </div>
     </div>
