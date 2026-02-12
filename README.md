@@ -1,20 +1,21 @@
 # MediBot AI Medical Assistant Platform
 
-🤖 **Agentic AI-powered medical assistant with multi-agent architecture, intelligent appointment booking, and comprehensive healthcare support.**
+**Agentic AI-powered medical assistant with multi-agent architecture, intelligent appointment booking, and comprehensive healthcare support.**
 
-## ✨ Features
+## Features
 
-- 🧠 **Multi-Agent AI Architecture** - Intent classification with specialized agents
-- 📅 **Automated Appointment Booking** - Smart doctor matching and calendar integration  
-- 🔍 **Intelligent FAQ System** - Semantic search using vector database
-- 🌐 **Real-time Web Search** - Medical information from trusted sources
-- 🗣️ **Multi-language Support** - English, Tamil, Spanish, French, Hindi
-- 📱 **Responsive Interface** - Modern React frontend with dark/light themes
-- 🔒 **Secure & HIPAA-Ready** - JWT authentication and data protection
+- **Multi-Agent AI Architecture** - Intent classification with specialized agents
+- **Automated Appointment Booking** - Smart doctor matching and calendar integration
+- **Intelligent FAQ System** - Semantic search using vector database
+- **Real-time Web Search** - Medical information from trusted sources
+- **Multi-language Support** - English, Tamil, Spanish, French, Hindi
+- **Responsive Interface** - Modern React frontend with dark/light themes
+- **Secure & HIPAA-Ready** - JWT authentication and data protection
 
-## 🚀 Quick Start
+## Quick Start
 
 1. **Clone & Setup**
+
    ```bash
    git clone https://github.com/Edward-Samuel/MediBot_AI-Medical-Assistant-Platform.git
    cd MediBot_AI-Medical-Assistant-Platform
@@ -24,23 +25,25 @@
 
 2. **Configure API Keys** (see [SETUP.md](SETUP.md) for details)
    - Google Gemini API
-   - OpenRouter API  
+   - OpenRouter API
    - Tavily Search API
    - Pinecone Vector DB
    - Google Calendar API
 
 3. **Install & Run**
+
    ```bash
    # Backend
    cd backend && npm install && npm start
-   
-   # Frontend  
+
+   # Frontend
    cd frontend && npm install && npm start
    ```
 
-## 🏗️ Architecture
+## Architecture
 
 ### Multi-Agent System
+
 ```
 User Input → Intent Classifier → Specialized Agents → Response Generation
                     ↓
@@ -51,43 +54,47 @@ FAQ Agent      Appointment Agent    Web Search Agent
 ```
 
 ### Tech Stack
+
 - **Backend**: Node.js, Express, MongoDB, JWT
 - **Frontend**: React, Tailwind CSS, Lucide Icons
 - **AI Services**: OpenRouter, Google Gemini, Pinecone
 - **Integrations**: Google Calendar, Tavily Search
 - **Database**: MongoDB with Mongoose ODM
 
-## 📊 Agent Capabilities
+## Agent Capabilities
 
-| Agent | Purpose | Technology | Autonomy Level |
-|-------|---------|------------|----------------|
-| **Intent Classifier** | Route conversations | Hybrid AI + Rules | ⭐⭐⭐⭐ |
-| **FAQ Agent** | Answer medical questions | RAG + Vector Search | ⭐⭐⭐ |
-| **Appointment Agent** | Book appointments | Multi-step workflow | ⭐⭐⭐⭐⭐ |
-| **Web Search Agent** | Real-time medical info | API orchestration | ⭐⭐⭐ |
+| Agent                 | Purpose                  | Technology          | Autonomy Level |
+| --------------------- | ------------------------ | ------------------- | -------------- |
+| **Intent Classifier** | Route conversations      | Hybrid AI + Rules   | ⭐⭐⭐⭐       |
+| **FAQ Agent**         | Answer medical questions | RAG + Vector Search | ⭐⭐⭐         |
+| **Appointment Agent** | Book appointments        | Multi-step workflow | ⭐⭐⭐⭐⭐     |
+| **Web Search Agent**  | Real-time medical info   | API orchestration   | ⭐⭐⭐         |
 
-## 🔧 Configuration
+## Configuration
 
 ### Required Services
+
 - **MongoDB** - User data and chat history
-- **Google Calendar** - Appointment scheduling  
+- **Google Calendar** - Appointment scheduling
 - **Pinecone** - Vector database for FAQ search
 - **OpenRouter** - Multi-model AI access
 - **Tavily** - Medical web search
 
 ### Environment Setup
+
 See [SETUP.md](SETUP.md) for detailed configuration instructions.
 
-## 🌍 Multi-Language Support
+## Multi-Language Support
 
 Automatic language detection and response generation:
-- 🇺🇸 English
-- 🇮🇳 Tamil  
-- 🇪🇸 Spanish
-- 🇫🇷 French
-- 🇮🇳 Hindi
 
-## 🔒 Security & Privacy
+- English
+- Tamil
+- Spanish
+- French
+- Hindi
+
+## Security & Privacy
 
 - JWT-based authentication
 - Encrypted API communications
@@ -95,14 +102,14 @@ Automatic language detection and response generation:
 - HIPAA-compliant data handling
 - No sensitive data in version control
 
-## 📱 User Interface
+## User Interface
 
 - **Patient Portal** - Chat interface, appointment booking, medical history
 - **Admin Dashboard** - User management, FAQ management, analytics
 - **Doctor Interface** - Appointment management, patient communication
 - **Embedded Calendar** - Real-time appointment visualization
 
-## 🧪 Testing
+## Testing
 
 ```bash
 # Backend API health check
@@ -115,9 +122,10 @@ cd backend && node scripts/testCalendar.js
 cd frontend && npm start
 ```
 
-## 🚀 Deployment
+## Deployment
 
 ### Production Checklist
+
 - [ ] Environment variables configured
 - [ ] MongoDB Atlas connection
 - [ ] Google Calendar service account setup
@@ -126,19 +134,20 @@ cd frontend && npm start
 - [ ] CORS configured properly
 
 ### Recommended Platforms
+
 - **Backend**: Railway, Render, AWS
 - **Frontend**: Vercel, Netlify
 - **Database**: MongoDB Atlas
 - **Monitoring**: LogRocket, Sentry
 
-## 📈 Performance
+## Performance
 
 - **Response Time**: < 2s for AI responses
 - **Concurrent Users**: Scales with MongoDB and API limits
 - **Availability**: 99.9% uptime with proper deployment
 - **Languages**: Real-time translation and localization
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create feature branch (`git checkout -b feature/amazing-feature`)
@@ -146,21 +155,21 @@ cd frontend && npm start
 4. Push to branch (`git push origin feature/amazing-feature`)
 5. Open Pull Request
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🆘 Support
+## Support
 
-- 📖 **Documentation**: [SETUP.md](SETUP.md)
-- 🐛 **Issues**: GitHub Issues
-- 💬 **Discussions**: GitHub Discussions
-- 📧 **Contact**: [Your Contact Info]
+- **Documentation**: [SETUP.md](SETUP.md)
+- **Issues**: GitHub Issues
+- **Discussions**: GitHub Discussions
+- **Contact**: [Your Contact Info]
 
-## 🎯 Roadmap
+## Roadmap
 
 - [ ] Advanced medical image analysis
-- [ ] Telemedicine video integration  
+- [ ] Telemedicine video integration
 - [ ] Prescription management
 - [ ] Health monitoring dashboards
 - [ ] Mobile app development
@@ -168,4 +177,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Built with ❤️ for better healthcare accessibility**
+**Built with care for better healthcare accessibility**
