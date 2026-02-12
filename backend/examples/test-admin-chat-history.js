@@ -150,7 +150,7 @@ class AdminChatHistoryTester {
 
       if (response.data.dailyActivity.length > 0) {
         console.log(
-          `\n📅 Daily activity (last ${response.data.dailyActivity.length} days with activity)`,
+          `\nDaily activity (last ${response.data.dailyActivity.length} days with activity)`,
         );
         response.data.dailyActivity.slice(-5).forEach((day) => {
           console.log(

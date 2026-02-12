@@ -362,13 +362,13 @@ Instructions:
 - Be clear, concise, and helpful
 - Use the most relevant information from the context to construct your answer`;
 
-      console.log("🤖 Sending improved prompt to OpenRouter...");
+      console.log("Sending improved prompt to OpenRouter...");
       const response = await openRouterService.generateResponse(prompt, [], {
         maxTokens: 400,
         temperature: 0.1, // Very low temperature for factual responses
       });
 
-      console.log("🤖 OpenRouter response:", response.content);
+      console.log("OpenRouter response:", response.content);
 
       // Additional check: if the AI response is too generic or unhelpful, fall back
       const genericResponses = [

@@ -30,7 +30,7 @@ async function setupCalendarIntegration() {
       const testResult = await googleCalendar.testConnection();
       if (testResult.success) {
         console.log("Calendar connection test passed");
-        console.log(`📅 Using calendar: ${testResult.calendarId}`);
+        console.log(`Using calendar: ${testResult.calendarId}`);
         console.log(`🔑 Authentication: ${testResult.authType}`);
 
         const runTest = await askQuestion(

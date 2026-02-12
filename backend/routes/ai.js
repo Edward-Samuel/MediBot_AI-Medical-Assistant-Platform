@@ -20,7 +20,7 @@ async function generateAIResponse(
   images = [],
 ) {
   try {
-    console.log("🤖 Using OpenRouter for AI response...");
+    console.log("Using OpenRouter for AI response...");
 
     const response = await openRouterService.generateResponse(
       message,
@@ -204,7 +204,7 @@ router.post("/recommend-doctor", async (req, res) => {
 
     // Use OpenRouter for doctor recommendation
     try {
-      console.log("🤖 Using OpenRouter for doctor recommendation...");
+      console.log("Using OpenRouter for doctor recommendation...");
 
       const analysisResult = await openRouterService.analyzeSymptoms(symptoms, {
         age,
@@ -528,13 +528,13 @@ router.post("/chat", async (req, res) => {
     let intentData = null;
 
     // Classify user intent first
-    console.log("🎯 Classifying user intent...");
+    console.log("Classifying user intent...");
     const intentResult = await intentClassifier.classifyIntent(
       message,
       conversationHistory || [],
       { forceWebSearch },
     );
-    console.log("🎯 Intent classification result:", intentResult);
+    console.log("Intent classification result:", intentResult);
 
     intentData = {
       intent: intentResult.intent,
@@ -605,7 +605,7 @@ router.post("/chat", async (req, res) => {
         break;
 
       case "appointment":
-        console.log("📅 Appointment intent detected");
+        console.log("Appointment intent detected");
         try {
           // Check if user is authenticated for appointment booking
           if (!userId) {
@@ -676,7 +676,7 @@ router.post("/chat", async (req, res) => {
               );
 
               console.log(
-                "🤖 Generated FAQ answer:",
+                "Generated FAQ answer:",
                 faqAnswer?.substring(0, 100) + "...",
               );
 
@@ -793,7 +793,7 @@ router.post("/chat", async (req, res) => {
       // If still no response, use general AI processing
       if (!botResponse) {
         try {
-          console.log("🤖 Using general AI processing");
+          console.log("Using general AI processing");
           botResponse = await generateAIResponse(
             message,
             conversationHistory,
@@ -1179,7 +1179,7 @@ router.post("/openrouter-chat", async (req, res) => {
         .json({ message: "OpenRouter service not configured" });
     }
 
-    console.log("🤖 OpenRouter reasoning chat request");
+    console.log("OpenRouter reasoning chat request");
 
     const response = await openRouterService.generateResponse(
       message,

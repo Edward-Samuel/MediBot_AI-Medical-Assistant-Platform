@@ -73,7 +73,7 @@ async function setupNewServiceAccount() {
 
   // Step 4: Check target calendar access
   const targetCalendarId = process.env.GOOGLE_CALENDAR_ID;
-  console.log("\n🎯 Target Calendar ID:", targetCalendarId);
+  console.log("\nTarget Calendar ID:", targetCalendarId);
 
   if (!targetCalendarId) {
     console.log("❌ GOOGLE_CALENDAR_ID not set in .env file");

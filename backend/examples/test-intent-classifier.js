@@ -89,7 +89,7 @@ const testMessages = [
 ];
 
 async function testIntentClassifier() {
-  console.log("🎯 Testing Intent Classifier\n");
+  console.log("Testing Intent Classifier\n");
   console.log("=".repeat(80));
 
   let correctPredictions = 0;
@@ -99,12 +99,12 @@ async function testIntentClassifier() {
     try {
       console.log(`\nTesting: "${test.message}"`);
       console.log(`📋 Description: ${test.description}`);
-      console.log(`🎯 Expected: ${test.expectedIntent}`);
+      console.log(`Expected: ${test.expectedIntent}`);
 
       const result = await intentClassifier.classifyIntent(test.message, []);
 
       console.log(
-        `🤖 Predicted: ${result.intent} (confidence: ${result.confidence.toFixed(2)})`,
+        `Predicted: ${result.intent} (confidence: ${result.confidence.toFixed(2)})`,
       );
       console.log(`🔍 Method: ${result.method}`);
       console.log(`💭 Reasoning: ${result.reasoning}`);
@@ -181,7 +181,7 @@ async function testWithHistory() {
   );
 
   console.log(
-    `🤖 Classified as: ${result.intent} (confidence: ${result.confidence.toFixed(2)})`,
+    `Classified as: ${result.intent} (confidence: ${result.confidence.toFixed(2)})`,
   );
   console.log(`🔍 Method: ${result.method}`);
   console.log(`💭 Reasoning: ${result.reasoning}`);

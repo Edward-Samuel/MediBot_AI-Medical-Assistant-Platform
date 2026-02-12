@@ -65,7 +65,7 @@ router.post('/chat-optimized', async (req, res) => {
 
     // Wait for intent classification first (fastest operation)
     const intentResult = await parallelOperations.intent;
-    console.log('🎯 Intent:', intentResult.intent, 'Confidence:', intentResult.confidence);
+    console.log('Intent:', intentResult.intent, 'Confidence:', intentResult.confidence);
 
     let botResponse;
     let responseMetadata = {
@@ -131,7 +131,7 @@ router.post('/chat-optimized', async (req, res) => {
       }
 
       case 'appointment': {
-        console.log('📅 Appointment intent detected');
+        console.log('Appointment intent detected');
         if (!userId) {
           botResponse = language === 'ta'
             ? "முன்பதிவு செய்ய உள்நுழைய வேண்டும். தயவுசெய்து உள்நுழைந்து மீண்டும் முயற்சிக்கவும்."

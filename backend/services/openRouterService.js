@@ -70,7 +70,7 @@ class OpenRouterService {
       }
 
       console.log(
-        `🤖 OpenRouter: Making structured request to ${selectedModel}${images?.length ? " (with images)" : ""}`,
+        `OpenRouter: Making structured request to ${selectedModel}${images?.length ? " (with images)" : ""}`,
       );
 
       const apiResponse =
@@ -570,7 +570,7 @@ JSON format:
           patientInfo,
         );
 
-        console.log("✅ OpenRouter analysis parsed successfully:", {
+        console.log("OpenRouter analysis parsed successfully:", {
           primary: analysis.primarySpecialization,
           alternatives: analysis.alternativeSpecializations,
           confidence: analysis.confidence,

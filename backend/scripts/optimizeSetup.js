@@ -54,7 +54,7 @@ fs.writeFileSync(envPath, envContent);
 console.log("Environment configuration updated\n");
 
 // Step 4: Performance recommendations
-console.log("🎯 Performance Optimization Complete!");
+console.log("Performance Optimization Complete!");
 console.log("=====================================\n");
 
 console.log("📈 Expected Improvements:");

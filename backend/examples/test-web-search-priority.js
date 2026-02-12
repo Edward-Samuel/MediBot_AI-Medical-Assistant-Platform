@@ -72,7 +72,7 @@ async function testIntentClassification() {
     try {
       console.log(`\nTesting: "${testCase.message}"`);
       console.log(`📋 Description: ${testCase.description}`);
-      console.log(`🎯 Expected: ${testCase.expectedIntent}`);
+      console.log(`Expected: ${testCase.expectedIntent}`);
 
       const result = await intentClassifier.classifyIntent(
         testCase.message,
@@ -80,7 +80,7 @@ async function testIntentClassification() {
       );
 
       console.log(
-        `🤖 Classified as: ${result.intent} (confidence: ${result.confidence.toFixed(2)})`,
+        `Classified as: ${result.intent} (confidence: ${result.confidence.toFixed(2)})`,
       );
       console.log(`🔍 Method: ${result.method}`);
       console.log(`💭 Reasoning: ${result.reasoning}`);

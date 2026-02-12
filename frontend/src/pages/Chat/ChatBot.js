@@ -779,7 +779,7 @@ const ChatBot = () => {
     console.log(
       `🌐 Current Language: ${currentLangInfo.name} (${currentLangInfo.code})`,
     );
-    console.log(`🎯 Target Speech Lang: ${currentLangInfo.speechLang}`);
+    console.log(`Target Speech Lang: ${currentLangInfo.speechLang}`);
 
     // Check ElevenLabs status
     try {
@@ -845,7 +845,7 @@ const ChatBot = () => {
         v.lang.toLowerCase().startsWith(currentLangInfo.code.toLowerCase()),
       );
       console.log(
-        `\n🎯 Browser voices for ${currentLangInfo.name}: ${langMatches.length}`,
+        `\nBrowser voices for ${currentLangInfo.name}: ${langMatches.length}`,
       );
       langMatches.forEach((v) => console.log(`   ${v.name} (${v.lang})`));
     } else {

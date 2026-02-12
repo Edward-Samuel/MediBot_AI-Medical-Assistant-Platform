@@ -18,7 +18,7 @@ function shareYourCalendarWithService() {
     const serviceAccountEmail = credentials.client_email;
     const targetCalendarId = process.env.GOOGLE_CALENDAR_ID;
     
-    console.log('🎯 Target Calendar ID:', targetCalendarId);
+    console.log('Target Calendar ID:', targetCalendarId);
     console.log('📧 Service Account Email:', serviceAccountEmail);
     
     console.log('\n📋 Steps to Share Your Calendar:');

@@ -21,6 +21,7 @@ const ttsRoutes = require("./routes/tts");
 const chatHistoryRoutes = require("./routes/chatHistory");
 const adminRoutes = require("./routes/admin");
 const faqRoutes = require("./routes/faq");
+const setupRoutes = require("./routes/setup");
 
 // Initialize services
 const faqService = require("./services/faqService");
@@ -127,6 +128,7 @@ app.use("/api/tts", ttsRoutes);
 app.use("/api/chat-history", chatHistoryRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/faq", faqRoutes);
+app.use("/api/setup", setupRoutes);
 
 // Health check
 app.get("/health", (req, res) => {

@@ -272,7 +272,7 @@ class DocumentProcessor {
         // If we found Q&A pairs with this pattern, use them
         if (qaPairs.length > 0) {
           console.log(
-            `🎯 Using ${qaPairs.length} Q&A pairs from pattern ${this.qaPatterns.indexOf(pattern) + 1}`,
+            `Using ${qaPairs.length} Q&A pairs from pattern ${this.qaPatterns.indexOf(pattern) + 1}`,
           );
           break;
         }

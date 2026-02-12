@@ -197,7 +197,7 @@ class GoogleCalendarService {
         sendUpdates: "none", // Don't send notifications automatically
       });
 
-      console.log("📅 Calendar event created successfully:", response.data.id);
+      console.log("Calendar event created successfully:", response.data.id);
       return {
         eventId: response.data.id,
         eventLink: response.data.htmlLink,
@@ -352,7 +352,7 @@ class GoogleCalendarService {
     description += `📋 Type: ${appointmentType}\n\n`;
 
     if (chiefComplaint) {
-      description += `🎯 Chief Complaint: ${chiefComplaint}\n\n`;
+      description += `Chief Complaint: ${chiefComplaint}\n\n`;
     }
 
     if (symptoms && symptoms.length > 0) {
@@ -438,7 +438,7 @@ END:VCALENDAR`;
     try {
       return await this.createAppointmentEvent(appointmentData);
     } catch (error) {
-      console.log("📅 Calendar integration failed, providing manual options");
+      console.log("Calendar integration failed, providing manual options");
       return {
         eventId: null,
         eventLink: null,

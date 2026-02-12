@@ -129,7 +129,7 @@ class IntentAwareChatInterface {
    * Handle appointment booking responses
    */
   handleAppointmentResponse(response, appointmentData, intentData) {
-    console.log('📅 Appointment Response Handler');
+    console.log('Appointment Response Handler');
     
     this.showMessage(response, {
       type: 'appointment',

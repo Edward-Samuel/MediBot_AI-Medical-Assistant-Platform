@@ -27,7 +27,7 @@ class FAQFallbackTester {
 
       const data = response.data;
 
-      console.log(`🎯 Intent detected: ${data.intentData?.intent}`);
+      console.log(`Intent detected: ${data.intentData?.intent}`);
       console.log(`🔍 Method: ${data.intentData?.method}`);
       console.log(` Confidence: ${data.intentData?.confidence}`);
 
@@ -39,7 +39,7 @@ class FAQFallbackTester {
         console.log("📚 FAQ data: Not used");
       }
 
-      console.log(`🤖 Response preview: ${data.response.substring(0, 100)}...`);
+      console.log(`Response preview: ${data.response.substring(0, 100)}...`);
 
       // Check if it's a fallback response
       const fallbackPhrases = [
@@ -135,7 +135,7 @@ class FAQFallbackTester {
    * Test specific FAQ vs AI routing
    */
   async testIntentRouting() {
-    console.log("\n\n🎯 Testing Intent Routing\n");
+    console.log("\n\nTesting Intent Routing\n");
     console.log("=".repeat(70));
 
     const routingTests = [
@@ -173,7 +173,7 @@ class FAQFallbackTester {
         });
 
         const actualIntent = response.data.intentData?.intent;
-        console.log(`🤖 Actual: ${actualIntent}`);
+        console.log(`Actual: ${actualIntent}`);
         console.log(
           `Match: ${actualIntent === test.expectedIntent ? "YES" : "NO"}`,
         );

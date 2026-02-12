@@ -151,7 +151,7 @@ class PerformanceTest {
 
       const improvement = ((originalAvg - optimizedAvg) / originalAvg) * 100;
 
-      console.log(`\n🎯 Overall Results:`);
+      console.log(`\nOverall Results:`);
       console.log(`   Original Average: ${originalAvg.toFixed(2)}ms`);
       console.log(`   Optimized Average: ${optimizedAvg.toFixed(2)}ms`);
       console.log(`   Performance Improvement: ${improvement.toFixed(1)}%`);
