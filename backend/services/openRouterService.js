@@ -501,13 +501,15 @@ STRICT REQUIREMENTS:
 3. Base recommendations on symptom patterns, not specific diagnoses
 4. Provide educational reasoning only
 
-Respond in this EXACT JSON format:
+CRITICAL: Respond ONLY with valid JSON. No other text before or after.
+
+JSON format:
 {
   "primarySpecialization": "specialization name",
   "alternativeSpecializations": ["alt1", "alt2"],
-  "urgencyLevel": "low/medium/high",
-  "reasoning": "educational explanation of symptom patterns and why this specialization is appropriate",
-  "redFlags": ["symptoms requiring immediate attention"],
+  "urgencyLevel": "low",
+  "reasoning": "educational explanation",
+  "redFlags": ["symptom1"],
   "confidence": 0.8
 }`;
 
@@ -521,65 +523,73 @@ Respond in this EXACT JSON format:
       try {
         let jsonContent = response.content;
 
-        // Clean up the response to extract JSON
-        const jsonMatch = jsonContent.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          jsonContent = jsonMatch[0];
-        } else {
-          // Try to find JSON-like structure with different patterns
-          const altMatch =
-            jsonContent.match(/```json\s*(\{[\s\S]*?\})\s*```/) ||
-            jsonContent.match(/```\s*(\{[\s\S]*?\})\s*```/) ||
-            jsonContent.match(/(\{[^{}]*"primarySpecialization"[^{}]*\})/);
+        // Log the raw response for debugging
+        console.log("Raw OpenRouter response (first 300 chars):", jsonContent.substring(0, 300));
 
-          if (altMatch) {
-            jsonContent = altMatch[1];
+        // Try multiple JSON extraction methods
+        let parsedJson = null;
+        
+        // Method 1: Direct JSON parse (if response is pure JSON)
+        try {
+          parsedJson = JSON.parse(jsonContent);
+        } catch (e) {
+          // Method 2: Extract from code blocks
+          const codeBlockMatch = jsonContent.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+          if (codeBlockMatch) {
+            jsonContent = codeBlockMatch[1];
+            parsedJson = JSON.parse(jsonContent);
           } else {
-            throw new Error("No JSON structure found in response");
+            // Method 3: Find first complete JSON object
+            const jsonMatch = jsonContent.match(/\{(?:[^{}]|(?:\{[^{}]*\}))*\}/);
+            if (jsonMatch) {
+              jsonContent = jsonMatch[0];
+              // Clean up common issues
+              jsonContent = jsonContent
+                .replace(/,\s*}/g, "}") // Remove trailing commas
+                .replace(/,\s*]/g, "]") // Remove trailing commas in arrays
+                .replace(/\n/g, " ") // Replace newlines
+                .replace(/\s+/g, " ") // Normalize whitespace
+                .trim();
+              parsedJson = JSON.parse(jsonContent);
+            } else {
+              throw new Error("No JSON structure found in response");
+            }
           }
         }
 
-        // Clean up common JSON formatting issues
-        jsonContent = jsonContent
-          .replace(/,\s*}/g, "}") // Remove trailing commas
-          .replace(/,\s*]/g, "]") // Remove trailing commas in arrays
-          .replace(/\n/g, " ") // Replace newlines with spaces
-          .replace(/\s+/g, " ") // Normalize whitespace
-          .trim();
+        if (!parsedJson || typeof parsedJson !== "object") {
+          throw new Error("Invalid JSON structure");
+        }
 
-        let analysis = JSON.parse(jsonContent);
+        let analysis = parsedJson;
 
         // Validate and sanitize analysis
-        if (analysis && typeof analysis === "object") {
-          analysis = this.validateSymptomAnalysis(
-            analysis,
-            symptoms,
-            patientInfo,
-          );
+        analysis = this.validateSymptomAnalysis(
+          analysis,
+          symptoms,
+          patientInfo,
+        );
 
-          console.log("OpenRouter analysis parsed successfully:", {
-            primary: analysis.primarySpecialization,
-            alternatives: analysis.alternativeSpecializations,
-            confidence: analysis.confidence,
-          });
+        console.log("✅ OpenRouter analysis parsed successfully:", {
+          primary: analysis.primarySpecialization,
+          alternatives: analysis.alternativeSpecializations,
+          confidence: analysis.confidence,
+        });
 
-          return {
-            analysis,
-            reasoning: response.reasoning_details,
-            model: response.model,
-            isTemplate: response.isTemplate,
-          };
-        } else {
-          throw new Error("Invalid analysis structure");
-        }
+        return {
+          analysis,
+          reasoning: response.reasoning_details,
+          model: response.model,
+          isTemplate: response.isTemplate,
+        };
       } catch (parseError) {
         console.error(
           "❌ Error parsing OpenRouter analysis:",
           parseError.message,
         );
         console.log(
-          "Raw response content:",
-          response.content.substring(0, 500) + "...",
+          "Raw response content (first 500 chars):",
+          response.content.substring(0, 500),
         );
 
         // Fallback to rule-based analysis
