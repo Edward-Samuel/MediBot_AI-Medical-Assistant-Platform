@@ -30,14 +30,17 @@ const app = express();
 // Trust proxy - required for rate limiting behind proxies/load balancers
 app.set("trust proxy", 1);
 
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",").map((origin) => origin.trim())
+  : process.env.NODE_ENV === "production"
+    ? ["https://yourdomain.com"]
+    : ["http://localhost:3000"];
+
 // Security middleware
 app.use(helmet());
 app.use(
   cors({
-    origin:
-      process.env.NODE_ENV === "production"
-        ? ["https://yourdomain.com"]
-        : ["http://localhost:3000"],
+    origin: allowedOrigins,
     credentials: true,
   }),
 );
