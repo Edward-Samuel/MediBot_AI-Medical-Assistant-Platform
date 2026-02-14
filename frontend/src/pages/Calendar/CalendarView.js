@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, Users, TrendingUp, AlertCircle } from 'lucide-react';
+import { Calendar, Clock, Users, TrendingUp } from 'lucide-react';
 import GoogleCalendarConnect from '../../components/Calendar/GoogleCalendarConnect';
 import axios from '../../config/axios';
 import { useAuth } from '../../contexts/AuthContext';
 
 const CalendarView = () => {
   const { user } = useAuth();
-  const [connectedCalendarId, setConnectedCalendarId] = useState(null);
   const [stats, setStats] = useState({
     totalAppointments: 0,
     upcomingAppointments: 0,
@@ -15,14 +14,15 @@ const CalendarView = () => {
   });
   const [loading, setLoading] = useState(true);
 
-  const handleConnectionChange = (isConnected, calendarId) => {
-    setConnectedCalendarId(isConnected && calendarId ? calendarId : null);
+  const handleConnectionChange = () => {
+    // Connection status changed - could trigger a refresh if needed
   };
 
   useEffect(() => {
     if (user) {
       fetchAppointmentStats();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const fetchAppointmentStats = async () => {

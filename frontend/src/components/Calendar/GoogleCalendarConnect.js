@@ -12,6 +12,7 @@ const GoogleCalendarConnect = ({ onConnectionChange }) => {
 
   useEffect(() => {
     checkConnectionStatus();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const checkConnectionStatus = async () => {
