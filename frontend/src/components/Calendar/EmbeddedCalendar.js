@@ -54,9 +54,20 @@ const EmbeddedCalendar = ({
   // Handle iframe load error
   const handleIframeError = () => {
     console.log('Calendar iframe failed to load, showing fallback');
-    setCalendarError('Calendar requires authentication or is not publicly accessible');
+    setCalendarError('Calendar connection interrupted or invalid.');
     setShowFallback(true);
   };
+
+  // Check availability on mount and when ID changes
+  useEffect(() => {
+    if (!calendarId) {
+      setShowFallback(true);
+      setCalendarError('No calendar account connected.');
+    } else {
+      setShowFallback(false);
+      setCalendarError(null);
+    }
+  }, [calendarId]);
 
   // Check if calendar is accessible
   const checkCalendarAccess = () => {
@@ -132,78 +143,32 @@ const EmbeddedCalendar = ({
     });
 
     return (
-      <div className="p-6 bg-white dark:bg-gray-800 rounded-lg">
-        <div className="text-center mb-6">
-          <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-3" />
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-            Calendar Integration Unavailable
+      <div className="p-6 bg-white dark:bg-gray-800 rounded-lg flex flex-col items-center justify-center min-h-[400px]">
+        <div className="text-center max-w-md">
+          <AlertCircle className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+            Calendar Not Connected
           </h3>
-          <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
-            {calendarError || 'The embedded calendar requires authentication to view.'}
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
+            {calendarError || 'Please connect your Google Calendar to view your schedule and sync appointments.'}
           </p>
+
+          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg text-left mb-6">
+            <h4 className="font-semibold text-blue-900 dark:text-blue-200 mb-2">Why connect?</h4>
+            <ul className="list-disc list-inside space-y-1 text-sm text-blue-800 dark:text-blue-300">
+              <li>View your personal schedule directly</li>
+              <li>Automatic syncing of new appointments</li>
+              <li>Instant Google Meet links</li>
+            </ul>
+          </div>
+
           <button
             onClick={checkCalendarAccess}
-            className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            className="inline-flex items-center px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors shadow-sm"
           >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Retry Calendar
+            <RefreshCw className="h-5 w-5 mr-2" />
+            Refresh Connection
           </button>
-        </div>
-
-        {/* Show appointments if available */}
-        {monthAppointments.length > 0 && (
-          <div>
-            <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-4">
-              Your Appointments This Month
-            </h4>
-            <div className="space-y-3">
-              {monthAppointments.slice(0, 5).map((apt, index) => (
-                <div key={index} className="flex items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <Calendar className="h-5 w-5 text-green-600 mr-3" />
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900 dark:text-white">
-                      {apt.doctorName}
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {format(new Date(apt.dateTime), 'dd/MM/yy')} at{' '}
-                      {new Date(apt.dateTime).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </p>
-                  </div>
-                  <span className={`px-2 py-1 text-xs rounded-full ${apt.status === 'confirmed'
-                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                    : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                    }`}>
-                    {apt.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Alternative calendar options */}
-        <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-          <h4 className="font-medium text-blue-900 dark:text-blue-200 mb-2">
-            Alternative Options
-          </h4>
-          <div className="space-y-2 text-sm">
-            <button
-              onClick={openInNewTab}
-              className="flex items-center text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-100"
-            >
-              <ExternalLink className="h-4 w-4 mr-2" />
-              Open Google Calendar in new tab
-            </button>
-            <p className="text-blue-600 dark:text-blue-400">
-              • Book appointments through our AI chat assistant
-            </p>
-            <p className="text-blue-600 dark:text-blue-400">
-              • View your appointment history in your profile
-            </p>
-          </div>
         </div>
       </div>
     );

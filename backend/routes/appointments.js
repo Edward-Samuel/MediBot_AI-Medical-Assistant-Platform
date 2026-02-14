@@ -92,10 +92,34 @@ router.post('/book', authenticateToken, async (req, res) => {
 
     await appointment.save();
 
+    // CRM & Calendar Integration
+    try {
+      // Create Google Calendar event
+      const googleCalendar = require('../services/googleCalendar');
+      const eventDetails = {
+        summary: `Appointment with Dr. ${doctor.userId.profile.firstName} ${doctor.userId.profile.lastName}`,
+        description: `Type: ${type}\nSymptoms: ${symptoms.join(', ')}\nNotes: ${chiefComplaint || 'None'}`,
+        startTime: appointmentDate,
+        endTime: new Date(appointmentDate.getTime() + 30 * 60000), // 30 min duration
+        attendees: [patient.userId.email, doctor.userId.email].filter(Boolean)
+      };
+
+      const calendarResult = await googleCalendar.safeCreateEvent(eventDetails, req.user._id);
+
+      if (calendarResult.eventId) {
+        appointment.googleCalendarEventId = calendarResult.eventId;
+        appointment.googleMeetLink = calendarResult.meetingLink;
+        await appointment.save();
+      }
+    } catch (calendarError) {
+      console.error('Calendar sync error:', calendarError);
+      // Don't fail the booking if calendar sync fails
+    }
+
     // Populate appointment details for response
     await appointment.populate([
-      { path: 'patientId', populate: { path: 'userId', select: 'profile' } },
-      { path: 'doctorId', populate: { path: 'userId', select: 'profile' } }
+      { path: 'patientId', populate: { path: 'userId', select: 'profile email' } },
+      { path: 'doctorId', populate: { path: 'userId', select: 'profile email' } }
     ]);
 
     res.status(201).json({
@@ -163,7 +187,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
     }
 
     // Check if user has access to this appointment
-    const hasAccess = 
+    const hasAccess =
       (req.user.role === 'patient' && appointment.patientId.userId._id.toString() === req.user._id.toString()) ||
       (req.user.role === 'doctor' && appointment.doctorId.userId._id.toString() === req.user._id.toString());
 

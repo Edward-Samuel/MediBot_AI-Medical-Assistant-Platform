@@ -148,7 +148,7 @@ const CalendarView = () => {
         {/* Main Calendar */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg">
           <EmbeddedCalendar
-            calendarId={connectedCalendarId || (user ? "primary" : undefined)}
+            calendarId={connectedCalendarId} // STRICT: Only use the explicitly connected calendar ID
             height="700"
             showTitle={true}
             showNav={true}
