@@ -17,7 +17,7 @@ const oauth2Client = new google.auth.OAuth2(
 
 // Generate JWT token
 const generateToken = (userId) => {
-  return jwt.sign({ 
+  return jwt.sign({
     userId
   }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRE
@@ -123,14 +123,14 @@ router.post('/login', async (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ 
-        message: 'Email and password are required' 
+      return res.status(400).json({
+        message: 'Email and password are required'
       });
     }
 
     // Find user by email
     const user = await User.findOne({ email: email.toLowerCase() });
-    
+
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
@@ -206,7 +206,7 @@ router.get('/me', async (req, res) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
+
     // Handle user lookup
     const user = await User.findById(decoded.userId).select('-password');
     if (!user) {
@@ -214,7 +214,7 @@ router.get('/me', async (req, res) => {
     }
 
     let additionalData = {};
-    
+
     // Get role-specific data
     if (user.role === 'doctor') {
       const doctor = await Doctor.findOne({ userId: user._id });
@@ -241,7 +241,7 @@ router.get('/me', async (req, res) => {
       };
     }
 
-    return res.json({ 
+    return res.json({
       user: {
         id: user._id,
         email: user.email,
@@ -268,7 +268,7 @@ router.get('/google/calendar', async (req, res) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.userId);
-    
+
     if (!user) {
       return res.status(401).json({ message: 'User not found' });
     }
@@ -302,7 +302,7 @@ router.get('/google/callback', async (req, res) => {
 
     // Exchange authorization code for tokens
     const { tokens } = await oauth2Client.getToken(code);
-    
+
     // Parse state to get user ID
     const stateData = JSON.parse(state);
     const user = await User.findById(stateData.userId);
@@ -311,13 +311,29 @@ router.get('/google/callback', async (req, res) => {
       return res.status(404).send('User not found');
     }
 
+    // Set credentials to use for fetching profile
+    oauth2Client.setCredentials(tokens);
+
+    // Fetch user's Google profile to get the email
+    let calendarId = null;
+    try {
+      const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
+      const userInfo = await oauth2.userinfo.get();
+      calendarId = userInfo.data.email;
+      console.log('Connected Google Calendar Email:', calendarId);
+    } catch (profileError) {
+      console.error('Error fetching Google profile:', profileError);
+      // Fallback: If we can't get the email, we'll just store tokens without ID
+    }
+
     // Store tokens in user profile
     user.googleCalendar = {
       accessToken: tokens.access_token,
       refreshToken: tokens.refresh_token,
       expiryDate: tokens.expiry_date,
       connected: true,
-      connectedAt: new Date()
+      connectedAt: new Date(),
+      calendarId: calendarId // Store the connected email
     };
 
     await user.save();
@@ -342,7 +358,7 @@ router.post('/google/disconnect', async (req, res) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.userId);
-    
+
     if (!user) {
       return res.status(401).json({ message: 'User not found' });
     }
@@ -362,7 +378,8 @@ router.post('/google/disconnect', async (req, res) => {
       connected: false,
       accessToken: null,
       refreshToken: null,
-      expiryDate: null
+      expiryDate: null,
+      calendarId: null
     };
 
     await user.save();
@@ -384,14 +401,15 @@ router.get('/google/status', async (req, res) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.userId);
-    
+
     if (!user) {
       return res.status(401).json({ message: 'User not found' });
     }
 
     res.json({
       connected: user.googleCalendar?.connected || false,
-      connectedAt: user.googleCalendar?.connectedAt || null
+      connectedAt: user.googleCalendar?.connectedAt || null,
+      calendarId: user.googleCalendar?.calendarId || null // Return the connected email
     });
   } catch (error) {
     console.error('Google Calendar status check error:', error);

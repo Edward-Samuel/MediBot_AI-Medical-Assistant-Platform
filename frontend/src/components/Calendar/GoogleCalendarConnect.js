@@ -4,10 +4,11 @@ import { Calendar, CheckCircle, XCircle, ExternalLink } from 'lucide-react';
 import axios from '../../config/axios';
 import toast from 'react-hot-toast';
 
-const GoogleCalendarConnect = () => {
+const GoogleCalendarConnect = ({ onConnectionChange }) => {
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [connectedAt, setConnectedAt] = useState(null);
+  const [calendarId, setCalendarId] = useState(null);
 
   useEffect(() => {
     checkConnectionStatus();
@@ -22,6 +23,12 @@ const GoogleCalendarConnect = () => {
 
       setIsConnected(response.data.connected);
       setConnectedAt(response.data.connectedAt);
+      setCalendarId(response.data.calendarId);
+
+      // Notify parent component about connection status and ID
+      if (onConnectionChange) {
+        onConnectionChange(response.data.connected, response.data.calendarId);
+      }
     } catch (error) {
       console.error('Error checking calendar status:', error);
     } finally {
@@ -57,6 +64,12 @@ const GoogleCalendarConnect = () => {
 
       setIsConnected(false);
       setConnectedAt(null);
+      setCalendarId(null);
+
+      if (onConnectionChange) {
+        onConnectionChange(false, null);
+      }
+
       toast.success('Google Calendar disconnected');
     } catch (error) {
       console.error('Error disconnecting calendar:', error);
@@ -91,9 +104,14 @@ const GoogleCalendarConnect = () => {
       {isConnected ? (
         <div className="space-y-4">
           <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
-            <p className="text-sm text-green-800 dark:text-green-200">
+            <p className="text-sm text-green-800 dark:text-green-200 font-medium">
               ✓ Your Google Calendar is connected
             </p>
+            {calendarId && (
+              <p className="text-sm text-green-700 dark:text-green-300 mt-1">
+                Connected account: <strong>{calendarId}</strong>
+              </p>
+            )}
             {connectedAt && (
               <p className="text-xs text-green-600 dark:text-green-400 mt-1">
                 Connected on {format(new Date(connectedAt), 'dd/MM/yy')}
