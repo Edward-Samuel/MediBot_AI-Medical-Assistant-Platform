@@ -206,7 +206,7 @@ const CalendarView = () => {
               
               <div className="relative w-full" style={{ height: '600px' }}>
                 <iframe
-                  src={`https://calendar.google.com/calendar/embed?src=${encodeURIComponent(connectedCalendarId)}&ctz=America/New_York&mode=WEEK&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=1&showCalendars=0&showTz=0&bgcolor=%23ffffff`}
+                  src={`https://calendar.google.com/calendar/embed?src=${encodeURIComponent(connectedCalendarId)}&ctz=America/New_York&mode=MONTH&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=1&showCalendars=0&showTz=0&bgcolor=%23ffffff`}
                   style={{
                     width: '100%',
                     height: '100%',
