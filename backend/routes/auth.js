@@ -325,9 +325,15 @@ router.get('/google/callback', async (req, res) => {
       console.log('✓ Connected Google Calendar Email:', calendarId);
     } catch (profileError) {
       console.error('❌ Error fetching Google profile:', profileError.message);
-      // Fallback: Try to use the user's registered email
-      calendarId = user.email;
-      console.log('⚠️ Using fallback email from user account:', calendarId);
+      console.error('Full error:', profileError);
+      // Don't use fallback - we need the actual Google account email
+    }
+
+    // Only save if we successfully got the calendar ID
+    if (!calendarId) {
+      console.error('❌ Failed to retrieve Google account email');
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      return res.redirect(`${frontendUrl}/calendar-connected?success=false&error=${encodeURIComponent('Failed to retrieve Google account information')}`);
     }
 
     // Store tokens in user profile
@@ -337,7 +343,7 @@ router.get('/google/callback', async (req, res) => {
       expiryDate: tokens.expiry_date,
       connected: true,
       connectedAt: new Date(),
-      calendarId: calendarId // Store the connected email
+      calendarId: calendarId // Store the connected email from Google OAuth
     };
 
     await user.save();
@@ -421,20 +427,10 @@ router.get('/google/status', async (req, res) => {
       return res.status(401).json({ message: 'User not found' });
     }
 
-    // If connected but no calendarId, use user's email as fallback
-    let calendarId = user.googleCalendar?.calendarId;
-    if (user.googleCalendar?.connected && !calendarId) {
-      calendarId = user.email;
-      // Update the user record with the fallback
-      user.googleCalendar.calendarId = calendarId;
-      await user.save();
-      console.log('Updated missing calendarId with user email:', calendarId);
-    }
-
     res.json({
       connected: user.googleCalendar?.connected || false,
       connectedAt: user.googleCalendar?.connectedAt || null,
-      calendarId: calendarId || null
+      calendarId: user.googleCalendar?.calendarId || null // Only from OAuth
     });
   } catch (error) {
     console.error('Google Calendar status check error:', error);
