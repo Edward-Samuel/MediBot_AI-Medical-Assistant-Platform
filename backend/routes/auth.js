@@ -394,12 +394,20 @@ router.post('/google/disconnect', async (req, res) => {
 // Check Google Calendar connection status
 router.get('/google/status', async (req, res) => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
-    if (!token) {
-      return res.status(401).json({ message: 'No token provided' });
+    const authHeader = req.header('Authorization');
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.replace('Bearer ', '') : null;
+
+    if (!token || token === 'null' || token === 'undefined') {
+      return res.status(401).json({ message: 'No valid token provided' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (jwtError) {
+      return res.status(401).json({ message: 'Invalid or expired token' });
+    }
+
     const user = await User.findById(decoded.userId);
 
     if (!user) {
