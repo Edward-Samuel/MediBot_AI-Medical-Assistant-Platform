@@ -6,6 +6,8 @@ import { useAuth } from '../../contexts/AuthContext';
 
 const CalendarView = () => {
   const { user } = useAuth();
+  const [connectedCalendarId, setConnectedCalendarId] = useState(null);
+  const [isCalendarConnected, setIsCalendarConnected] = useState(false);
   const [stats, setStats] = useState({
     totalAppointments: 0,
     upcomingAppointments: 0,
@@ -14,8 +16,9 @@ const CalendarView = () => {
   });
   const [loading, setLoading] = useState(true);
 
-  const handleConnectionChange = () => {
-    // Connection status changed - could trigger a refresh if needed
+  const handleConnectionChange = (isConnected, calendarId) => {
+    setIsCalendarConnected(isConnected);
+    setConnectedCalendarId(calendarId);
   };
 
   useEffect(() => {
@@ -163,6 +166,57 @@ const CalendarView = () => {
             </div>
           </div>
         </div>
+
+        {/* Embedded Google Calendar */}
+        {isCalendarConnected && connectedCalendarId && (
+          <div className="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <Calendar className="h-6 w-6 text-green-600 dark:text-green-400" />
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                    Your Google Calendar
+                  </h2>
+                </div>
+                <a
+                  href={`https://calendar.google.com/calendar/u/0/r?cid=${encodeURIComponent(connectedCalendarId)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-green-600 dark:text-green-400 hover:underline flex items-center space-x-1"
+                >
+                  <span>Open in Google Calendar</span>
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              </div>
+            </div>
+            
+            <div className="relative" style={{ paddingBottom: '75%', minHeight: '600px' }}>
+              <iframe
+                src={`https://calendar.google.com/calendar/embed?src=${encodeURIComponent(connectedCalendarId)}&ctz=America/New_York&mode=WEEK&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=1&showCalendars=0&showTz=0`}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  border: 0
+                }}
+                frameBorder="0"
+                scrolling="no"
+                title="Google Calendar"
+                className="dark:invert dark:hue-rotate-180"
+              />
+            </div>
+            
+            <div className="p-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
+              <p className="text-xs text-gray-600 dark:text-gray-400 text-center">
+                All appointments booked through MediBot will automatically appear in your calendar
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Quick Actions */}
         <div className="mt-8 bg-gradient-to-r from-green-500 to-blue-600 rounded-lg p-6 text-white">
