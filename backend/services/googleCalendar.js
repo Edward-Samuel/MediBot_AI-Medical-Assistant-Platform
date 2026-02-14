@@ -1,5 +1,6 @@
 const { google } = require("googleapis");
 const path = require("path");
+const User = require("../models/User");
 
 class GoogleCalendarService {
   constructor() {
@@ -7,6 +8,55 @@ class GoogleCalendarService {
     this.calendarId = process.env.GOOGLE_CALENDAR_ID || "primary";
     this.initialized = false;
     this.authType = null; // 'service_account' or 'oauth' or null
+    this.oauth2Client = null;
+    
+    // Initialize OAuth2 client for user-based authentication
+    if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+      this.oauth2Client = new google.auth.OAuth2(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET,
+        process.env.GOOGLE_REDIRECT_URI
+      );
+    }
+  }
+
+  // Get OAuth client for a specific user
+  async getUserOAuthClient(userId) {
+    if (!this.oauth2Client) {
+      throw new Error('OAuth client not configured');
+    }
+
+    const user = await User.findById(userId);
+    if (!user || !user.googleCalendar?.connected) {
+      throw new Error('User calendar not connected');
+    }
+
+    // Check if token is expired and refresh if needed
+    const now = Date.now();
+    if (user.googleCalendar.expiryDate && user.googleCalendar.expiryDate < now) {
+      // Token expired, refresh it
+      this.oauth2Client.setCredentials({
+        refresh_token: user.googleCalendar.refreshToken
+      });
+
+      const { credentials } = await this.oauth2Client.refreshAccessToken();
+      
+      // Update user with new tokens
+      user.googleCalendar.accessToken = credentials.access_token;
+      user.googleCalendar.expiryDate = credentials.expiry_date;
+      await user.save();
+
+      this.oauth2Client.setCredentials(credentials);
+    } else {
+      // Token still valid
+      this.oauth2Client.setCredentials({
+        access_token: user.googleCalendar.accessToken,
+        refresh_token: user.googleCalendar.refreshToken,
+        expiry_date: user.googleCalendar.expiryDate
+      });
+    }
+
+    return this.oauth2Client;
   }
 
   async initialize() {
@@ -131,7 +181,13 @@ class GoogleCalendarService {
     }
   }
 
-  async createAppointmentEvent(appointmentData) {
+  async createAppointmentEvent(appointmentData, userId = null) {
+    // If userId is provided, use user's OAuth tokens
+    if (userId) {
+      return await this.createUserCalendarEvent(appointmentData, userId);
+    }
+
+    // Otherwise, use service account (legacy behavior)
     if (!this.initialized) {
       const initialized = await this.initialize();
       if (!initialized) {
@@ -327,6 +383,95 @@ class GoogleCalendarService {
         calendarId: this.calendarId,
         authType: this.authType,
       };
+    }
+  }
+
+  // Create calendar event using user's OAuth tokens
+  async createUserCalendarEvent(appointmentData, userId) {
+    try {
+      const auth = await this.getUserOAuthClient(userId);
+      const calendar = google.calendar({ version: "v3", auth });
+
+      const {
+        patientName,
+        patientEmail,
+        doctorName,
+        doctorEmail,
+        dateTime,
+        duration = 30,
+        appointmentType,
+        chiefComplaint,
+        symptoms = [],
+      } = appointmentData;
+
+      const startTime = new Date(dateTime);
+      const endTime = new Date(startTime.getTime() + duration * 60000);
+
+      const event = {
+        summary: `Medical Appointment: ${patientName} with ${doctorName}`,
+        description: this.createEventDescription({
+          patientName,
+          patientEmail,
+          doctorName,
+          doctorEmail,
+          appointmentType,
+          chiefComplaint,
+          symptoms,
+        }),
+        start: {
+          dateTime: startTime.toISOString(),
+          timeZone: process.env.TIMEZONE || "Asia/Kolkata",
+        },
+        end: {
+          dateTime: endTime.toISOString(),
+          timeZone: process.env.TIMEZONE || "Asia/Kolkata",
+        },
+        attendees: [
+          { email: patientEmail },
+          { email: doctorEmail }
+        ],
+        reminders: {
+          useDefault: false,
+          overrides: [
+            { method: "popup", minutes: 30 },
+            { method: "popup", minutes: 10 },
+          ],
+        },
+        colorId: "2", // Green color for medical appointments
+        visibility: "private",
+        conferenceData: {
+          createRequest: {
+            requestId: `medibot-${Date.now()}`,
+            conferenceSolutionKey: { type: "hangoutsMeet" }
+          }
+        }
+      };
+
+      const response = await calendar.events.insert({
+        calendarId: "primary",
+        resource: event,
+        conferenceDataVersion: 1,
+        sendUpdates: "all" // Send email notifications to attendees
+      });
+
+      console.log("User calendar event created successfully:", response.data.id);
+      return {
+        eventId: response.data.id,
+        eventLink: response.data.htmlLink,
+        meetingLink: response.data.conferenceData?.entryPoints?.[0]?.uri || null,
+        calendarName: "primary",
+        authType: "oauth"
+      };
+    } catch (error) {
+      console.error("❌ Error creating user calendar event:", error.message);
+      
+      if (error.message.includes('User calendar not connected')) {
+        throw new Error('Please connect your Google Calendar first');
+      } else if (error.message.includes('invalid_grant')) {
+        throw new Error('Calendar access expired - please reconnect your Google Calendar');
+      } else {
+        throw new Error(`Calendar integration failed: ${error.message}`);
+      }
     }
   }
 

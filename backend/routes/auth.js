@@ -1,11 +1,19 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const { google } = require('googleapis');
 const User = require('../models/User');
 const Doctor = require('../models/Doctor');
 const Patient = require('../models/Patient');
 const { body, validationResult } = require('express-validator');
 
 const router = express.Router();
+
+// Initialize OAuth2 client for Google Calendar
+const oauth2Client = new google.auth.OAuth2(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  process.env.GOOGLE_REDIRECT_URI
+);
 
 // Generate JWT token
 const generateToken = (userId) => {
@@ -247,6 +255,147 @@ router.get('/me', async (req, res) => {
   } catch (error) {
     console.error('Auth error:', error);
     res.status(401).json({ message: 'Invalid token' });
+  }
+});
+
+// Google OAuth - Initiate calendar authorization
+router.get('/google/calendar', async (req, res) => {
+  try {
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ message: 'No token provided' });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.userId);
+    
+    if (!user) {
+      return res.status(401).json({ message: 'User not found' });
+    }
+
+    // Generate authorization URL with state parameter containing user ID
+    const authUrl = oauth2Client.generateAuthUrl({
+      access_type: 'offline',
+      scope: [
+        'https://www.googleapis.com/auth/calendar',
+        'https://www.googleapis.com/auth/calendar.events'
+      ],
+      state: JSON.stringify({ userId: user._id.toString() }),
+      prompt: 'consent' // Force consent screen to get refresh token
+    });
+
+    res.json({ authUrl });
+  } catch (error) {
+    console.error('Google OAuth initiation error:', error);
+    res.status(500).json({ message: 'Error initiating Google authorization' });
+  }
+});
+
+// Google OAuth - Callback handler
+router.get('/google/callback', async (req, res) => {
+  try {
+    const { code, state } = req.query;
+
+    if (!code) {
+      return res.status(400).send('Authorization code not provided');
+    }
+
+    // Exchange authorization code for tokens
+    const { tokens } = await oauth2Client.getToken(code);
+    
+    // Parse state to get user ID
+    const stateData = JSON.parse(state);
+    const user = await User.findById(stateData.userId);
+
+    if (!user) {
+      return res.status(404).send('User not found');
+    }
+
+    // Store tokens in user profile
+    user.googleCalendar = {
+      accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token,
+      expiryDate: tokens.expiry_date,
+      connected: true,
+      connectedAt: new Date()
+    };
+
+    await user.save();
+
+    // Redirect to frontend with success message
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    res.redirect(`${frontendUrl}/calendar-connected?success=true`);
+  } catch (error) {
+    console.error('Google OAuth callback error:', error);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    res.redirect(`${frontendUrl}/calendar-connected?success=false&error=${encodeURIComponent(error.message)}`);
+  }
+});
+
+// Disconnect Google Calendar
+router.post('/google/disconnect', async (req, res) => {
+  try {
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ message: 'No token provided' });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.userId);
+    
+    if (!user) {
+      return res.status(401).json({ message: 'User not found' });
+    }
+
+    // Revoke Google tokens if they exist
+    if (user.googleCalendar?.accessToken) {
+      try {
+        await oauth2Client.revokeToken(user.googleCalendar.accessToken);
+      } catch (revokeError) {
+        console.error('Error revoking Google token:', revokeError);
+        // Continue anyway to clear local data
+      }
+    }
+
+    // Clear calendar connection
+    user.googleCalendar = {
+      connected: false,
+      accessToken: null,
+      refreshToken: null,
+      expiryDate: null
+    };
+
+    await user.save();
+
+    res.json({ message: 'Google Calendar disconnected successfully' });
+  } catch (error) {
+    console.error('Google Calendar disconnect error:', error);
+    res.status(500).json({ message: 'Error disconnecting Google Calendar' });
+  }
+});
+
+// Check Google Calendar connection status
+router.get('/google/status', async (req, res) => {
+  try {
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ message: 'No token provided' });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.userId);
+    
+    if (!user) {
+      return res.status(401).json({ message: 'User not found' });
+    }
+
+    res.json({
+      connected: user.googleCalendar?.connected || false,
+      connectedAt: user.googleCalendar?.connectedAt || null
+    });
+  } catch (error) {
+    console.error('Google Calendar status check error:', error);
+    res.status(500).json({ message: 'Error checking calendar status' });
   }
 });
 

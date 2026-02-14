@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Users, TrendingUp, AlertCircle } from 'lucide-react';
 import EmbeddedCalendar from '../../components/Calendar/EmbeddedCalendar';
+import GoogleCalendarConnect from '../../components/Calendar/GoogleCalendarConnect';
 import axios from '../../config/axios';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -182,19 +183,8 @@ const CalendarView = () => {
             </p>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
-            <div className="flex items-center mb-4">
-              <div className="p-2 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
-                <Users className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-              </div>
-              <h3 className="ml-3 text-lg font-semibold text-gray-900 dark:text-white">
-                Google Integration
-              </h3>
-            </div>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">
-              Appointments automatically sync with Google Calendar and include meeting links for virtual consultations.
-            </p>
-          </div>
+          {/* Google Calendar Connect Component */}
+          <GoogleCalendarConnect />
         </div>
 
         {/* Quick Actions */}

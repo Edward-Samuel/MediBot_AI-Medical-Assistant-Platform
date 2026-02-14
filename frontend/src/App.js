@@ -23,6 +23,7 @@ import BookAppointment from './pages/Appointments/BookAppointment';
 import AppointmentDetails from './pages/Appointments/AppointmentDetails';
 import AppointmentHistory from './pages/Appointments/AppointmentHistory';
 import CalendarView from './pages/Calendar/CalendarView';
+import CalendarConnected from './pages/Calendar/CalendarConnected';
 import ChatBot from './pages/Chat/ChatBot';
 import Profile from './pages/Profile/Profile';
 
@@ -96,6 +97,7 @@ function AppContent() {
           <Route path="/doctors/:id" element={<DoctorProfile />} />
           <Route path="/chat" element={<ChatBot />} />
           <Route path="/calendar" element={<CalendarView />} />
+          <Route path="/calendar-connected" element={<CalendarConnected />} />
           
           {/* Auth Routes */}
           <Route 

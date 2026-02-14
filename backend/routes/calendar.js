@@ -4,11 +4,9 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Doctor = require('../models/Doctor');
 const Appointment = require('../models/Appointment');
+const googleCalendarService = require('../services/googleCalendar');
 
 const router = express.Router();
-
-// Initialize Google Calendar API
-const calendar = google.calendar('v3');
 
 // Middleware to authenticate user
 const authenticateToken = async (req, res, next) => {
@@ -31,13 +29,21 @@ const authenticateToken = async (req, res, next) => {
   }
 };
 
-// Create Google Calendar event for appointment
+// Create Google Calendar event for appointment using user's OAuth
 router.post('/create-event', authenticateToken, async (req, res) => {
   try {
     const { appointmentId } = req.body;
 
     if (!appointmentId) {
       return res.status(400).json({ message: 'Appointment ID is required' });
+    }
+
+    // Check if user has Google Calendar connected
+    if (!req.user.googleCalendar?.connected) {
+      return res.status(400).json({ 
+        message: 'Google Calendar not connected',
+        requiresAuth: true
+      });
     }
 
     // Get appointment details
@@ -60,64 +66,47 @@ router.post('/create-event', authenticateToken, async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    // Setup OAuth2 client (simplified - in production, you'd handle OAuth flow properly)
-    const oauth2Client = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
-    );
-
-    // For demo purposes, we'll create a basic event structure
-    // In production, you'd need proper OAuth tokens from the user
-    const event = {
-      summary: `Medical Consultation - ${appointment.type}`,
-      description: `
-        Patient: ${appointment.patientId.userId.profile.firstName} ${appointment.patientId.userId.profile.lastName}
-        Doctor: Dr. ${appointment.doctorId.userId.profile.firstName} ${appointment.doctorId.userId.profile.lastName}
-        Specialization: ${appointment.doctorId.specialization}
-        Type: ${appointment.type}
-        ${appointment.chiefComplaint ? `Chief Complaint: ${appointment.chiefComplaint}` : ''}
-        ${appointment.symptoms.length > 0 ? `Symptoms: ${appointment.symptoms.join(', ')}` : ''}
-      `,
-      start: {
-        dateTime: appointment.dateTime.toISOString(),
-        timeZone: 'UTC',
-      },
-      end: {
-        dateTime: new Date(appointment.dateTime.getTime() + appointment.duration * 60000).toISOString(),
-        timeZone: 'UTC',
-      },
-      attendees: [
-        { email: appointment.patientId.userId.email },
-        { email: appointment.doctorId.userId.email }
-      ],
-      reminders: {
-        useDefault: false,
-        overrides: [
-          { method: 'email', minutes: 24 * 60 }, // 24 hours before
-          { method: 'popup', minutes: 30 }, // 30 minutes before
-        ],
-      },
+    // Create calendar event using user's OAuth tokens
+    const eventData = {
+      patientName: `${appointment.patientId.userId.profile.firstName} ${appointment.patientId.userId.profile.lastName}`,
+      patientEmail: appointment.patientId.userId.email,
+      doctorName: `Dr. ${appointment.doctorId.userId.profile.firstName} ${appointment.doctorId.userId.profile.lastName}`,
+      doctorEmail: appointment.doctorId.userId.email,
+      dateTime: appointment.dateTime,
+      duration: appointment.duration,
+      appointmentType: appointment.type,
+      chiefComplaint: appointment.chiefComplaint,
+      symptoms: appointment.symptoms
     };
 
-    // In a real implementation, you would:
-    // 1. Have users authenticate with Google OAuth
-    // 2. Store their refresh tokens
-    // 3. Use their tokens to create events in their calendars
-    
-    // For now, we'll just return the event structure and update the appointment
-    appointment.googleCalendarEventId = `demo_event_${appointment._id}`;
+    const result = await googleCalendarService.createUserCalendarEvent(
+      eventData,
+      req.user._id
+    );
+
+    // Update appointment with calendar event ID
+    appointment.googleCalendarEventId = result.eventId;
+    appointment.meetingLink = result.meetingLink;
     await appointment.save();
 
     res.json({
       message: 'Calendar event created successfully',
-      event,
-      eventId: appointment.googleCalendarEventId
+      eventId: result.eventId,
+      eventLink: result.eventLink,
+      meetingLink: result.meetingLink
     });
 
   } catch (error) {
     console.error('Create calendar event error:', error);
-    res.status(500).json({ message: 'Error creating calendar event' });
+    
+    if (error.message.includes('connect your Google Calendar')) {
+      return res.status(400).json({ 
+        message: error.message,
+        requiresAuth: true
+      });
+    }
+    
+    res.status(500).json({ message: error.message || 'Error creating calendar event' });
   }
 });
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { User, Mail, Phone, MapPin, Calendar, Shield } from 'lucide-react';
+import GoogleCalendarConnect from '../../components/Calendar/GoogleCalendarConnect';
 
 const Profile = () => {
   const { user } = useAuth();
@@ -288,6 +289,11 @@ const Profile = () => {
               </form>
             </div>
           </div>
+        </div>
+
+        {/* Google Calendar Integration Section */}
+        <div className="mt-6">
+          <GoogleCalendarConnect />
         </div>
       </div>
     </div>
