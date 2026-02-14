@@ -137,6 +137,17 @@ const CalendarView = () => {
 
           {/* Info Cards */}
           <div className="space-y-6">
+            {/* Debug Info - Remove this after testing */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg shadow border border-blue-200 dark:border-blue-700 p-4">
+                <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-200 mb-2">Debug Info:</h4>
+                <div className="text-xs text-blue-800 dark:text-blue-300 space-y-1">
+                  <p>Connected: {isCalendarConnected ? 'Yes' : 'No'}</p>
+                  <p>Calendar ID: {connectedCalendarId || 'Not set'}</p>
+                </div>
+              </div>
+            )}
+            
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
               <div className="flex items-center mb-4">
                 <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
@@ -168,7 +179,7 @@ const CalendarView = () => {
         </div>
 
         {/* Embedded Google Calendar */}
-        {isCalendarConnected && connectedCalendarId && (
+        {isCalendarConnected && connectedCalendarId ? (
           <div className="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div className="p-6 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between">
@@ -179,7 +190,7 @@ const CalendarView = () => {
                   </h2>
                 </div>
                 <a
-                  href={`https://calendar.google.com/calendar/u/0/r?cid=${encodeURIComponent(connectedCalendarId)}`}
+                  href={`https://calendar.google.com/calendar/u/0/r`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm text-green-600 dark:text-green-400 hover:underline flex items-center space-x-1"
@@ -192,19 +203,14 @@ const CalendarView = () => {
               </div>
             </div>
             
-            <div className="relative" style={{ paddingBottom: '75%', minHeight: '600px' }}>
+            <div className="relative w-full" style={{ height: '600px' }}>
               <iframe
-                src={`https://calendar.google.com/calendar/embed?src=${encodeURIComponent(connectedCalendarId)}&ctz=America/New_York&mode=WEEK&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=1&showCalendars=0&showTz=0`}
+                src={`https://calendar.google.com/calendar/embed?src=${encodeURIComponent(connectedCalendarId)}&ctz=America/New_York&mode=WEEK&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=1&showCalendars=0&showTz=0&bgcolor=%23ffffff`}
                 style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
                   width: '100%',
                   height: '100%',
                   border: 0
                 }}
-                frameBorder="0"
-                scrolling="no"
                 title="Google Calendar"
                 className="dark:invert dark:hue-rotate-180"
               />
@@ -216,7 +222,23 @@ const CalendarView = () => {
               </p>
             </div>
           </div>
-        )}
+        ) : isCalendarConnected ? (
+          <div className="mt-8 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-6">
+            <div className="flex items-center space-x-3">
+              <svg className="h-6 w-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <div>
+                <h3 className="text-sm font-semibold text-yellow-800 dark:text-yellow-200">
+                  Calendar Connected but ID Not Available
+                </h3>
+                <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                  Your calendar is connected, but we couldn't retrieve the calendar ID. Try reconnecting your calendar.
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         {/* Quick Actions */}
         <div className="mt-8 bg-gradient-to-r from-green-500 to-blue-600 rounded-lg p-6 text-white">
