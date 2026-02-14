@@ -179,65 +179,81 @@ const CalendarView = () => {
         </div>
 
         {/* Embedded Google Calendar */}
-        {isCalendarConnected && connectedCalendarId ? (
-          <div className="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <Calendar className="h-6 w-6 text-green-600 dark:text-green-400" />
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                    Your Google Calendar
-                  </h2>
+        {isCalendarConnected ? (
+          connectedCalendarId ? (
+            <div className="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <Calendar className="h-6 w-6 text-green-600 dark:text-green-400" />
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                      Your Google Calendar
+                    </h2>
+                  </div>
+                  <a
+                    href="https://calendar.google.com/calendar/u/0/r"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-green-600 dark:text-green-400 hover:underline flex items-center space-x-1"
+                  >
+                    <span>Open in Google Calendar</span>
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
                 </div>
-                <a
-                  href={`https://calendar.google.com/calendar/u/0/r`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-green-600 dark:text-green-400 hover:underline flex items-center space-x-1"
-                >
-                  <span>Open in Google Calendar</span>
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                </a>
               </div>
-            </div>
-            
-            <div className="relative w-full" style={{ height: '600px' }}>
-              <iframe
-                src={`https://calendar.google.com/calendar/embed?src=${encodeURIComponent(connectedCalendarId)}&ctz=America/New_York&mode=WEEK&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=1&showCalendars=0&showTz=0&bgcolor=%23ffffff`}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  border: 0
-                }}
-                title="Google Calendar"
-                className="dark:invert dark:hue-rotate-180"
-              />
-            </div>
-            
-            <div className="p-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
-              <p className="text-xs text-gray-600 dark:text-gray-400 text-center">
-                All appointments booked through MediBot will automatically appear in your calendar
-              </p>
-            </div>
-          </div>
-        ) : isCalendarConnected ? (
-          <div className="mt-8 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-6">
-            <div className="flex items-center space-x-3">
-              <svg className="h-6 w-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              <div>
-                <h3 className="text-sm font-semibold text-yellow-800 dark:text-yellow-200">
-                  Calendar Connected but ID Not Available
-                </h3>
-                <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
-                  Your calendar is connected, but we couldn't retrieve the calendar ID. Try reconnecting your calendar.
+              
+              <div className="relative w-full" style={{ height: '600px' }}>
+                <iframe
+                  src={`https://calendar.google.com/calendar/embed?src=${encodeURIComponent(connectedCalendarId)}&ctz=America/New_York&mode=WEEK&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=1&showCalendars=0&showTz=0&bgcolor=%23ffffff`}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    border: 0
+                  }}
+                  title="Google Calendar"
+                  className="dark:invert dark:hue-rotate-180"
+                />
+              </div>
+              
+              <div className="p-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
+                <p className="text-xs text-gray-600 dark:text-gray-400 text-center">
+                  All appointments booked through MediBot will automatically appear in your calendar
                 </p>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="mt-8 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-6">
+              <div className="flex items-start space-x-3">
+                <svg className="h-6 w-6 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
+                    Calendar Connected but ID Not Available
+                  </h3>
+                  <p className="text-xs text-yellow-700 dark:text-yellow-300 mb-3">
+                    Your calendar is connected, but we couldn't retrieve the calendar ID. This might happen if:
+                  </p>
+                  <ul className="text-xs text-yellow-700 dark:text-yellow-300 space-y-1 ml-4 list-disc mb-3">
+                    <li>The OAuth flow didn't complete properly</li>
+                    <li>Your calendar privacy settings need adjustment</li>
+                    <li>The connection was interrupted</li>
+                  </ul>
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="text-xs bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-md transition-colors"
+                  >
+                    Refresh Page
+                  </button>
+                  <span className="text-xs text-yellow-600 dark:text-yellow-400 ml-3">
+                    or try disconnecting and reconnecting your calendar
+                  </span>
+                </div>
+              </div>
+            </div>
+          )
         ) : null}
 
         {/* Quick Actions */}

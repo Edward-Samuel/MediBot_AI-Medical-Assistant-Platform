@@ -22,6 +22,8 @@ const GoogleCalendarConnect = ({ onConnectionChange }) => {
         headers: { Authorization: `Bearer ${token}` }
       });
 
+      console.log('Google Calendar Status Response:', response.data);
+
       setIsConnected(response.data.connected);
       setConnectedAt(response.data.connectedAt);
       setCalendarId(response.data.calendarId);
