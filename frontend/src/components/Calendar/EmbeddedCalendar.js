@@ -5,7 +5,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import axios from '../../config/axios';
 
 const EmbeddedCalendar = ({
-  calendarId = process.env.REACT_APP_GOOGLE_CALENDAR_ID || "primary",
+  calendarId, // No default - strict control
   height = "600",
   showTitle = true,
   showNav = true,
