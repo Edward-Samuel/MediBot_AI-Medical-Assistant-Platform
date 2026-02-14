@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { format } from 'date-fns';
 import { Calendar, CheckCircle, XCircle, ExternalLink } from 'lucide-react';
 import axios from '../../config/axios';
 import toast from 'react-hot-toast';
@@ -18,7 +19,7 @@ const GoogleCalendarConnect = () => {
       const response = await axios.get('/api/auth/google/status', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       setIsConnected(response.data.connected);
       setConnectedAt(response.data.connectedAt);
     } catch (error) {
@@ -34,7 +35,7 @@ const GoogleCalendarConnect = () => {
       const response = await axios.get('/api/auth/google/calendar', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       // Open Google OAuth in new window
       window.location.href = response.data.authUrl;
     } catch (error) {
@@ -53,7 +54,7 @@ const GoogleCalendarConnect = () => {
       await axios.post('/api/auth/google/disconnect', {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       setIsConnected(false);
       setConnectedAt(null);
       toast.success('Google Calendar disconnected');
@@ -95,11 +96,11 @@ const GoogleCalendarConnect = () => {
             </p>
             {connectedAt && (
               <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                Connected on {new Date(connectedAt).toLocaleDateString()}
+                Connected on {format(new Date(connectedAt), 'dd/MM/yy')}
               </p>
             )}
           </div>
-          
+
           <div className="text-sm text-gray-600 dark:text-gray-400">
             <p className="mb-2">With Google Calendar connected, you can:</p>
             <ul className="list-disc list-inside space-y-1 ml-2">

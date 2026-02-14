@@ -35,17 +35,17 @@ const CalendarView = () => {
 
       const stats = {
         totalAppointments: appointments.length,
-        upcomingAppointments: appointments.filter(apt => 
+        upcomingAppointments: appointments.filter(apt =>
           new Date(apt.dateTime) > now && apt.status !== 'cancelled'
         ).length,
         todayAppointments: appointments.filter(apt => {
           const aptDate = new Date(apt.dateTime);
-          return aptDate >= today && 
-                 aptDate < new Date(today.getTime() + 24 * 60 * 60 * 1000) &&
-                 apt.status !== 'cancelled';
+          return aptDate >= today &&
+            aptDate < new Date(today.getTime() + 24 * 60 * 60 * 1000) &&
+            apt.status !== 'cancelled';
         }).length,
-        thisWeekAppointments: appointments.filter(apt => 
-          new Date(apt.dateTime) > now && 
+        thisWeekAppointments: appointments.filter(apt =>
+          new Date(apt.dateTime) > now &&
           new Date(apt.dateTime) < weekFromNow &&
           apt.status !== 'cancelled'
         ).length
@@ -143,6 +143,7 @@ const CalendarView = () => {
         {/* Main Calendar */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg">
           <EmbeddedCalendar
+            calendarId={user ? "primary" : undefined}
             height="700"
             showTitle={true}
             showNav={true}

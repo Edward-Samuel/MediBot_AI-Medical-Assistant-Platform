@@ -9,7 +9,7 @@ class GoogleCalendarService {
     this.initialized = false;
     this.authType = null; // 'service_account' or 'oauth' or null
     this.oauth2Client = null;
-    
+
     // Initialize OAuth2 client for user-based authentication
     if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
       this.oauth2Client = new google.auth.OAuth2(
@@ -40,7 +40,7 @@ class GoogleCalendarService {
       });
 
       const { credentials } = await this.oauth2Client.refreshAccessToken();
-      
+
       // Update user with new tokens
       user.googleCalendar.accessToken = credentials.access_token;
       user.googleCalendar.expiryDate = credentials.expiry_date;
@@ -464,7 +464,7 @@ class GoogleCalendarService {
       };
     } catch (error) {
       console.error("❌ Error creating user calendar event:", error.message);
-      
+
       if (error.message.includes('User calendar not connected')) {
         throw new Error('Please connect your Google Calendar first');
       } else if (error.message.includes('invalid_grant')) {
@@ -579,9 +579,9 @@ END:VCALENDAR`;
   }
 
   // Graceful error handling wrapper
-  async safeCreateEvent(appointmentData) {
+  async safeCreateEvent(appointmentData, userId = null) {
     try {
-      return await this.createAppointmentEvent(appointmentData);
+      return await this.createAppointmentEvent(appointmentData, userId);
     } catch (error) {
       console.log("Calendar integration failed, providing manual options");
       return {

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
+import { format } from 'date-fns';
 import { Calendar, ExternalLink, Maximize2, Minimize2, AlertCircle, RefreshCw } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import axios from '../../config/axios';
 
-const EmbeddedCalendar = ({ 
+const EmbeddedCalendar = ({
   calendarId = process.env.REACT_APP_GOOGLE_CALENDAR_ID || "primary",
   height = "600",
   showTitle = true,
@@ -62,12 +63,12 @@ const EmbeddedCalendar = ({
     setIsLoading(true);
     setCalendarError(null);
     setShowFallback(false);
-    
+
     // Reset iframe by changing key
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 3000);
-    
+
     return () => clearTimeout(timer);
   };
 
@@ -76,7 +77,7 @@ const EmbeddedCalendar = ({
     const baseUrl = "https://calendar.google.com/calendar/embed";
     // Use appropriate background color based on global theme
     const backgroundColor = isDarkMode ? '%23374151' : '%23ffffff'; // gray-700 for dark, white for light
-    
+
     const params = new URLSearchParams({
       src: calendarId,
       ctz: "Asia/Kolkata",
@@ -90,7 +91,7 @@ const EmbeddedCalendar = ({
       showCalendarList: showCalendarList ? "1" : "0",
       showTz: showTz ? "1" : "0"
     });
-    
+
     return `${baseUrl}?${params.toString()}`;
   };
 
@@ -110,7 +111,7 @@ const EmbeddedCalendar = ({
     setIsFullscreen(!isFullscreen);
   };
 
-  const containerClasses = isFullscreen 
+  const containerClasses = isFullscreen
     ? "fixed inset-0 z-50 bg-white dark:bg-gray-900 p-4"
     : `${className}`;
 
@@ -121,13 +122,13 @@ const EmbeddedCalendar = ({
     const today = new Date();
     const currentMonth = today.getMonth();
     const currentYear = today.getFullYear();
-    
+
     // Get appointments for current month
     const monthAppointments = appointments.filter(apt => {
       const aptDate = new Date(apt.dateTime);
-      return aptDate.getMonth() === currentMonth && 
-             aptDate.getFullYear() === currentYear &&
-             apt.status !== 'cancelled';
+      return aptDate.getMonth() === currentMonth &&
+        aptDate.getFullYear() === currentYear &&
+        apt.status !== 'cancelled';
     });
 
     return (
@@ -164,18 +165,17 @@ const EmbeddedCalendar = ({
                       {apt.doctorName}
                     </p>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {new Date(apt.dateTime).toLocaleDateString()} at{' '}
+                      {format(new Date(apt.dateTime), 'dd/MM/yy')} at{' '}
                       {new Date(apt.dateTime).toLocaleTimeString([], {
                         hour: '2-digit',
                         minute: '2-digit'
                       })}
                     </p>
                   </div>
-                  <span className={`px-2 py-1 text-xs rounded-full ${
-                    apt.status === 'confirmed' 
-                      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                      : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                  }`}>
+                  <span className={`px-2 py-1 text-xs rounded-full ${apt.status === 'confirmed'
+                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                    : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                    }`}>
                     {apt.status}
                   </span>
                 </div>
@@ -219,7 +219,7 @@ const EmbeddedCalendar = ({
             Appointment Calendar
           </h3>
         </div>
-        
+
         <div className="flex items-center space-x-2">
           {/* View Mode Selector */}
           <div className="flex bg-white dark:bg-gray-700 rounded-md border border-gray-300 dark:border-gray-600">
@@ -231,11 +231,10 @@ const EmbeddedCalendar = ({
               <button
                 key={viewMode}
                 onClick={() => handleModeChange(viewMode)}
-                className={`px-3 py-1 text-sm font-medium transition-colors ${
-                  currentMode === viewMode
-                    ? 'bg-green-600 text-white'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
-                } ${viewMode === 'MONTH' ? 'rounded-l-md' : ''} ${viewMode === 'AGENDA' ? 'rounded-r-md' : ''}`}
+                className={`px-3 py-1 text-sm font-medium transition-colors ${currentMode === viewMode
+                  ? 'bg-green-600 text-white'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                  } ${viewMode === 'MONTH' ? 'rounded-l-md' : ''} ${viewMode === 'AGENDA' ? 'rounded-r-md' : ''}`}
               >
                 {label}
               </button>
@@ -250,7 +249,7 @@ const EmbeddedCalendar = ({
           >
             {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
           </button>
-          
+
           <button
             onClick={openInNewTab}
             className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
@@ -269,7 +268,7 @@ const EmbeddedCalendar = ({
           <iframe
             key={`calendar-${isDarkMode ? 'dark' : 'light'}-${currentMode}-${Date.now()}`} // Force re-render on theme/mode change
             src={buildEmbedUrl()}
-            style={{ 
+            style={{
               border: 0,
               width: '100%',
               height: iframeHeight,
@@ -300,11 +299,10 @@ const EmbeddedCalendar = ({
               }, 2000);
             }}
           />
-          
+
           {/* Loading Overlay */}
-          <div className={`absolute inset-0 bg-gray-100 dark:bg-gray-800 flex items-center justify-center transition-opacity duration-300 ${
-            isLoading ? 'opacity-100' : 'opacity-0 pointer-events-none'
-          }`}>
+          <div className={`absolute inset-0 bg-gray-100 dark:bg-gray-800 flex items-center justify-center transition-opacity duration-300 ${isLoading ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            }`}>
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-2"></div>
               <p className="text-gray-600 dark:text-gray-400">

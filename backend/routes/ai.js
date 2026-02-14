@@ -873,31 +873,31 @@ router.post("/chat", async (req, res) => {
           imagesType: typeof images,
           firstImageSample: images?.[0]
             ? {
-                name: images[0].name,
-                size: images[0].size,
-                type: images[0].type,
-                dataLength: images[0].data?.length,
-                dataPrefix: images[0].data?.substring(0, 50),
-              }
+              name: images[0].name,
+              size: images[0].size,
+              type: images[0].type,
+              dataLength: images[0].data?.length,
+              dataPrefix: images[0].data?.substring(0, 50),
+            }
             : null,
         });
 
         // Validate and clean images data
         const validImages = Array.isArray(images)
           ? images.filter((img) => {
-              const isValid =
-                img &&
-                typeof img.name === "string" &&
-                typeof img.size === "number" &&
-                typeof img.type === "string" &&
-                typeof img.data === "string" &&
-                img.data.startsWith("data:");
+            const isValid =
+              img &&
+              typeof img.name === "string" &&
+              typeof img.size === "number" &&
+              typeof img.type === "string" &&
+              typeof img.data === "string" &&
+              img.data.startsWith("data:");
 
-              if (!isValid) {
-                console.log("Invalid image data:", img);
-              }
-              return isValid;
-            })
+            if (!isValid) {
+              console.log("Invalid image data:", img);
+            }
+            return isValid;
+          })
           : [];
 
         console.log("Valid images after filtering:", validImages.length);
@@ -971,15 +971,15 @@ router.post("/chat", async (req, res) => {
       searchResults:
         webSearchData && searchResults
           ? {
-              query: searchResults.query,
-              totalResults: searchResults.totalResults,
-              sources:
-                searchResults.results?.map((r) => ({
-                  title: r.title,
-                  url: r.url,
-                  domain: new URL(r.url).hostname,
-                })) || [],
-            }
+            query: searchResults.query,
+            totalResults: searchResults.totalResults,
+            sources:
+              searchResults.results?.map((r) => ({
+                title: r.title,
+                url: r.url,
+                domain: new URL(r.url).hostname,
+              })) || [],
+          }
           : null,
     });
   } catch (error) {
@@ -1430,7 +1430,7 @@ router.post("/book-appointment", async (req, res) => {
       };
 
       console.log("🗓️  Attempting to create calendar event...");
-      const calendarResult = await googleCalendar.safeCreateEvent(calendarData);
+      const calendarResult = await googleCalendar.safeCreateEvent(calendarData, userId);
 
       if (calendarResult.eventId) {
         // Calendar integration successful
@@ -1574,18 +1574,18 @@ router.post("/book-appointment", async (req, res) => {
       manualCalendarDetails:
         calendarIntegrationStatus !== "success"
           ? {
-              title: `Medical Appointment with Dr. ${populatedAppointment.doctorId.userId.profile.firstName} ${populatedAppointment.doctorId.userId.profile.lastName}`,
-              dateTime: populatedAppointment.dateTime,
-              duration: `${populatedAppointment.duration || 30} minutes`,
-              location: "Contact doctor for location/meeting details",
-              description: `Appointment Type: ${populatedAppointment.type}\nSymptoms: ${populatedAppointment.symptoms.join(", ")}\nChief Complaint: ${populatedAppointment.chiefComplaint}`,
-              doctorContact: doctor.userId.email,
-              patientContact: patientUser.email,
-              // Include manual calendar links if available
-              calendarLinks:
-                savedAppointment.manualCalendarInstructions?.instructions ||
-                null,
-            }
+            title: `Medical Appointment with Dr. ${populatedAppointment.doctorId.userId.profile.firstName} ${populatedAppointment.doctorId.userId.profile.lastName}`,
+            dateTime: populatedAppointment.dateTime,
+            duration: `${populatedAppointment.duration || 30} minutes`,
+            location: "Contact doctor for location/meeting details",
+            description: `Appointment Type: ${populatedAppointment.type}\nSymptoms: ${populatedAppointment.symptoms.join(", ")}\nChief Complaint: ${populatedAppointment.chiefComplaint}`,
+            doctorContact: doctor.userId.email,
+            patientContact: patientUser.email,
+            // Include manual calendar links if available
+            calendarLinks:
+              savedAppointment.manualCalendarInstructions?.instructions ||
+              null,
+          }
           : null,
     });
   } catch (error) {
