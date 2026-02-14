@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Users, TrendingUp, AlertCircle } from 'lucide-react';
-import EmbeddedCalendar from '../../components/Calendar/EmbeddedCalendar';
 import GoogleCalendarConnect from '../../components/Calendar/GoogleCalendarConnect';
 import axios from '../../config/axios';
 import { useAuth } from '../../contexts/AuthContext';
@@ -128,69 +127,41 @@ const CalendarView = () => {
           </div>
         )}
 
-        {/* Calendar Notice for Non-authenticated Users */}
-        {!user && (
-          <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-            <div className="flex items-start">
-              <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5 mr-3 flex-shrink-0" />
-              <div>
-                <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                  Public Calendar View
-                </h3>
-                <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
-                  This shows available consultation slots. Log in to schedule consultations and see your personal schedule.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Main Calendar */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg">
-          <EmbeddedCalendar
-            calendarId={connectedCalendarId} // STRICT: Only use the explicitly connected calendar ID
-            height="700"
-            showTitle={true}
-            showNav={true}
-            showDate={true}
-            showTabs={true}
-            mode="MONTH"
-            className="w-full"
-          />
-        </div>
-
-        {/* Calendar Features */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
-            <div className="flex items-center mb-4">
-              <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
-                <Calendar className="h-5 w-5 text-green-600 dark:text-green-400" />
-              </div>
-              <h3 className="ml-3 text-lg font-semibold text-gray-900 dark:text-white">
-                Real-time Updates
-              </h3>
-            </div>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">
-              Calendar automatically updates when new appointments are booked or cancelled through the system.
-            </p>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
-            <div className="flex items-center mb-4">
-              <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-                <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              </div>
-              <h3 className="ml-3 text-lg font-semibold text-gray-900 dark:text-white">
-                Multiple Views
-              </h3>
-            </div>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">
-              Switch between Month, Week, and Agenda views to see appointments in different formats.
-            </p>
-          </div>
-
+        {/* Google Calendar Connection & Info */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           {/* Google Calendar Connect Component */}
           <GoogleCalendarConnect onConnectionChange={handleConnectionChange} />
+
+          {/* Info Cards */}
+          <div className="space-y-6">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
+              <div className="flex items-center mb-4">
+                <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
+                  <Calendar className="h-5 w-5 text-green-600 dark:text-green-400" />
+                </div>
+                <h3 className="ml-3 text-lg font-semibold text-gray-900 dark:text-white">
+                  Seamless Integration
+                </h3>
+              </div>
+              <p className="text-gray-600 dark:text-gray-400 text-sm">
+                Connect your Google Calendar to automatically sync all your appointments. Get instant notifications and Google Meet links for your virtual consultations.
+              </p>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
+              <div className="flex items-center mb-4">
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
+                  <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <h3 className="ml-3 text-lg font-semibold text-gray-900 dark:text-white">
+                  Smart Scheduling
+                </h3>
+              </div>
+              <p className="text-gray-600 dark:text-gray-400 text-sm">
+                Use our AI Chatbot to find the perfect time slot. It checks doctor availability in real-time to prevent scheduling conflicts.
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Quick Actions */}
