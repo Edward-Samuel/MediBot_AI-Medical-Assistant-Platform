@@ -7,6 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 
 const CalendarView = () => {
   const { user } = useAuth();
+  const [connectedCalendarId, setConnectedCalendarId] = useState(null);
   const [stats, setStats] = useState({
     totalAppointments: 0,
     upcomingAppointments: 0,
@@ -14,6 +15,10 @@ const CalendarView = () => {
     thisWeekAppointments: 0
   });
   const [loading, setLoading] = useState(true);
+
+  const handleConnectionChange = (isConnected, calendarId) => {
+    setConnectedCalendarId(isConnected && calendarId ? calendarId : null);
+  };
 
   useEffect(() => {
     if (user) {
@@ -143,7 +148,7 @@ const CalendarView = () => {
         {/* Main Calendar */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg">
           <EmbeddedCalendar
-            calendarId={user ? "primary" : undefined}
+            calendarId={connectedCalendarId || (user ? "primary" : undefined)}
             height="700"
             showTitle={true}
             showNav={true}
@@ -185,7 +190,7 @@ const CalendarView = () => {
           </div>
 
           {/* Google Calendar Connect Component */}
-          <GoogleCalendarConnect />
+          <GoogleCalendarConnect onConnectionChange={handleConnectionChange} />
         </div>
 
         {/* Quick Actions */}
