@@ -105,16 +105,22 @@ const AppointmentBookingWidget = ({ appointmentData, onClose, onBookingComplete 
       const date = new Date(today);
       date.setDate(today.getDate() + i);
       
+      // Get the date string in local timezone (YYYY-MM-DD)
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const dateString = `${year}-${month}-${day}`;
+      
       const daySlots = {
-        date: date.toISOString().split('T')[0],
+        date: dateString,
         dayName: date.toLocaleDateString('en-US', { weekday: 'long' }),
         slots: [
-          { time: '09:00 AM', dateTime: new Date(date.setHours(9, 0)).toISOString(), preferred: i === 1 },
-          { time: '10:30 AM', dateTime: new Date(date.setHours(10, 30)).toISOString(), preferred: false },
-          { time: '02:00 PM', dateTime: new Date(date.setHours(14, 0)).toISOString(), preferred: false },
-          { time: '03:30 PM', dateTime: new Date(date.setHours(15, 30)).toISOString(), preferred: false },
-          { time: '05:00 PM', dateTime: new Date(date.setHours(17, 0)).toISOString(), preferred: false },
-          { time: '06:30 PM', dateTime: new Date(date.setHours(18, 30)).toISOString(), preferred: false }
+          { time: '09:00 AM', dateTime: `${dateString}T09:00:00`, preferred: i === 1 },
+          { time: '10:30 AM', dateTime: `${dateString}T10:30:00`, preferred: false },
+          { time: '02:00 PM', dateTime: `${dateString}T14:00:00`, preferred: false },
+          { time: '03:30 PM', dateTime: `${dateString}T15:30:00`, preferred: false },
+          { time: '05:00 PM', dateTime: `${dateString}T17:00:00`, preferred: false },
+          { time: '06:30 PM', dateTime: `${dateString}T18:30:00`, preferred: false }
         ]
       };
       slots.push(daySlots);
@@ -150,9 +156,13 @@ const AppointmentBookingWidget = ({ appointmentData, onClose, onBookingComplete 
       // Get user's timezone
       const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       
+      // Convert local datetime string to proper Date object
+      // selectedSlot.dateTime is in format "YYYY-MM-DDTHH:MM:SS"
+      const localDateTime = new Date(selectedSlot.dateTime);
+      
       const response = await axios.post('/api/ai/book-appointment', {
         doctorId: selectedDoctor.id,
-        dateTime: selectedSlot.dateTime,
+        dateTime: localDateTime.toISOString(), // Send as ISO string
         timezone: userTimezone, // Send user's timezone
         appointmentData: {
           appointmentType: 'consultation',
