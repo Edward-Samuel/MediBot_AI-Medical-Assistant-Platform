@@ -3,6 +3,7 @@ import { Clock, User, CheckCircle, X } from 'lucide-react';
 import axios from '../../config/axios';
 import toast from 'react-hot-toast';
 import { SPECIALIZATIONS } from '../../constants/specializations';
+import { formatDateTime, formatDate } from '../../utils/dateFormatter';
 
 const AppointmentBookingWidget = ({ appointmentData, onClose, onBookingComplete }) => {
   const [selectedDoctor, setSelectedDoctor] = useState(appointmentData?.doctors?.[0] || null);
@@ -146,9 +147,13 @@ const AppointmentBookingWidget = ({ appointmentData, onClose, onBookingComplete 
     setIsBooking(true);
     try {
       const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
+      // Get user's timezone
+      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      
       const response = await axios.post('/api/ai/book-appointment', {
         doctorId: selectedDoctor.id,
         dateTime: selectedSlot.dateTime,
+        timezone: userTimezone, // Send user's timezone
         appointmentData: {
           appointmentType: 'consultation',
           symptoms: [],
@@ -187,7 +192,7 @@ const AppointmentBookingWidget = ({ appointmentData, onClose, onBookingComplete 
             <div className="text-sm text-green-800 dark:text-green-200 space-y-2">
               <p><strong>Doctor:</strong> {bookedAppointment.doctorName}</p>
               <p><strong>Specialization:</strong> {bookedAppointment.specialization}</p>
-              <p><strong>Date & Time:</strong> {new Date(bookedAppointment.dateTime).toLocaleString()}</p>
+              <p><strong>Date & Time:</strong> {formatDateTime(bookedAppointment.dateTime)}</p>
               <p><strong>Type:</strong> {bookedAppointment.type}</p>
               <p><strong>Fee:</strong> ${bookedAppointment.fee.total}</p>
               {bookedAppointment.calendarEventLink && (
@@ -435,7 +440,7 @@ const AppointmentBookingWidget = ({ appointmentData, onClose, onBookingComplete 
               {availableSlots.map((daySlots) => (
                 <div key={daySlots.date} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
                   <h5 className="font-medium text-gray-900 dark:text-white mb-3">
-                    {daySlots.dayName} - {new Date(daySlots.date).toLocaleDateString()}
+                    {daySlots.dayName} - {formatDate(daySlots.date)}
                   </h5>
                   <div className="grid grid-cols-3 gap-2">
                     {daySlots.slots.slice(0, 6).map((slot) => (

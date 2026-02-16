@@ -3,6 +3,7 @@ import { Calendar, MessageCircle, User, Clock, Plus, AlertCircle, CheckCircle, X
 import { Link } from 'react-router-dom';
 import axios from '../../config/axios';
 import { useAuth } from '../../contexts/AuthContext';
+import { formatDateTime } from '../../utils/dateFormatter';
 
 const PatientDashboard = () => {
   const { user } = useAuth();
@@ -70,14 +71,7 @@ const PatientDashboard = () => {
   };
 
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric', 
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return formatDateTime(dateString);
   };
 
   const getStatusColor = (status) => {

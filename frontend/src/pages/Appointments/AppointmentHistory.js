@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import axios from "../../config/axios";
 import toast from "react-hot-toast";
+import { formatDate, formatDateTime, formatTime } from "../../utils/dateFormatter";
 
 const AppointmentHistory = () => {
   const [appointments, setAppointments] = useState([]);
@@ -265,16 +266,13 @@ const AppointmentHistory = () => {
                   <div className="flex items-center text-gray-600 dark:text-gray-400">
                     <Calendar className="h-4 w-4 mr-2" />
                     <span className="text-sm">
-                      {new Date(appointment.dateTime).toLocaleDateString()}
+                      {formatDate(appointment.dateTime)}
                     </span>
                   </div>
                   <div className="flex items-center text-gray-600 dark:text-gray-400">
                     <Clock className="h-4 w-4 mr-2" />
                     <span className="text-sm">
-                      {new Date(appointment.dateTime).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                      {formatTime(appointment.dateTime)}
                     </span>
                   </div>
                   <div className="flex items-center text-gray-600 dark:text-gray-400">
@@ -302,7 +300,7 @@ const AppointmentHistory = () => {
                 <div className="mt-4 flex items-center justify-between">
                   <div className="text-xs text-gray-500 dark:text-gray-400">
                     Booked on{" "}
-                    {new Date(appointment.createdAt).toLocaleDateString()}
+                    {formatDate(appointment.createdAt)}
                   </div>
 
                   <div className="flex space-x-2">
@@ -411,9 +409,7 @@ const AppointmentHistory = () => {
                           Date & Time
                         </p>
                         <p className="font-medium text-gray-900 dark:text-white">
-                          {new Date(
-                            selectedAppointment.dateTime,
-                          ).toLocaleString()}
+                          {formatDateTime(selectedAppointment.dateTime)}
                         </p>
                       </div>
                       <div>

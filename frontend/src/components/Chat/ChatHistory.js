@@ -3,6 +3,7 @@ import { History, MessageCircle, Trash2, Search, X, Plus, Loader2 } from 'lucide
 import axios from '../../config/axios';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
+import { getRelativeTime } from '../../utils/dateFormatter';
 
 // Simple debounce hook
 const useDebounce = (value, delay) => {
@@ -248,19 +249,7 @@ const ChatHistory = ({ onLoadSession, currentSessionId, isOpen, onClose, onNewSe
 
   // Format date - memoized
   const formatDate = useCallback((dateString) => {
-    try {
-      const date = new Date(dateString);
-      const now = new Date();
-      const diffTime = Math.abs(now - date);
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-      if (diffDays === 1) return 'Today';
-      if (diffDays === 2) return 'Yesterday';
-      if (diffDays <= 7) return `${diffDays - 1}d ago`;
-      return date.toLocaleDateString();
-    } catch {
-      return 'Unknown';
-    }
+    return getRelativeTime(dateString);
   }, []);
 
   // Get language flag - memoized

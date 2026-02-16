@@ -859,7 +859,7 @@ const ChatBot = () => {
 
     // Add web search debug function
     window.debugWebSearch = async () => {
-      console.log("🔍 === WEB SEARCH DEBUG ===");
+      console.log("=== WEB SEARCH DEBUG ===");
       console.log("Current status:", webSearchStatus);
       console.log("Status checked:", webSearchStatusChecked);
 
@@ -884,7 +884,7 @@ const ChatBot = () => {
 
         // Also log web search status for debugging
         setTimeout(() => {
-          console.log("🔍 Current web search status:", {
+          console.log("Current web search status:", {
             available: webSearchStatus.available,
             configured: webSearchStatus.configured,
             loading: webSearchStatus.loading,
@@ -1516,7 +1516,7 @@ const ChatBot = () => {
                 <div className="text-xs text-gray-500 dark:text-gray-400">
                   {webSearchMode ? (
                     <span className="text-blue-600 dark:text-blue-400">
-                      🔍 Will search trusted medical sources
+                      Will search trusted medical sources
                     </span>
                   ) : (
                     <span>Search current medical research and guidelines</span>
