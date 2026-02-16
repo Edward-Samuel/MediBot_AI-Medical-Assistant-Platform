@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Clock, User, CheckCircle, X } from 'lucide-react';
 import axios from '../../config/axios';
 import toast from 'react-hot-toast';
+import { SPECIALIZATIONS } from '../../constants/specializations';
 
 const AppointmentBookingWidget = ({ appointmentData, onClose, onBookingComplete }) => {
   const [selectedDoctor, setSelectedDoctor] = useState(appointmentData?.doctors?.[0] || null);
@@ -17,19 +18,6 @@ const AppointmentBookingWidget = ({ appointmentData, onClose, onBookingComplete 
   const [availableSlots, setAvailableSlots] = useState([]);
   const [isLoadingDoctors, setIsLoadingDoctors] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState(null);
-
-  const specializations = [
-    'General Medicine',
-    'Cardiology',
-    'Dermatology',
-    'Neurology',
-    'Orthopedics',
-    'Gastroenterology',
-    'ENT',
-    'Ophthalmology',
-    'Psychiatry',
-    'Pediatrics'
-  ];
 
   const handleSpecializationSelect = async (specialization) => {
     setSelectedSpecialization(specialization);
@@ -342,7 +330,7 @@ const AppointmentBookingWidget = ({ appointmentData, onClose, onBookingComplete 
               </button>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              {specializations.map((specialization) => (
+              {SPECIALIZATIONS.map((specialization) => (
                 <button
                   key={specialization}
                   onClick={() => handleSpecializationSelect(specialization)}

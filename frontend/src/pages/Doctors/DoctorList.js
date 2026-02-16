@@ -8,6 +8,7 @@ import { SPECIALIZATIONS_WITH_ALL } from '../../constants/specializations';
 const DoctorList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSpecialization, setSelectedSpecialization] = useState('');
+  const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
