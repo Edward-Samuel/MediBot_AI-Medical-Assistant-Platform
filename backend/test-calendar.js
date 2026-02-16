@@ -12,12 +12,12 @@ const googleCalendarService = require('./backend/services/googleCalendar');
 
 async function testCalendarIntegration() {
   try {
-    console.log('🔍 Starting Calendar Integration Diagnostics\n');
+    console.log('Starting Calendar Integration Diagnostics\n');
     
     // 1. Check environment variables
     console.log('1️⃣ Checking Environment Variables:');
-    console.log('   GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? '✅ Set' : '❌ Missing');
-    console.log('   GOOGLE_CLIENT_SECRET:', process.env.GOOGLE_CLIENT_SECRET ? '✅ Set' : '❌ Missing');
+    console.log('   GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? 'Set' : '❌ Missing');
+    console.log('   GOOGLE_CLIENT_SECRET:', process.env.GOOGLE_CLIENT_SECRET ? 'Set' : '❌ Missing');
     console.log('   GOOGLE_REDIRECT_URI:', process.env.GOOGLE_REDIRECT_URI || '❌ Missing');
     console.log('   FRONTEND_URL:', process.env.FRONTEND_URL || '❌ Missing');
     console.log('');
@@ -25,7 +25,7 @@ async function testCalendarIntegration() {
     // 2. Connect to database
     console.log('2️⃣ Connecting to MongoDB...');
     await mongoose.connect(process.env.MONGODB_URI);
-    console.log('   ✅ Connected to MongoDB\n');
+    console.log('   Connected to MongoDB\n');
 
     // 3. Find users with connected calendars
     console.log('3️⃣ Checking Users with Connected Calendars:');
@@ -35,7 +35,7 @@ async function testCalendarIntegration() {
       console.log('   ⚠️  No users have connected their Google Calendar');
       console.log('   📝 Users need to connect their calendar first via the UI\n');
     } else {
-      console.log(`   ✅ Found ${usersWithCalendar.length} user(s) with connected calendar:\n`);
+      console.log(`   Found ${usersWithCalendar.length} user(s) with connected calendar:\n`);
       
       for (const user of usersWithCalendar) {
         console.log(`   👤 User: ${user.email}`);
@@ -49,7 +49,7 @@ async function testCalendarIntegration() {
         // Check if token is expired
         const now = Date.now();
         const isExpired = user.googleCalendar.expiryDate && user.googleCalendar.expiryDate < now;
-        console.log(`      Token Status: ${isExpired ? '⚠️  Expired (will auto-refresh)' : '✅ Valid'}`);
+        console.log(`      Token Status: ${isExpired ? '⚠️  Expired (will auto-refresh)' : 'Valid'}`);
         console.log('');
 
         // 4. Test creating a calendar event
@@ -71,7 +71,7 @@ async function testCalendarIntegration() {
           const result = await googleCalendarService.safeCreateEvent(testEventDetails, user._id);
 
           if (result.eventId) {
-            console.log('   ✅ SUCCESS! Calendar event created');
+            console.log('   SUCCESS! Calendar event created');
             console.log(`      Event ID: ${result.eventId}`);
             console.log(`      Event Link: ${result.eventLink}`);
             console.log(`      Meeting Link: ${result.meetingLink || 'N/A'}`);
@@ -132,7 +132,7 @@ async function testCalendarIntegration() {
       console.log('   4. Complete the OAuth authorization');
       console.log('   5. Run this script again to test');
     } else {
-      console.log('✅ Calendar integration is configured');
+      console.log('Calendar integration is configured');
       console.log('   If appointments still don\'t appear in calendar:');
       console.log('   1. Check backend logs when booking appointment');
       console.log('   2. Verify user has calendar connected (check UI)');

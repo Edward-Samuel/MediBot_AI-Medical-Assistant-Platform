@@ -62,7 +62,7 @@ async function shareServiceAccountCalendar() {
       });
       
       console.log('Calendar shared successfully!');
-      console.log('📧 Shared with:', yourEmail);
+      console.log('Shared with:', yourEmail);
       console.log('🔑 Permission level: Reader (view only)');
       
       console.log('\n📋 Next Steps:');
@@ -79,7 +79,7 @@ async function shareServiceAccountCalendar() {
     } catch (aclError) {
       if (aclError.message.includes('duplicate')) {
         console.log('Calendar is already shared with your account!');
-        console.log('📧 Shared with:', yourEmail);
+        console.log('Shared with:', yourEmail);
       } else {
         console.log('❌ Failed to share calendar:', aclError.message);
         

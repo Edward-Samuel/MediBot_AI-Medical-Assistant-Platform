@@ -13,7 +13,7 @@ function getServiceAccountEmail() {
 
     const credentials = JSON.parse(fs.readFileSync(credentialsPath, 'utf8'));
     
-    console.log('📧 Service Account Details:');
+    console.log('Service Account Details:');
     console.log('   Email:', credentials.client_email);
     console.log('   Project ID:', credentials.project_id);
     console.log('   Private Key ID:', credentials.private_key_id);

@@ -20,7 +20,7 @@ async function setupProduction() {
 
     console.log("Connecting to MongoDB...");
     await mongoose.connect(process.env.MONGODB_URI);
-    console.log("✅ Connected to MongoDB");
+    console.log("Connected to MongoDB");
 
     const results = {
       admin: null,
@@ -52,7 +52,7 @@ async function setupProduction() {
       const admin = new User(adminData);
       await admin.save();
       results.admin = adminData.email;
-      console.log("✅ Admin created:", adminData.email);
+      console.log("Admin created:", adminData.email);
     } else {
       console.log("⚠️  Admin already exists:", existingAdmin.email);
       results.admin = existingAdmin.email;
@@ -87,7 +87,7 @@ async function setupProduction() {
       const patient = new User(patientData);
       await patient.save();
       results.patient = patientData.email;
-      console.log("✅ Demo patient created:", patientData.email);
+      console.log("Demo patient created:", patientData.email);
     } else {
       console.log("⚠️  Demo patient already exists");
       results.patient = existingPatient.email;
@@ -154,14 +154,14 @@ async function setupProduction() {
           specializationCount[doctorData.specialization] = 
             (specializationCount[doctorData.specialization] || 0) + 1;
 
-          process.stdout.write(`\r✅ Created ${results.doctors}/${doctorsData.length} doctors`);
+          process.stdout.write(`\rCreated ${results.doctors}/${doctorsData.length} doctors`);
 
         } catch (error) {
           console.error(`\n❌ Error creating doctor ${doctorData.firstName}:`, error.message);
         }
       }
 
-      console.log(`\n\n✅ Created ${results.doctors} doctors`);
+      console.log(`\n\nCreated ${results.doctors} doctors`);
       console.log("\nDoctors by specialization:");
       Object.entries(specializationCount).sort().forEach(([spec, count]) => {
         console.log(`  ${spec}: ${count}`);
@@ -197,7 +197,7 @@ async function setupProduction() {
     console.error(error);
   } finally {
     await mongoose.disconnect();
-    console.log("\n✅ Disconnected from MongoDB");
+    console.log("\nDisconnected from MongoDB");
     process.exit(0);
   }
 }

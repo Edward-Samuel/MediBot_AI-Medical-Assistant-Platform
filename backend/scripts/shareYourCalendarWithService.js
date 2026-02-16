@@ -19,7 +19,7 @@ function shareYourCalendarWithService() {
     const targetCalendarId = process.env.GOOGLE_CALENDAR_ID;
     
     console.log('Target Calendar ID:', targetCalendarId);
-    console.log('📧 Service Account Email:', serviceAccountEmail);
+    console.log('Service Account Email:', serviceAccountEmail);
     
     console.log('\n📋 Steps to Share Your Calendar:');
     console.log('1. Go to Google Calendar (calendar.google.com)');

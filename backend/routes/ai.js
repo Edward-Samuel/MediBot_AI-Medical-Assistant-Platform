@@ -546,7 +546,7 @@ router.post("/chat", async (req, res) => {
     // Route based on intent
     switch (intentResult.intent) {
       case "web_search":
-        console.log("🔍 Web search intent detected - using search API");
+        console.log("Web search intent detected - using search API");
         try {
           console.log("Performing web search for:", message);
           searchResults = await tavilySearch.searchMedical(message, {
@@ -648,7 +648,7 @@ router.post("/chat", async (req, res) => {
         const faqService = require("../services/faqService");
         if (faqService.isInitialized()) {
           try {
-            console.log("🔍 Searching FAQ database for query:", message);
+            console.log("Searching FAQ database for query:", message);
             const faqResults = await faqService.searchFAQ(message, {
               limit: 3,
             });
@@ -750,7 +750,7 @@ router.post("/chat", async (req, res) => {
           message.toLowerCase().includes("recent")
         ) {
           try {
-            console.log("🔍 Legacy web search intent detected");
+            console.log("Legacy web search intent detected");
             searchResults = await tavilySearch.searchMedical(message, {
               maxResults: 3,
             });
@@ -1421,14 +1421,14 @@ router.post("/book-appointment", async (req, res) => {
       const googleCalendar = require("../services/googleCalendar");
 
       // Debug logging
-      console.log("🔍 DEBUG - Doctor object:", {
+      console.log("DEBUG - Doctor object:", {
         hasUserId: !!doctor.userId,
         userIdEmail: doctor.userId?.email,
         hasGoogleCalendar: !!doctor.userId?.googleCalendar,
         googleCalendarId: doctor.userId?.googleCalendar?.calendarId
       });
       
-      console.log("🔍 DEBUG - Patient object:", {
+      console.log("DEBUG - Patient object:", {
         hasGoogleCalendar: !!patientUser.googleCalendar,
         googleCalendarId: patientUser.googleCalendar?.calendarId,
         email: patientUser.email

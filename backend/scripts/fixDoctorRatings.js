@@ -10,7 +10,7 @@ async function fixDoctorRatings() {
   try {
     console.log("Connecting to MongoDB...");
     await mongoose.connect(process.env.MONGODB_URI);
-    console.log("✅ Connected to MongoDB");
+    console.log("Connected to MongoDB");
 
     // Get all doctors
     const doctors = await Doctor.find({});
@@ -33,14 +33,14 @@ async function fixDoctorRatings() {
           
           await doctor.save();
           updated++;
-          process.stdout.write(`\r✅ Updated ${updated}/${doctors.length} doctors`);
+          process.stdout.write(`\rUpdated ${updated}/${doctors.length} doctors`);
         }
       } catch (error) {
         console.error(`\n❌ Error updating doctor ${doctor.name}:`, error.message);
       }
     }
 
-    console.log(`\n\n✅ Successfully updated ${updated} doctor ratings!`);
+    console.log(`\n\nSuccessfully updated ${updated} doctor ratings!`);
     
     // Show sample ratings
     const sampleDoctors = await Doctor.find({}).limit(5).select('name specialization rating');
@@ -53,7 +53,7 @@ async function fixDoctorRatings() {
     console.error("❌ Error:", error.message);
   } finally {
     await mongoose.disconnect();
-    console.log("\n✅ Disconnected from MongoDB");
+    console.log("\nDisconnected from MongoDB");
     process.exit(0);
   }
 }

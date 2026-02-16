@@ -98,7 +98,7 @@ class TavilySearchService {
         ],
       };
 
-      console.log(`🔍 Searching medical information for: "${query}"`);
+      console.log(`Searching medical information for: "${query}"`);
 
       const response = await axios.post(this.baseUrl, requestData, {
         headers: {

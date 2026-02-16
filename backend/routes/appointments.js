@@ -94,7 +94,7 @@ router.post('/book', authenticateToken, async (req, res) => {
 
     // CRM & Calendar Integration
     try {
-      console.log('📅 Starting calendar integration for appointment');
+      console.log('Starting calendar integration for appointment');
       console.log('   User ID:', req.user._id);
       console.log('   User email:', req.user.email);
       console.log('   Calendar connected:', req.user.googleCalendar?.connected);
@@ -119,7 +119,7 @@ router.post('/book', authenticateToken, async (req, res) => {
         symptoms: symptoms || []
       };
 
-      console.log('📅 Event details prepared:', {
+      console.log('Event details prepared:', {
         patientName: eventDetails.patientName,
         patientEmail: eventDetails.patientEmail,
         doctorName: eventDetails.doctorName,
@@ -129,7 +129,7 @@ router.post('/book', authenticateToken, async (req, res) => {
 
       const calendarResult = await googleCalendar.safeCreateEvent(eventDetails, req.user._id);
 
-      console.log('📅 Calendar result:', {
+      console.log('Calendar result:', {
         eventId: calendarResult.eventId,
         eventLink: calendarResult.eventLink,
         meetingLink: calendarResult.meetingLink,
@@ -142,7 +142,7 @@ router.post('/book', authenticateToken, async (req, res) => {
           appointment.googleMeetLink = calendarResult.meetingLink;
         }
         await appointment.save();
-        console.log('✅ Calendar event saved to appointment');
+        console.log('Calendar event saved to appointment');
       } else {
         console.log('⚠️ Calendar event not created:', calendarResult.error);
       }

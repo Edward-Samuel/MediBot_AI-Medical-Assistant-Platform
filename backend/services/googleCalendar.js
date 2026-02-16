@@ -296,7 +296,7 @@ class GoogleCalendarService {
   // Test the calendar connection with detailed diagnostics
   async testConnection() {
     try {
-      console.log("🔍 Testing Google Calendar connection...");
+      console.log("Testing Google Calendar connection...");
 
       // Test 1: List calendars (optional - service accounts may not have full access)
       try {
@@ -397,7 +397,7 @@ class GoogleCalendarService {
   // Create calendar event using user's OAuth tokens
   async createUserCalendarEvent(appointmentData, userId) {
     try {
-      console.log(`📅 Creating calendar event for user ${userId}`);
+      console.log(`Creating calendar event for user ${userId}`);
       const auth = await this.getUserOAuthClient(userId);
       const calendar = google.calendar({ version: "v3", auth });
 
@@ -417,8 +417,8 @@ class GoogleCalendarService {
       const startTime = new Date(dateTime);
       const endTime = new Date(startTime.getTime() + duration * 60000);
 
-      console.log(`📅 Event details: ${patientName} with ${doctorName} at ${startTime.toISOString()}`);
-      console.log(`📧 Attendee emails - Patient: ${patientEmail}, Doctor: ${doctorEmail}`);
+      console.log(`Event details: ${patientName} with ${doctorName} at ${startTime.toISOString()}`);
+      console.log(`Attendee emails - Patient: ${patientEmail}, Doctor: ${doctorEmail}`);
       console.log(`🌍 Using timezone: ${timezone}`);
 
       // Validate emails before creating event
@@ -432,7 +432,7 @@ class GoogleCalendarService {
         doctorEmail && { email: doctorEmail }
       ].filter(Boolean);
 
-      console.log(`📧 Attendees array:`, JSON.stringify(attendees));
+      console.log(`Attendees array:`, JSON.stringify(attendees));
 
       const event = {
         summary: `Medical Appointment: ${patientName} with ${doctorName}`,
@@ -478,8 +478,8 @@ class GoogleCalendarService {
         sendUpdates: "all" // Send email notifications to attendees
       });
 
-      console.log("✅ User calendar event created successfully:", response.data.id);
-      console.log("📧 Event link:", response.data.htmlLink);
+      console.log("User calendar event created successfully:", response.data.id);
+      console.log("Event link:", response.data.htmlLink);
       
       return {
         eventId: response.data.id,
@@ -528,7 +528,7 @@ class GoogleCalendarService {
     }
 
     if (symptoms && symptoms.length > 0) {
-      description += `🔍 Symptoms: ${symptoms.join(", ")}\n\n`;
+      description += `Symptoms: ${symptoms.join(", ")}\n\n`;
     }
 
     description += `📱 Booked via: MEDIBOT Platform\n`;

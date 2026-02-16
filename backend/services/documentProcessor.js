@@ -208,7 +208,7 @@ class DocumentProcessor {
     const qaPairs = [];
     let pairIndex = 0;
 
-    console.log("🔍 Extracting Q&A pairs from content...");
+    console.log("Extracting Q&A pairs from content...");
     console.log(`📄 Content length: ${content.length} characters`);
 
     // Try different Q&A patterns
@@ -224,7 +224,7 @@ class DocumentProcessor {
           const rawQuestion = match[1];
           const rawAnswer = match[2];
 
-          console.log(`🔍 Raw match ${pairIndex + 1}:`);
+          console.log(`Raw match ${pairIndex + 1}:`);
           console.log(`   Question: "${rawQuestion?.substring(0, 100)}..."`);
           console.log(`   Answer: "${rawAnswer?.substring(0, 100)}..."`);
 

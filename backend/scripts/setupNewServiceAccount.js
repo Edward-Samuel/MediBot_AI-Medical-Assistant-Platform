@@ -31,7 +31,7 @@ async function setupNewServiceAccount() {
   try {
     credentials = JSON.parse(fs.readFileSync(credentialsPath, "utf8"));
     console.log("Credentials file found and valid");
-    console.log("📧 Service Account Email:", credentials.client_email);
+    console.log("Service Account Email:", credentials.client_email);
     console.log("🏗️  Project ID:", credentials.project_id);
   } catch (error) {
     console.log("❌ Invalid credentials file:", error.message);
@@ -40,7 +40,7 @@ async function setupNewServiceAccount() {
 
   // Step 3: Test Google Calendar API access
   try {
-    console.log("\n🔍 Testing Google Calendar API access...");
+    console.log("\nTesting Google Calendar API access...");
 
     const auth = new google.auth.GoogleAuth({
       keyFile: credentialsPath,
@@ -140,7 +140,7 @@ async function setupNewServiceAccount() {
       console.log(
         "\n🔧 SOLUTION: Share the calendar with your service account",
       );
-      console.log("📧 Service account email:", credentials.client_email);
+      console.log("Service account email:", credentials.client_email);
       console.log("\n📋 Steps to share the calendar:");
       console.log("1. Go to Google Calendar (calendar.google.com)");
       console.log("2. Find your calendar in the left sidebar");

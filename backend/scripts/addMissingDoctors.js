@@ -115,10 +115,10 @@ const defaultAvailability = {
 
 async function addMissingDoctors() {
   try {
-    console.log('🔍 Checking for missing doctors...\n');
+    console.log('Checking for missing doctors...\n');
     
     await mongoose.connect(process.env.MONGODB_URI);
-    console.log('✅ Connected to MongoDB\n');
+    console.log('Connected to MongoDB\n');
 
     // Get current count by specialization
     const doctorsBySpec = await Doctor.aggregate([
@@ -218,7 +218,7 @@ async function addMissingDoctors() {
 
             await doctor.save();
             addedCount++;
-            console.log(`   ✅ Added Dr. ${doctorData.firstName} ${doctorData.lastName}`);
+            console.log(`   Added Dr. ${doctorData.firstName} ${doctorData.lastName}`);
 
           } catch (error) {
             console.error(`   ❌ Error adding ${doctorData.firstName} ${doctorData.lastName}:`, error.message);
@@ -229,11 +229,11 @@ async function addMissingDoctors() {
           console.log(`   ⚠️  Only ${doctorsAdded} doctors available to add, still need ${needed - doctorsAdded} more`);
         }
       } else {
-        console.log(`✅ ${specialization}: has ${currentCount} doctors (adequate)`);
+        console.log(`${specialization}: has ${currentCount} doctors (adequate)`);
       }
     }
 
-    console.log(`\n✅ Successfully added ${addedCount} new doctors!\n`);
+    console.log(`\nSuccessfully added ${addedCount} new doctors!\n`);
 
     // Display final summary
     const finalDoctorsBySpec = await Doctor.aggregate([

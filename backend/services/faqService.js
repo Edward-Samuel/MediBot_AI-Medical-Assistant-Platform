@@ -317,7 +317,7 @@ class FAQService {
         return "I don't have specific information about that topic yet.";
       }
 
-      console.log("🔍 Generating answer for query:", query);
+      console.log("Generating answer for query:", query);
       console.log(" Search results count:", searchResults.results.length);
 
       // Prepare context from search results with Q&A prioritization

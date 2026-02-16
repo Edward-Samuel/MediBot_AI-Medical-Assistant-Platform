@@ -61,7 +61,7 @@ router.post("/initialize", async (req, res) => {
       password: adminData.password,
       role: "admin",
     };
-    console.log("✅ Admin created");
+    console.log("Admin created");
 
     // Create Demo Patient User
     console.log("Creating demo patient...");
@@ -86,7 +86,7 @@ router.post("/initialize", async (req, res) => {
       password: patientData.password,
       role: "patient",
     };
-    console.log("✅ Demo patient created");
+    console.log("Demo patient created");
 
     // Create all doctors
     console.log(`Creating ${doctorsData.length} doctors...`);
@@ -154,7 +154,7 @@ router.post("/initialize", async (req, res) => {
       }
     }
 
-    console.log(`✅ Created ${doctorCount} doctors`);
+    console.log(`Created ${doctorCount} doctors`);
 
     results.summary = {
       totalDoctors: doctorCount,

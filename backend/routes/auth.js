@@ -306,7 +306,7 @@ router.get('/google/callback', async (req, res) => {
 
     // Exchange authorization code for tokens
     const { tokens } = await oauth2Client.getToken(code);
-    console.log('✅ Successfully exchanged code for tokens');
+    console.log('Successfully exchanged code for tokens');
     console.log('   Access token:', tokens.access_token ? 'Present' : 'Missing');
     console.log('   Refresh token:', tokens.refresh_token ? 'Present' : 'Missing');
     console.log('   Expiry date:', tokens.expiry_date);
@@ -356,7 +356,7 @@ router.get('/google/callback', async (req, res) => {
 
     await user.save();
     
-    console.log('✅ Google Calendar connected successfully for user:', user.email);
+    console.log('Google Calendar connected successfully for user:', user.email);
     console.log('   Calendar ID stored:', calendarId);
     console.log('   Tokens saved to database');
 

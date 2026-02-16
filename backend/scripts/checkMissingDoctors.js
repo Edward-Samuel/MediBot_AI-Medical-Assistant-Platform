@@ -28,11 +28,11 @@ const ALL_SPECIALIZATIONS = [
 
 async function checkMissingDoctors() {
   try {
-    console.log('🔍 Checking for missing doctor specializations...\n');
+    console.log('Checking for missing doctor specializations...\n');
     
     // Connect to MongoDB
     await mongoose.connect(process.env.MONGODB_URI);
-    console.log('✅ Connected to MongoDB\n');
+    console.log('Connected to MongoDB\n');
 
     // Get count by specialization
     const doctorsBySpec = await Doctor.aggregate([
@@ -59,7 +59,7 @@ async function checkMissingDoctors() {
       
       const status = count === 0 ? '❌ MISSING' : 
                      count < 4 ? `⚠️  ${count} (need ${4 - count} more)` : 
-                     `✅ ${count}`;
+                     `${count}`;
       
       console.log(`${spec.padEnd(25)}${status}`);
       
@@ -88,7 +88,7 @@ async function checkMissingDoctors() {
     }
 
     if (missingSpecs.length === 0 && lowCountSpecs.length === 0) {
-      console.log('✅ All specializations have adequate doctor coverage!\n');
+      console.log('All specializations have adequate doctor coverage!\n');
     } else {
       console.log('💡 Recommendation: Run the addMissingDoctors.js script to add missing doctors\n');
     }
