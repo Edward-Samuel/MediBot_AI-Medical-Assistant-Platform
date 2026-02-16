@@ -44,7 +44,7 @@ router.post('/book', authenticateToken, async (req, res) => {
     }
 
     // Find patient profile
-    const patient = await Patient.findOne({ userId: req.user._id });
+    const patient = await Patient.findOne({ userId: req.user._id }).populate('userId');
     if (!patient) {
       return res.status(404).json({ message: 'Patient profile not found' });
     }
