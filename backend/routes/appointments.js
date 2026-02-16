@@ -94,6 +94,11 @@ router.post('/book', authenticateToken, async (req, res) => {
 
     // CRM & Calendar Integration
     try {
+      console.log('📅 Starting calendar integration for appointment');
+      console.log('   User ID:', req.user._id);
+      console.log('   User email:', req.user.email);
+      console.log('   Calendar connected:', req.user.googleCalendar?.connected);
+      
       // Create Google Calendar event
       const googleCalendar = require('../services/googleCalendar');
       
@@ -109,7 +114,20 @@ router.post('/book', authenticateToken, async (req, res) => {
         symptoms: symptoms || []
       };
 
+      console.log('📅 Event details prepared:', {
+        patientName: eventDetails.patientName,
+        doctorName: eventDetails.doctorName,
+        dateTime: eventDetails.dateTime
+      });
+
       const calendarResult = await googleCalendar.safeCreateEvent(eventDetails, req.user._id);
+
+      console.log('📅 Calendar result:', {
+        eventId: calendarResult.eventId,
+        eventLink: calendarResult.eventLink,
+        meetingLink: calendarResult.meetingLink,
+        error: calendarResult.error
+      });
 
       if (calendarResult.eventId) {
         appointment.googleCalendarEventId = calendarResult.eventId;
@@ -117,9 +135,13 @@ router.post('/book', authenticateToken, async (req, res) => {
           appointment.googleMeetLink = calendarResult.meetingLink;
         }
         await appointment.save();
+        console.log('✅ Calendar event saved to appointment');
+      } else {
+        console.log('⚠️ Calendar event not created:', calendarResult.error);
       }
     } catch (calendarError) {
-      console.error('Calendar sync error:', calendarError);
+      console.error('❌ Calendar sync error:', calendarError.message);
+      console.error('   Full error:', calendarError);
       // Don't fail the booking if calendar sync fails
     }
 
