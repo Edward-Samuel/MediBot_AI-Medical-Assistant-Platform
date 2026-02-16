@@ -1361,7 +1361,7 @@ router.post("/book-appointment", async (req, res) => {
     // Get doctor details
     const doctor = await Doctor.findById(doctorId).populate(
       "userId",
-      "profile email",
+      "profile email googleCalendar",
     );
     if (!doctor) {
       return res.status(404).json({ message: "Doctor not found" });
@@ -1417,6 +1417,20 @@ router.post("/book-appointment", async (req, res) => {
     try {
       const googleCalendar = require("../services/googleCalendar");
 
+      // Debug logging
+      console.log("🔍 DEBUG - Doctor object:", {
+        hasUserId: !!doctor.userId,
+        userIdEmail: doctor.userId?.email,
+        hasGoogleCalendar: !!doctor.userId?.googleCalendar,
+        googleCalendarId: doctor.userId?.googleCalendar?.calendarId
+      });
+      
+      console.log("🔍 DEBUG - Patient object:", {
+        hasGoogleCalendar: !!patientUser.googleCalendar,
+        googleCalendarId: patientUser.googleCalendar?.calendarId,
+        email: patientUser.email
+      });
+
       // Get the connected Google Calendar email for the patient
       const connectedPatientEmail = patientUser.googleCalendar?.calendarId || patientUser.email;
       
@@ -1436,8 +1450,9 @@ router.post("/book-appointment", async (req, res) => {
       };
 
       console.log("🗓️  Attempting to create calendar event...");
-      console.log("   Patient email:", calendarData.patientEmail, "(Connected calendar:", connectedPatientEmail, ")");
-      console.log("   Doctor email:", calendarData.doctorEmail, "(Connected calendar:", connectedDoctorEmail, ")");
+      console.log("   Patient email:", calendarData.patientEmail);
+      console.log("   Doctor email:", calendarData.doctorEmail);
+      console.log("   Full calendar data:", JSON.stringify(calendarData, null, 2));
       
       const calendarResult = await googleCalendar.safeCreateEvent(calendarData, userId);
 

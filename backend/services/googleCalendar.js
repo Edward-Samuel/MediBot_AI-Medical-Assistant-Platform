@@ -416,6 +416,20 @@ class GoogleCalendarService {
       const endTime = new Date(startTime.getTime() + duration * 60000);
 
       console.log(`📅 Event details: ${patientName} with ${doctorName} at ${startTime.toISOString()}`);
+      console.log(`📧 Attendee emails - Patient: ${patientEmail}, Doctor: ${doctorEmail}`);
+
+      // Validate emails before creating event
+      if (!patientEmail || !doctorEmail) {
+        throw new Error(`Missing attendee email. Patient: ${patientEmail || 'MISSING'}, Doctor: ${doctorEmail || 'MISSING'}`);
+      }
+
+      // Filter out any undefined/null emails and create attendees array
+      const attendees = [
+        patientEmail && { email: patientEmail },
+        doctorEmail && { email: doctorEmail }
+      ].filter(Boolean);
+
+      console.log(`📧 Attendees array:`, JSON.stringify(attendees));
 
       const event = {
         summary: `Medical Appointment: ${patientName} with ${doctorName}`,
@@ -436,10 +450,7 @@ class GoogleCalendarService {
           dateTime: endTime.toISOString(),
           timeZone: process.env.TIMEZONE || "Asia/Kolkata",
         },
-        attendees: [
-          { email: patientEmail },
-          { email: doctorEmail }
-        ],
+        attendees: attendees,
         reminders: {
           useDefault: false,
           overrides: [
