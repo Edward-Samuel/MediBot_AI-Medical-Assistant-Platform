@@ -67,11 +67,15 @@ router.post('/create-event', authenticateToken, async (req, res) => {
     }
 
     // Create calendar event using user's OAuth tokens
+    // Use connected Google Calendar email if available
+    const connectedPatientEmail = appointment.patientId.userId.googleCalendar?.calendarId || appointment.patientId.userId.email;
+    const connectedDoctorEmail = appointment.doctorId.userId.googleCalendar?.calendarId || appointment.doctorId.userId.email;
+    
     const eventData = {
       patientName: `${appointment.patientId.userId.profile.firstName} ${appointment.patientId.userId.profile.lastName}`,
-      patientEmail: appointment.patientId.userId.email,
+      patientEmail: connectedPatientEmail,
       doctorName: `Dr. ${appointment.doctorId.userId.profile.firstName} ${appointment.doctorId.userId.profile.lastName}`,
-      doctorEmail: appointment.doctorId.userId.email,
+      doctorEmail: connectedDoctorEmail,
       dateTime: appointment.dateTime,
       duration: appointment.duration,
       appointmentType: appointment.type,

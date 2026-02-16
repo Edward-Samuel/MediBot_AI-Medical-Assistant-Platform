@@ -313,11 +313,15 @@ Examples:
       try {
         const googleCalendar = require('./googleCalendar');
         
+        // Use connected Google Calendar email if available
+        const connectedPatientEmail = patient.userId.googleCalendar?.calendarId || patient.userId.email;
+        const connectedDoctorEmail = doctor.userId.googleCalendar?.calendarId || doctor.userId.email;
+        
         const eventDetails = {
           patientName: `${patient.userId.profile.firstName} ${patient.userId.profile.lastName}`,
-          patientEmail: patient.userId.email,
+          patientEmail: connectedPatientEmail,
           doctorName: `${doctor.userId.profile.firstName} ${doctor.userId.profile.lastName}`,
-          doctorEmail: doctor.userId.email,
+          doctorEmail: connectedDoctorEmail,
           dateTime: appointmentDate,
           duration: 30,
           appointmentType: appointmentData.appointmentType || 'consultation',

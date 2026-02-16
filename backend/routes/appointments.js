@@ -98,15 +98,20 @@ router.post('/book', authenticateToken, async (req, res) => {
       console.log('   User ID:', req.user._id);
       console.log('   User email:', req.user.email);
       console.log('   Calendar connected:', req.user.googleCalendar?.connected);
+      console.log('   Connected calendar email:', req.user.googleCalendar?.calendarId);
       
       // Create Google Calendar event
       const googleCalendar = require('../services/googleCalendar');
       
+      // Use connected Google Calendar email if available, otherwise fall back to registration email
+      const connectedPatientEmail = patient.userId.googleCalendar?.calendarId || patient.userId.email;
+      const connectedDoctorEmail = doctor.userId.googleCalendar?.calendarId || doctor.userId.email;
+      
       const eventDetails = {
         patientName: `${patient.userId.profile.firstName} ${patient.userId.profile.lastName}`,
-        patientEmail: patient.userId.email,
+        patientEmail: connectedPatientEmail,
         doctorName: `${doctor.userId.profile.firstName} ${doctor.userId.profile.lastName}`,
-        doctorEmail: doctor.userId.email,
+        doctorEmail: connectedDoctorEmail,
         dateTime: appointmentDate,
         duration: 30,
         appointmentType: type,
@@ -116,7 +121,9 @@ router.post('/book', authenticateToken, async (req, res) => {
 
       console.log('📅 Event details prepared:', {
         patientName: eventDetails.patientName,
+        patientEmail: eventDetails.patientEmail,
         doctorName: eventDetails.doctorName,
+        doctorEmail: eventDetails.doctorEmail,
         dateTime: eventDetails.dateTime
       });
 
