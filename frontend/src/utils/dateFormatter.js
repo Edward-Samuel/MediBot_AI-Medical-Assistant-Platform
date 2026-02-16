@@ -29,20 +29,36 @@ export const formatDate = (dateString) => {
 /**
  * Format date and time to DD/MM/YYYY HH:MM
  * @param {string|Date} dateString - Date to format
+ * @param {string} timezone - Optional timezone (e.g., 'America/New_York'). Defaults to local timezone
  * @returns {string} Formatted date and time string
  */
-export const formatDateTime = (dateString) => {
+export const formatDateTime = (dateString, timezone = undefined) => {
   if (!dateString) return 'N/A';
   
   try {
     const date = new Date(dateString);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
     
-    return `${day}/${month}/${year} ${hours}:${minutes}`;
+    // Use Intl.DateTimeFormat for consistent timezone handling
+    const options = {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      timeZone: timezone
+    };
+    
+    const formatter = new Intl.DateTimeFormat('en-GB', options);
+    const parts = formatter.formatToParts(date);
+    
+    const day = parts.find(p => p.type === 'day').value;
+    const month = parts.find(p => p.type === 'month').value;
+    const year = parts.find(p => p.type === 'year').value;
+    const hour = parts.find(p => p.type === 'hour').value;
+    const minute = parts.find(p => p.type === 'minute').value;
+    
+    return `${day}/${month}/${year} ${hour}:${minute}`;
   } catch (error) {
     console.error('Error formatting date time:', error);
     return 'Invalid Date';
@@ -73,17 +89,25 @@ export const formatDateWithMonth = (dateString) => {
 /**
  * Format time only (HH:MM)
  * @param {string|Date} dateString - Date to format
+ * @param {string} timezone - Optional timezone (e.g., 'America/New_York'). Defaults to local timezone
  * @returns {string} Formatted time string
  */
-export const formatTime = (dateString) => {
+export const formatTime = (dateString, timezone = undefined) => {
   if (!dateString) return 'N/A';
   
   try {
     const date = new Date(dateString);
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
     
-    return `${hours}:${minutes}`;
+    // Use Intl.DateTimeFormat for consistent timezone handling
+    const options = {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      timeZone: timezone
+    };
+    
+    const formatter = new Intl.DateTimeFormat('en-GB', options);
+    return formatter.format(date);
   } catch (error) {
     console.error('Error formatting time:', error);
     return 'Invalid Time';
@@ -136,7 +160,7 @@ export const getRelativeTime = (dateString) => {
   }
 };
 
-export default {
+const dateFormatter = {
   formatDate,
   formatDateTime,
   formatDateWithMonth,
@@ -144,3 +168,5 @@ export default {
   formatDateForInput,
   getRelativeTime
 };
+
+export default dateFormatter;
