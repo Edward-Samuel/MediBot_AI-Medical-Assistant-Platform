@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import { Stethoscope, Users } from 'lucide-react';
+import { SPECIALIZATIONS } from '../../constants/specializations';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -19,12 +20,6 @@ const Register = () => {
   });
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
-
-  const specializations = [
-    'General Medicine', 'Cardiology', 'Dermatology', 'Endocrinology',
-    'Gastroenterology', 'Neurology', 'Oncology', 'Orthopedics',
-    'Pediatrics', 'Psychiatry', 'Pulmonology', 'Surgery'
-  ];
 
   const handleChange = (e) => {
     setFormData({
@@ -178,7 +173,7 @@ const Register = () => {
                   onChange={handleChange}
                 >
                   <option value="">Select Specialization</option>
-                  {specializations.map(spec => (
+                  {SPECIALIZATIONS.map(spec => (
                     <option key={spec} value={spec}>{spec}</option>
                   ))}
                 </select>

@@ -3,37 +3,15 @@ import { Search, Star, Clock, User, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../../config/axios';
 import toast from 'react-hot-toast';
+import { SPECIALIZATIONS_WITH_ALL } from '../../constants/specializations';
 
 const DoctorList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSpecialization, setSelectedSpecialization] = useState('');
-  const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const navigate = useNavigate();
-
-  const specializations = [
-    'All Specializations',
-    'General Medicine',
-    'Cardiology',
-    'Dermatology',
-    'Endocrinology',
-    'Gastroenterology',
-    'Neurology',
-    'Oncology',
-    'Orthopedics',
-    'Pediatrics',
-    'Psychiatry',
-    'Pulmonology',
-    'Radiology',
-    'Surgery',
-    'Urology',
-    'Gynecology',
-    'Ophthalmology',
-    'ENT',
-    'Emergency Medicine'
-  ];
 
   // Fetch doctors from API
   const fetchDoctors = async (page = 1, specialization = '', search = '') => {
@@ -138,7 +116,7 @@ const DoctorList = () => {
               value={selectedSpecialization}
               onChange={(e) => handleSpecializationChange(e.target.value)}
             >
-              {specializations.map(spec => (
+              {SPECIALIZATIONS_WITH_ALL.map(spec => (
                 <option key={spec} value={spec}>{spec}</option>
               ))}
             </select>
