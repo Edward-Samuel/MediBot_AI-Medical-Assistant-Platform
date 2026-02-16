@@ -95,20 +95,28 @@ router.post('/book', authenticateToken, async (req, res) => {
     // CRM & Calendar Integration
     try {
       // Create Google Calendar event
-      const googleCalendar = require('../services/googleCalendar');
+      const GoogleCalendarService = require('../services/googleCalendar');
+      const googleCalendar = new GoogleCalendarService();
+      
       const eventDetails = {
-        summary: `Appointment with Dr. ${doctor.userId.profile.firstName} ${doctor.userId.profile.lastName}`,
-        description: `Type: ${type}\nSymptoms: ${symptoms.join(', ')}\nNotes: ${chiefComplaint || 'None'}`,
-        startTime: appointmentDate,
-        endTime: new Date(appointmentDate.getTime() + 30 * 60000), // 30 min duration
-        attendees: [patient.userId.email, doctor.userId.email].filter(Boolean)
+        patientName: `${patient.userId.profile.firstName} ${patient.userId.profile.lastName}`,
+        patientEmail: patient.userId.email,
+        doctorName: `${doctor.userId.profile.firstName} ${doctor.userId.profile.lastName}`,
+        doctorEmail: doctor.userId.email,
+        dateTime: appointmentDate,
+        duration: 30,
+        appointmentType: type,
+        chiefComplaint: chiefComplaint || '',
+        symptoms: symptoms || []
       };
 
       const calendarResult = await googleCalendar.safeCreateEvent(eventDetails, req.user._id);
 
       if (calendarResult.eventId) {
         appointment.googleCalendarEventId = calendarResult.eventId;
-        appointment.googleMeetLink = calendarResult.meetingLink;
+        if (calendarResult.meetingLink) {
+          appointment.googleMeetLink = calendarResult.meetingLink;
+        }
         await appointment.save();
       }
     } catch (calendarError) {

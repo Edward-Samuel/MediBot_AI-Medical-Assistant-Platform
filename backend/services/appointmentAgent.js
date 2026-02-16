@@ -261,7 +261,7 @@ Examples:
   async bookAppointment(userId, doctorId, dateTime, appointmentData) {
     try {
       // Find patient profile
-      const patient = await Patient.findOne({ userId });
+      const patient = await Patient.findOne({ userId }).populate('userId');
       if (!patient) {
         throw new Error('Patient profile not found');
       }
@@ -309,10 +309,41 @@ Examples:
 
       await appointment.save();
 
+      // Create Google Calendar event
+      try {
+        const GoogleCalendarService = require('./googleCalendar');
+        const googleCalendar = new GoogleCalendarService();
+        
+        const eventDetails = {
+          patientName: `${patient.userId.profile.firstName} ${patient.userId.profile.lastName}`,
+          patientEmail: patient.userId.email,
+          doctorName: `${doctor.userId.profile.firstName} ${doctor.userId.profile.lastName}`,
+          doctorEmail: doctor.userId.email,
+          dateTime: appointmentDate,
+          duration: 30,
+          appointmentType: appointmentData.appointmentType || 'consultation',
+          chiefComplaint: appointmentData.chiefComplaint || '',
+          symptoms: appointmentData.symptoms || []
+        };
+
+        const calendarResult = await googleCalendar.safeCreateEvent(eventDetails, userId);
+
+        if (calendarResult.eventId) {
+          appointment.googleCalendarEventId = calendarResult.eventId;
+          if (calendarResult.meetingLink) {
+            appointment.googleMeetLink = calendarResult.meetingLink;
+          }
+          await appointment.save();
+        }
+      } catch (calendarError) {
+        console.error('Calendar sync error:', calendarError);
+        // Don't fail the booking if calendar sync fails
+      }
+
       // Populate appointment details for response
       await appointment.populate([
-        { path: 'patientId', populate: { path: 'userId', select: 'profile' } },
-        { path: 'doctorId', populate: { path: 'userId', select: 'profile' } }
+        { path: 'patientId', populate: { path: 'userId', select: 'profile email' } },
+        { path: 'doctorId', populate: { path: 'userId', select: 'profile email' } }
       ]);
 
       return appointment;
