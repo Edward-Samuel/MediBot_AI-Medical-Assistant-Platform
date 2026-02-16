@@ -108,11 +108,11 @@ async function setupNewServiceAccount() {
         summary: "MEDIBOT Setup Test",
         start: {
           dateTime: new Date().toISOString(),
-          timeZone: process.env.TIMEZONE || "Asia/Kolkata",
+          timeZone: 'UTC',
         },
         end: {
           dateTime: new Date(Date.now() + 60000).toISOString(),
-          timeZone: process.env.TIMEZONE || "Asia/Kolkata",
+          timeZone: 'UTC',
         },
         description:
           "Test event created during MEDIBOT setup - will be deleted",
@@ -159,3 +159,4 @@ async function setupNewServiceAccount() {
 }
 
 setupNewServiceAccount().catch(console.error);
+

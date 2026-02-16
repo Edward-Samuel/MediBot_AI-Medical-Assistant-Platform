@@ -215,6 +215,7 @@ class GoogleCalendarService {
         appointmentType,
         chiefComplaint,
         symptoms = [],
+        timezone = 'UTC'
       } = appointmentData;
 
       const startTime = new Date(dateTime);
@@ -233,11 +234,11 @@ class GoogleCalendarService {
         }),
         start: {
           dateTime: startTime.toISOString(),
-          timeZone: process.env.TIMEZONE || "Asia/Kolkata",
+          timeZone: timezone,
         },
         end: {
           dateTime: endTime.toISOString(),
-          timeZone: process.env.TIMEZONE || "Asia/Kolkata",
+          timeZone: timezone,
         },
         reminders: {
           useDefault: false,
@@ -350,11 +351,11 @@ class GoogleCalendarService {
           summary: "MEDIBOT Connection Test",
           start: {
             dateTime: new Date().toISOString(),
-            timeZone: process.env.TIMEZONE || "Asia/Kolkata",
+            timeZone: timezone,
           },
           end: {
             dateTime: new Date(Date.now() + 60000).toISOString(), // 1 minute duration
-            timeZone: process.env.TIMEZONE || "Asia/Kolkata",
+            timeZone: timezone,
           },
           description:
             "This is a test event created by MEDIBOT to verify calendar integration. It will be deleted immediately.",
@@ -410,6 +411,7 @@ class GoogleCalendarService {
         appointmentType,
         chiefComplaint,
         symptoms = [],
+        timezone = 'UTC' // Get timezone from appointment data
       } = appointmentData;
 
       const startTime = new Date(dateTime);
@@ -417,6 +419,7 @@ class GoogleCalendarService {
 
       console.log(`📅 Event details: ${patientName} with ${doctorName} at ${startTime.toISOString()}`);
       console.log(`📧 Attendee emails - Patient: ${patientEmail}, Doctor: ${doctorEmail}`);
+      console.log(`🌍 Using timezone: ${timezone}`);
 
       // Validate emails before creating event
       if (!patientEmail || !doctorEmail) {
@@ -444,11 +447,11 @@ class GoogleCalendarService {
         }),
         start: {
           dateTime: startTime.toISOString(),
-          timeZone: process.env.TIMEZONE || "Asia/Kolkata",
+          timeZone: timezone, // Use user's timezone
         },
         end: {
           dateTime: endTime.toISOString(),
-          timeZone: process.env.TIMEZONE || "Asia/Kolkata",
+          timeZone: timezone, // Use user's timezone
         },
         attendees: attendees,
         reminders: {
@@ -638,6 +641,7 @@ END:VCALENDAR`;
         appointmentType,
         chiefComplaint,
         symptoms = [],
+        timezone = 'UTC'
       } = appointmentData;
 
       const startTime = new Date(dateTime);
@@ -656,11 +660,11 @@ END:VCALENDAR`;
         }),
         start: {
           dateTime: startTime.toISOString(),
-          timeZone: process.env.TIMEZONE || "Asia/Kolkata",
+          timeZone: timezone,
         },
         end: {
           dateTime: endTime.toISOString(),
-          timeZone: process.env.TIMEZONE || "Asia/Kolkata",
+          timeZone: timezone,
         },
         reminders: {
           useDefault: false,
@@ -785,3 +789,5 @@ END:VCALENDAR`;
 }
 
 module.exports = new GoogleCalendarService();
+
+

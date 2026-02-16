@@ -1320,13 +1320,16 @@ router.get("/status", async (req, res) => {
 // Confirm appointment booking from chat
 router.post("/book-appointment", async (req, res) => {
   try {
-    const { doctorId, dateTime, appointmentData, bookingId } = req.body;
+    const { doctorId, dateTime, appointmentData, bookingId, timezone } = req.body;
 
     if (!doctorId || !dateTime) {
       return res
         .status(400)
         .json({ message: "Doctor ID and date/time are required" });
     }
+
+    // Store user's timezone for calendar events
+    const userTimezone = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 
     // Get user from token
     const token = req.headers.authorization?.replace("Bearer ", "");
@@ -1445,6 +1448,10 @@ router.post("/book-appointment", async (req, res) => {
         dateTime: savedAppointment.dateTime,
         duration: savedAppointment.duration,
         appointmentType: savedAppointment.type,
+        chiefComplaint: savedAppointment.chiefComplaint,
+        symptoms: savedAppointment.symptoms,
+        timezone: userTimezone // Pass user's timezone
+      };
         chiefComplaint: savedAppointment.chiefComplaint,
         symptoms: savedAppointment.symptoms,
       };
