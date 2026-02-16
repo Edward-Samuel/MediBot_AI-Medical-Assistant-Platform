@@ -22,8 +22,8 @@ class GoogleCalendarService {
 
   // Get OAuth client for a specific user
   async getUserOAuthClient(userId) {
-    if (!this.oauth2Client) {
-      throw new Error('OAuth client not configured');
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+      throw new Error('OAuth client not configured - missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET');
     }
 
     const user = await User.findById(userId);
@@ -31,32 +31,39 @@ class GoogleCalendarService {
       throw new Error('User calendar not connected');
     }
 
+    // Create a new OAuth2 client instance for this user
+    const userOAuthClient = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_REDIRECT_URI
+    );
+
     // Check if token is expired and refresh if needed
     const now = Date.now();
     if (user.googleCalendar.expiryDate && user.googleCalendar.expiryDate < now) {
       // Token expired, refresh it
-      this.oauth2Client.setCredentials({
+      userOAuthClient.setCredentials({
         refresh_token: user.googleCalendar.refreshToken
       });
 
-      const { credentials } = await this.oauth2Client.refreshAccessToken();
+      const { credentials } = await userOAuthClient.refreshAccessToken();
 
       // Update user with new tokens
       user.googleCalendar.accessToken = credentials.access_token;
       user.googleCalendar.expiryDate = credentials.expiry_date;
       await user.save();
 
-      this.oauth2Client.setCredentials(credentials);
+      userOAuthClient.setCredentials(credentials);
     } else {
       // Token still valid
-      this.oauth2Client.setCredentials({
+      userOAuthClient.setCredentials({
         access_token: user.googleCalendar.accessToken,
         refresh_token: user.googleCalendar.refreshToken,
         expiry_date: user.googleCalendar.expiryDate
       });
     }
 
-    return this.oauth2Client;
+    return userOAuthClient;
   }
 
   async initialize() {
@@ -389,6 +396,7 @@ class GoogleCalendarService {
   // Create calendar event using user's OAuth tokens
   async createUserCalendarEvent(appointmentData, userId) {
     try {
+      console.log(`📅 Creating calendar event for user ${userId}`);
       const auth = await this.getUserOAuthClient(userId);
       const calendar = google.calendar({ version: "v3", auth });
 
@@ -406,6 +414,8 @@ class GoogleCalendarService {
 
       const startTime = new Date(dateTime);
       const endTime = new Date(startTime.getTime() + duration * 60000);
+
+      console.log(`📅 Event details: ${patientName} with ${doctorName} at ${startTime.toISOString()}`);
 
       const event = {
         summary: `Medical Appointment: ${patientName} with ${doctorName}`,
@@ -454,7 +464,9 @@ class GoogleCalendarService {
         sendUpdates: "all" // Send email notifications to attendees
       });
 
-      console.log("User calendar event created successfully:", response.data.id);
+      console.log("✅ User calendar event created successfully:", response.data.id);
+      console.log("📧 Event link:", response.data.htmlLink);
+      
       return {
         eventId: response.data.id,
         eventLink: response.data.htmlLink,
@@ -464,6 +476,7 @@ class GoogleCalendarService {
       };
     } catch (error) {
       console.error("❌ Error creating user calendar event:", error.message);
+      console.error("❌ Full error:", error);
 
       if (error.message.includes('User calendar not connected')) {
         throw new Error('Please connect your Google Calendar first');

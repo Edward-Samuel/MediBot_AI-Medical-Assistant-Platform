@@ -311,8 +311,7 @@ Examples:
 
       // Create Google Calendar event
       try {
-        const GoogleCalendarService = require('./googleCalendar');
-        const googleCalendar = new GoogleCalendarService();
+        const googleCalendar = require('./googleCalendar');
         
         const eventDetails = {
           patientName: `${patient.userId.profile.firstName} ${patient.userId.profile.lastName}`,

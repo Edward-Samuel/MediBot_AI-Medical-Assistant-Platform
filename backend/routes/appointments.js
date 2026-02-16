@@ -95,8 +95,7 @@ router.post('/book', authenticateToken, async (req, res) => {
     // CRM & Calendar Integration
     try {
       // Create Google Calendar event
-      const GoogleCalendarService = require('../services/googleCalendar');
-      const googleCalendar = new GoogleCalendarService();
+      const googleCalendar = require('../services/googleCalendar');
       
       const eventDetails = {
         patientName: `${patient.userId.profile.firstName} ${patient.userId.profile.lastName}`,
