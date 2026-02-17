@@ -164,7 +164,7 @@ Respond with ONLY the JSON object, no other text.`;
   }
 
   /**
-   * Execute cancellation
+   * Execute cancellation - Completely removes appointment from MongoDB and Google Calendar
    */
   async cancelAppointment(appointmentId, reason = null) {
     try {
@@ -182,28 +182,37 @@ Respond with ONLY the JSON object, no other text.`;
         return { success: false, error: 'Cannot cancel completed appointments' };
       }
 
-      // Cancel in Google Calendar
+      // Delete from Google Calendar
+      let calendarDeleted = false;
       if (appointment.googleCalendarEventId) {
         try {
           const googleCalendar = require('./googleCalendar');
-          await googleCalendar.cancelAppointmentEvent(appointment.googleCalendarEventId);
-          console.log('Google Calendar event cancelled');
+          await googleCalendar.deleteAppointmentEvent(appointment.googleCalendarEventId);
+          console.log('Google Calendar event deleted:', appointment.googleCalendarEventId);
+          calendarDeleted = true;
         } catch (calendarError) {
-          console.error('⚠️ Calendar cancellation failed:', calendarError.message);
+          console.error('⚠️ Calendar deletion failed:', calendarError.message);
+          // Continue with MongoDB deletion even if calendar fails
         }
       }
 
-      // Update appointment status
-      appointment.status = 'cancelled';
-      if (reason) {
-        appointment.notes = (appointment.notes || '') + `\nCancellation reason: ${reason}`;
-      }
-      await appointment.save();
+      // Store appointment data before deletion for response
+      const appointmentData = {
+        _id: appointment._id,
+        doctorId: appointment.doctorId,
+        dateTime: appointment.dateTime,
+        type: appointment.type
+      };
+
+      // Delete from MongoDB
+      await Appointment.findByIdAndDelete(appointmentId);
+      console.log('Appointment deleted from MongoDB:', appointmentId);
 
       return { 
         success: true, 
-        appointment,
-        calendarUpdated: !!appointment.googleCalendarEventId
+        appointment: appointmentData,
+        calendarDeleted,
+        deleted: true
       };
 
     } catch (error) {
@@ -245,8 +254,8 @@ Respond with ONLY the JSON object, no other text.`;
         multipleFound: "I found multiple appointments. Please specify which one:\n",
         confirmCancel: "I found your appointment:\n\n**Doctor:** {doctorName}\n**Specialization:** {specialization}\n**Date:** {date}\n**Time:** {time}\n\nAre you sure you want to cancel this appointment? Please confirm by saying 'yes'.",
         confirmCancelAll: "You have {count} upcoming appointments:\n\n{list}\n\nAre you sure you want to cancel ALL of them? Please confirm by saying 'yes to all'.",
-        success: "**Appointment Cancelled Successfully!**\n\n**Doctor:** {doctorName}\n**Date & Time:** {dateTime}\n\nYour Google Calendar has been updated. If you need to book a new appointment, just let me know!",
-        successMultiple: "**{count} Appointments Cancelled Successfully!**\n\nYour Google Calendar has been updated. If you need to book new appointments, just let me know!",
+        success: "**Appointment Cancelled and Removed Successfully!**\n\n**Doctor:** {doctorName}\n**Date & Time:** {dateTime}\n\nThe appointment has been completely removed from both the system and your Google Calendar. If you need to book a new appointment, just let me know!",
+        successMultiple: "**{count} Appointments Cancelled and Removed Successfully!**\n\nAll appointments have been completely removed from both the system and your Google Calendar. If you need to book new appointments, just let me know!",
         alreadyCancelled: "This appointment is already cancelled.",
         error: "I encountered an error while trying to cancel your appointment. Please try again or contact support."
       }

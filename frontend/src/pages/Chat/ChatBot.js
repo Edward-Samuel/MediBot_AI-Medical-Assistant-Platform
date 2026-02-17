@@ -27,6 +27,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import ChatHistory from "../../components/Chat/ChatHistory";
 import AppointmentBookingWidget from "../../components/Chat/AppointmentBookingWidget";
 import AppointmentSelectionWidget from "../../components/Chat/AppointmentSelectionWidget";
+import RescheduleWidget from "../../components/Chat/RescheduleWidget";
 
 const ChatBot = () => {
   const { t, getCurrentLanguageInfo, currentLanguage } = useLanguage();
@@ -75,6 +76,8 @@ const ChatBot = () => {
   const [appointmentData, setAppointmentData] = useState(null);
   const [showAppointmentSelection, setShowAppointmentSelection] = useState(false);
   const [appointmentSelectionMode, setAppointmentSelectionMode] = useState(null); // 'reschedule' or 'cancel'
+  const [showRescheduleWidget, setShowRescheduleWidget] = useState(false);
+  const [selectedAppointmentToReschedule, setSelectedAppointmentToReschedule] = useState(null);
   const [webSearchMode, setWebSearchMode] = useState(false);
   const [webSearchStatus, setWebSearchStatus] = useState({
     available: true, // Always available
@@ -1242,24 +1245,41 @@ const ChatBot = () => {
       const cancelMessage = {
         id: Date.now() + 2,
         role: "bot",
-        content: `**Appointment Cancelled Successfully!**\n\n**Doctor:** ${result.appointment.doctorId?.name || 'Doctor'}\n**Date & Time:** ${new Date(result.appointment.dateTime).toLocaleString()}\n\nYour Google Calendar has been updated. If you need to book a new appointment, just let me know!`,
+        content: `✅ **Appointment Cancelled Successfully!**\n\n**Doctor:** ${result.appointment.doctorId?.name || 'Doctor'}\n**Date & Time:** ${new Date(result.appointment.dateTime).toLocaleString()}\n\nYour Google Calendar has been updated. If you need to book a new appointment, just let me know!`,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, cancelMessage]);
+      setAppointmentSelectionMode(null);
+      setAppointmentData(null);
     } else if (appointmentSelectionMode === 'reschedule') {
-      // For reschedule, we need to show a date/time picker or ask for new time
-      // For now, let's add a message asking for the new time
-      const rescheduleMessage = {
-        id: Date.now() + 2,
-        role: "bot",
-        content: `I've selected your appointment with **${result.doctorId?.name || 'Doctor'}** on ${new Date(result.dateTime).toLocaleDateString()}.\n\nPlease provide the new date and time you'd like to reschedule to. For example: "Reschedule to tomorrow at 2pm" or "Change to February 25 at 10:30am"`,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, rescheduleMessage]);
+      // For reschedule, show the date/time picker widget
+      setSelectedAppointmentToReschedule(result);
+      setShowRescheduleWidget(true);
+      setAppointmentSelectionMode(null);
+      setAppointmentData(null);
     }
+  };
+
+  const handleRescheduleWidgetClose = () => {
+    setShowRescheduleWidget(false);
+    setSelectedAppointmentToReschedule(null);
+  };
+
+  const handleRescheduleComplete = (result) => {
+    setShowRescheduleWidget(false);
+    setSelectedAppointmentToReschedule(null);
     
-    setAppointmentSelectionMode(null);
-    setAppointmentData(null);
+    const oldDateTime = new Date(result.oldDateTime).toLocaleString();
+    const newDateTime = new Date(result.newDateTime).toLocaleString();
+    
+    const rescheduleMessage = {
+      id: Date.now() + 2,
+      role: "bot",
+      content: `✅ **Appointment Rescheduled Successfully!**\n\n**Doctor:** ${result.appointment.doctorId?.name || 'Doctor'}\n**Old Date & Time:** ${oldDateTime}\n**New Date & Time:** ${newDateTime}\n\nYour Google Calendar has been updated. You will receive a confirmation email shortly.`,
+      timestamp: new Date(),
+    };
+    
+    setMessages((prev) => [...prev, rescheduleMessage]);
   };
 
   return (
@@ -1866,6 +1886,19 @@ const ChatBot = () => {
               mode={appointmentSelectionMode}
               onClose={handleAppointmentSelectionClose}
               onConfirm={handleAppointmentSelectionConfirm}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Reschedule Widget Overlay (date/time picker) */}
+      {showRescheduleWidget && selectedAppointmentToReschedule && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <RescheduleWidget
+              appointment={selectedAppointmentToReschedule}
+              onClose={handleRescheduleWidgetClose}
+              onRescheduleComplete={handleRescheduleComplete}
             />
           </div>
         </div>

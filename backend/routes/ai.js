@@ -1835,70 +1835,76 @@ router.put("/appointments/:appointmentId/cancel", async (req, res) => {
       });
     }
 
-    // Cancel Google Calendar event if it exists (with fallback handling)
-    let calendarCancellationStatus = "not_applicable";
-    let calendarCancellationMessage = "";
+    // Delete from Google Calendar if event exists
+    let calendarDeletionStatus = "not_applicable";
+    let calendarDeletionMessage = "";
 
     if (appointment.googleCalendarEventId) {
       try {
         const googleCalendar = require("../services/googleCalendar");
-        await googleCalendar.cancelAppointmentEvent(
+        await googleCalendar.deleteAppointmentEvent(
           appointment.googleCalendarEventId,
         );
-        calendarCancellationStatus = "success";
-        calendarCancellationMessage = "Calendar event cancelled successfully";
+        calendarDeletionStatus = "success";
+        calendarDeletionMessage = "Calendar event deleted successfully";
         console.log(
-          "Calendar event cancelled:",
+          "Calendar event deleted:",
           appointment.googleCalendarEventId,
         );
       } catch (calendarError) {
-        console.error("Calendar cancellation failed:", calendarError.message);
-        calendarCancellationStatus = "failed";
+        console.error("Calendar deletion failed:", calendarError.message);
+        calendarDeletionStatus = "failed";
 
         if (
           calendarError.message.includes("Not Found") ||
           calendarError.message.includes("404")
         ) {
-          calendarCancellationMessage =
+          calendarDeletionMessage =
             "Calendar event may have been already removed or not found";
         } else if (
           calendarError.message.includes("quota") ||
           calendarError.message.includes("429")
         ) {
-          calendarCancellationMessage =
+          calendarDeletionMessage =
             "Calendar service temporarily unavailable - please manually remove from calendar";
         } else {
-          calendarCancellationMessage =
-            "Calendar event cancellation failed - please manually remove from calendar";
+          calendarDeletionMessage =
+            "Calendar event deletion failed - please manually remove from calendar";
         }
 
-        // Don't fail the appointment cancellation if calendar fails
-        // The appointment cancellation is still valid
+        // Continue with MongoDB deletion even if calendar fails
       }
     } else {
-      calendarCancellationMessage =
+      calendarDeletionMessage =
         "No calendar event was associated with this appointment";
     }
 
-    appointment.status = "cancelled";
-    await appointment.save();
+    // Store appointment data before deletion
+    const appointmentData = {
+      id: appointment._id,
+      doctorId: appointment.doctorId,
+      dateTime: appointment.dateTime,
+      type: appointment.type
+    };
+
+    // Delete from MongoDB
+    await Appointment.findByIdAndDelete(appointment._id);
+    console.log("Appointment deleted from MongoDB:", appointment._id);
 
     // Generate appropriate response message
-    let responseMessage = "Appointment cancelled successfully";
-    if (calendarCancellationStatus === "failed") {
+    let responseMessage = "Appointment cancelled and removed successfully";
+    if (calendarDeletionStatus === "failed") {
       responseMessage += " (please manually remove from calendar)";
     }
 
     res.json({
       message: responseMessage,
-      appointment: {
-        id: appointment._id,
-        status: appointment.status,
-      },
+      appointment: appointmentData,
+      deleted: true,
       calendarIntegration: {
-        status: calendarCancellationStatus,
-        message: calendarCancellationMessage,
-        fallbackUsed: calendarCancellationStatus === "failed",
+        status: calendarDeletionStatus,
+        message: calendarDeletionMessage,
+        fallbackUsed: calendarDeletionStatus === "failed",
       },
     });
   } catch (error) {

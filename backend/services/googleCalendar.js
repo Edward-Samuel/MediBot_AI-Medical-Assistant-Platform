@@ -714,6 +714,11 @@ END:VCALENDAR`;
     }
   }
 
+  // Alias for deleteAppointmentEvent - both methods delete the event
+  async deleteAppointmentEvent(eventId) {
+    return this.cancelAppointmentEvent(eventId);
+  }
+
   async getAvailableSlots(doctorEmail, startDate, endDate) {
     if (!this.initialized) {
       const initialized = await this.initialize();
