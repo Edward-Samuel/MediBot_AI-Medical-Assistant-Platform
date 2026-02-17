@@ -249,7 +249,10 @@ router.patch('/:id/status', authenticateToken, async (req, res) => {
       return res.status(400).json({ message: 'Invalid status' });
     }
 
-    const appointment = await Appointment.findById(req.params.id);
+    const appointment = await Appointment.findById(req.params.id)
+      .populate('doctorId')
+      .populate('patientId');
+      
     if (!appointment) {
       return res.status(404).json({ message: 'Appointment not found' });
     }
@@ -257,12 +260,12 @@ router.patch('/:id/status', authenticateToken, async (req, res) => {
     // Check permissions
     if (req.user.role === 'doctor') {
       const doctor = await Doctor.findOne({ userId: req.user._id });
-      if (appointment.doctorId.toString() !== doctor._id.toString()) {
+      if (appointment.doctorId._id.toString() !== doctor._id.toString()) {
         return res.status(403).json({ message: 'Access denied' });
       }
     } else if (req.user.role === 'patient') {
       const patient = await Patient.findOne({ userId: req.user._id });
-      if (appointment.patientId.toString() !== patient._id.toString()) {
+      if (appointment.patientId._id.toString() !== patient._id.toString()) {
         return res.status(403).json({ message: 'Access denied' });
       }
       // Patients can only cancel appointments
@@ -271,14 +274,103 @@ router.patch('/:id/status', authenticateToken, async (req, res) => {
       }
     }
 
+    const oldStatus = appointment.status;
     appointment.status = status;
     await appointment.save();
 
-    res.json({ message: 'Appointment status updated', appointment });
+    // If appointment is being cancelled, update Google Calendar
+    if (status === 'cancelled' && appointment.googleCalendarEventId) {
+      try {
+        console.log('Cancelling Google Calendar event:', appointment.googleCalendarEventId);
+        const googleCalendar = require('../services/googleCalendar');
+        
+        await googleCalendar.cancelAppointmentEvent(appointment.googleCalendarEventId);
+        console.log('✅ Google Calendar event cancelled successfully');
+      } catch (calendarError) {
+        console.error('⚠️ Failed to cancel Google Calendar event:', calendarError.message);
+        // Don't fail the cancellation if calendar update fails
+      }
+    }
+
+    res.json({ 
+      message: 'Appointment status updated', 
+      appointment,
+      oldStatus,
+      calendarUpdated: status === 'cancelled' && appointment.googleCalendarEventId
+    });
 
   } catch (error) {
     console.error('Update status error:', error);
     res.status(500).json({ message: 'Error updating appointment status' });
+  }
+});
+
+// Cancel appointment (dedicated endpoint)
+router.delete('/:id', authenticateToken, async (req, res) => {
+  try {
+    const appointment = await Appointment.findById(req.params.id)
+      .populate('doctorId')
+      .populate('patientId');
+
+    if (!appointment) {
+      return res.status(404).json({ message: 'Appointment not found' });
+    }
+
+    // Check permissions - only patient can cancel their own appointments
+    if (req.user.role === 'patient') {
+      const patient = await Patient.findOne({ userId: req.user._id });
+      if (appointment.patientId._id.toString() !== patient._id.toString()) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+    } else if (req.user.role === 'doctor') {
+      const doctor = await Doctor.findOne({ userId: req.user._id });
+      if (appointment.doctorId._id.toString() !== doctor._id.toString()) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+    } else {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    // Check if appointment can be cancelled
+    if (appointment.status === 'completed') {
+      return res.status(400).json({ 
+        message: 'Cannot cancel completed appointments' 
+      });
+    }
+
+    if (appointment.status === 'cancelled') {
+      return res.status(400).json({ 
+        message: 'Appointment is already cancelled' 
+      });
+    }
+
+    // Cancel in Google Calendar first
+    if (appointment.googleCalendarEventId) {
+      try {
+        console.log('Cancelling Google Calendar event:', appointment.googleCalendarEventId);
+        const googleCalendar = require('../services/googleCalendar');
+        
+        await googleCalendar.cancelAppointmentEvent(appointment.googleCalendarEventId);
+        console.log('✅ Google Calendar event cancelled successfully');
+      } catch (calendarError) {
+        console.error('⚠️ Failed to cancel Google Calendar event:', calendarError.message);
+        // Continue with database cancellation even if calendar fails
+      }
+    }
+
+    // Update status to cancelled instead of deleting
+    appointment.status = 'cancelled';
+    await appointment.save();
+
+    res.json({ 
+      message: 'Appointment cancelled successfully',
+      appointment,
+      calendarUpdated: !!appointment.googleCalendarEventId
+    });
+
+  } catch (error) {
+    console.error('Cancel appointment error:', error);
+    res.status(500).json({ message: 'Error cancelling appointment' });
   }
 });
 
@@ -411,5 +503,170 @@ function generateTimeSlots(startTime, endTime, duration, existingAppointments, d
 
   return slots;
 }
+
+// Reschedule appointment
+router.patch('/:id/reschedule', authenticateToken, async (req, res) => {
+  try {
+    const { newDateTime } = req.body;
+
+    if (!newDateTime) {
+      return res.status(400).json({ message: 'New date and time are required' });
+    }
+
+    const appointment = await Appointment.findById(req.params.id)
+      .populate('doctorId')
+      .populate('patientId');
+
+    if (!appointment) {
+      return res.status(404).json({ message: 'Appointment not found' });
+    }
+
+    // Check permissions - only patient can reschedule their own appointments
+    if (req.user.role === 'patient') {
+      const patient = await Patient.findOne({ userId: req.user._id });
+      if (appointment.patientId._id.toString() !== patient._id.toString()) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+    } else if (req.user.role === 'doctor') {
+      const doctor = await Doctor.findOne({ userId: req.user._id });
+      if (appointment.doctorId._id.toString() !== doctor._id.toString()) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+    } else {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    // Check if appointment can be rescheduled
+    if (appointment.status === 'completed' || appointment.status === 'cancelled') {
+      return res.status(400).json({ 
+        message: `Cannot reschedule ${appointment.status} appointments` 
+      });
+    }
+
+    // Validate new date is in the future
+    const newAppointmentDate = new Date(newDateTime);
+    if (newAppointmentDate <= new Date()) {
+      return res.status(400).json({ message: 'New appointment time must be in the future' });
+    }
+
+    // Check for conflicting appointments at new time
+    const conflictingAppointment = await Appointment.findOne({
+      _id: { $ne: appointment._id }, // Exclude current appointment
+      doctorId: appointment.doctorId._id,
+      dateTime: {
+        $gte: new Date(newAppointmentDate.getTime() - 30 * 60000), // 30 minutes before
+        $lte: new Date(newAppointmentDate.getTime() + 30 * 60000)  // 30 minutes after
+      },
+      status: { $in: ['scheduled', 'confirmed'] }
+    });
+
+    if (conflictingAppointment) {
+      return res.status(409).json({ 
+        message: 'Time slot not available. Please choose a different time.' 
+      });
+    }
+
+    // Store old date for reference
+    const oldDateTime = appointment.dateTime;
+
+    // Update appointment
+    appointment.dateTime = newAppointmentDate;
+    appointment.status = 'scheduled'; // Reset to scheduled
+    await appointment.save();
+
+    // Update Google Calendar event if integrated
+    if (appointment.googleCalendarEventId) {
+      try {
+        console.log('Updating Google Calendar event:', appointment.googleCalendarEventId);
+        const googleCalendar = require('../services/googleCalendar');
+        
+        // Prepare calendar data
+        const patient = await Patient.findById(appointment.patientId).populate('userId');
+        const doctor = await Doctor.findById(appointment.doctorId).populate('userId');
+        
+        const calendarData = {
+          patientName: patient.userId.profile?.firstName && patient.userId.profile?.lastName
+            ? `${patient.userId.profile.firstName} ${patient.userId.profile.lastName}`
+            : patient.userId.email,
+          patientEmail: patient.userId.email,
+          doctorName: doctor.userId.profile?.firstName && doctor.userId.profile?.lastName
+            ? `Dr. ${doctor.userId.profile.firstName} ${doctor.userId.profile.lastName}`
+            : doctor.userId.email,
+          doctorEmail: doctor.userId.email,
+          dateTime: newAppointmentDate,
+          duration: appointment.duration || 30,
+          appointmentType: appointment.type,
+          chiefComplaint: appointment.chiefComplaint,
+          symptoms: appointment.symptoms || [],
+          timezone: process.env.TIMEZONE || 'UTC'
+        };
+
+        const calendarResult = await googleCalendar.updateAppointmentEvent(
+          appointment.googleCalendarEventId,
+          calendarData
+        );
+
+        console.log('✅ Google Calendar event updated successfully:', calendarResult.eventId);
+      } catch (calendarError) {
+        console.error('⚠️ Failed to update Google Calendar event:', calendarError.message);
+        // Don't fail the reschedule if calendar update fails
+        // The appointment is already updated in the database
+      }
+    }
+
+    res.json({ 
+      message: 'Appointment rescheduled successfully',
+      appointment,
+      oldDateTime,
+      newDateTime: newAppointmentDate
+    });
+
+  } catch (error) {
+    console.error('Reschedule error:', error);
+    res.status(500).json({ message: 'Error rescheduling appointment' });
+  }
+});
+
+// Get user's appointments with reschedule capability info
+router.get('/my-appointments', authenticateToken, async (req, res) => {
+  try {
+    let query = {};
+
+    if (req.user.role === 'patient') {
+      const patient = await Patient.findOne({ userId: req.user._id });
+      if (!patient) {
+        return res.status(404).json({ message: 'Patient profile not found' });
+      }
+      query.patientId = patient._id;
+    } else if (req.user.role === 'doctor') {
+      const doctor = await Doctor.findOne({ userId: req.user._id });
+      if (!doctor) {
+        return res.status(404).json({ message: 'Doctor profile not found' });
+      }
+      query.doctorId = doctor._id;
+    } else {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    const appointments = await Appointment.find(query)
+      .populate('doctorId', 'name specialization')
+      .populate('patientId', 'name')
+      .sort({ dateTime: -1 })
+      .lean();
+
+    // Add reschedule capability flag
+    const appointmentsWithFlags = appointments.map(apt => ({
+      ...apt,
+      canReschedule: ['scheduled', 'confirmed'].includes(apt.status) && 
+                     new Date(apt.dateTime) > new Date()
+    }));
+
+    res.json({ appointments: appointmentsWithFlags });
+
+  } catch (error) {
+    console.error('Get appointments error:', error);
+    res.status(500).json({ message: 'Error fetching appointments' });
+  }
+});
 
 module.exports = router;

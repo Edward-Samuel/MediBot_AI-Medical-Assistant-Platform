@@ -642,6 +642,96 @@ router.post("/chat", async (req, res) => {
         }
         break;
 
+      case "appointmentManagement":
+        console.log("Appointment management intent detected");
+        try {
+          // Check if it's a reschedule request
+          if (message.toLowerCase().includes('reschedule') || 
+              message.toLowerCase().includes('change') ||
+              message.toLowerCase().includes('modify')) {
+            
+            if (!userId) {
+              botResponse = "To reschedule an appointment, please log in to your account first.";
+            } else {
+              const rescheduleAgent = require("../services/rescheduleAgent");
+              
+              // Parse the reschedule request
+              const parsedRequest = await rescheduleAgent.parseRescheduleRequest(message, userId);
+              
+              // Find the appointment to reschedule
+              const findResult = await rescheduleAgent.findAppointmentToReschedule(
+                userId,
+                parsedRequest.appointmentIdentifier
+              );
+              
+              // Generate response
+              botResponse = await rescheduleAgent.generateRescheduleResponse(
+                parsedRequest,
+                findResult,
+                language
+              );
+              
+              // Store reschedule data for frontend
+              appointmentData = {
+                intent: "appointment_reschedule",
+                parsedRequest,
+                findResult,
+                needsConfirmation: !findResult.error && !findResult.needsClarification && 
+                                   parsedRequest.newDate && parsedRequest.newTime
+              };
+            }
+          } 
+          // Check if it's a cancellation request
+          else if (message.toLowerCase().includes('cancel') || 
+                   message.toLowerCase().includes('delete') ||
+                   message.toLowerCase().includes('remove')) {
+            
+            if (!userId) {
+              botResponse = "To cancel an appointment, please log in to your account first.";
+            } else {
+              const cancellationAgent = require("../services/cancellationAgent");
+              
+              // Parse the cancellation request
+              const parsedRequest = await cancellationAgent.parseCancellationRequest(message, userId);
+              
+              // Find the appointment to cancel
+              const findResult = await cancellationAgent.findAppointmentToCancel(
+                userId,
+                parsedRequest.appointmentIdentifier
+              );
+              
+              // Generate response
+              botResponse = await cancellationAgent.generateCancellationResponse(
+                parsedRequest,
+                findResult,
+                language
+              );
+              
+              // Store cancellation data for frontend
+              appointmentData = {
+                intent: "appointment_cancel",
+                parsedRequest,
+                findResult,
+                needsConfirmation: !findResult.error && !findResult.needsClarification
+              };
+            }
+          }
+          else {
+            // Handle other appointment management (status check, etc.)
+            botResponse = await generateAIResponse(
+              message,
+              conversationHistory,
+              language,
+              languageInfo,
+              images,
+            );
+          }
+        } catch (error) {
+          console.error("Appointment management error:", error);
+          botResponse = "I encountered an error processing your request. Please try again.";
+        }
+        break;
+
       case "faq":
         console.log("❓ FAQ intent detected - searching knowledge base");
         // Check for FAQ query
@@ -1451,9 +1541,6 @@ router.post("/book-appointment", async (req, res) => {
         chiefComplaint: savedAppointment.chiefComplaint,
         symptoms: savedAppointment.symptoms,
         timezone: userTimezone // Pass user's timezone
-      };
-        chiefComplaint: savedAppointment.chiefComplaint,
-        symptoms: savedAppointment.symptoms,
       };
 
       console.log("🗓️  Attempting to create calendar event...");
