@@ -1,12 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Calendar, Clock, User, AlertCircle, Loader } from 'lucide-react';
 import axios from '../../config/axios';
 import toast from 'react-hot-toast';
+import { formatDate } from '../../utils/dateFormatter';
 
 const RescheduleWidget = ({ appointment, onClose, onRescheduleComplete }) => {
-  const [newDate, setNewDate] = useState('');
-  const [newTime, setNewTime] = useState('');
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [selectedSlot, setSelectedSlot] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(true);
+
+  useEffect(() => {
+    // Generate available slots when component mounts
+    const slots = generateAvailableSlots();
+    setAvailableSlots(slots);
+    setIsLoadingSlots(false);
+  }, []);
 
   const formatDateTime = (dateTime) => {
     const date = new Date(dateTime);
@@ -24,14 +33,56 @@ const RescheduleWidget = ({ appointment, onClose, onRescheduleComplete }) => {
     };
   };
 
+  const generateAvailableSlots = () => {
+    const slots = [];
+    const today = new Date();
+    
+    // Generate slots for next 7 days
+    for (let i = 1; i <= 7; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
+      
+      // Get the date string in local timezone (YYYY-MM-DD)
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const dateString = `${year}-${month}-${day}`;
+      
+      const daySlots = {
+        date: dateString,
+        dayName: date.toLocaleDateString('en-US', { weekday: 'long' }),
+        slots: [
+          { time: '09:00 AM', dateTime: `${dateString}T09:00:00` },
+          { time: '10:30 AM', dateTime: `${dateString}T10:30:00` },
+          { time: '12:00 PM', dateTime: `${dateString}T12:00:00` },
+          { time: '02:00 PM', dateTime: `${dateString}T14:00:00` },
+          { time: '03:30 PM', dateTime: `${dateString}T15:30:00` },
+          { time: '05:00 PM', dateTime: `${dateString}T17:00:00` }
+        ]
+      };
+      slots.push(daySlots);
+    }
+    
+    return slots;
+  };
+
+  const handleSlotSelect = (daySlots, slot) => {
+    setSelectedSlot({
+      date: daySlots.date,
+      dayName: daySlots.dayName,
+      time: slot.time,
+      dateTime: slot.dateTime
+    });
+  };
+
   const handleReschedule = async () => {
-    if (!newDate || !newTime) {
-      toast.error('Please select both date and time');
+    if (!selectedSlot) {
+      toast.error('Please select a time slot');
       return;
     }
 
-    // Combine date and time
-    const newDateTime = new Date(`${newDate}T${newTime}`);
+    // Convert local datetime string to proper Date object
+    const newDateTime = new Date(selectedSlot.dateTime);
     
     // Validate future date
     if (newDateTime <= new Date()) {
@@ -60,14 +111,6 @@ const RescheduleWidget = ({ appointment, onClose, onRescheduleComplete }) => {
   };
 
   const { date: currentDate, time: currentTime } = formatDateTime(appointment.dateTime);
-
-  // Get minimum date (today)
-  const today = new Date().toISOString().split('T')[0];
-  
-  // Get maximum date (3 months from now)
-  const maxDate = new Date();
-  maxDate.setMonth(maxDate.getMonth() + 3);
-  const maxDateStr = maxDate.toISOString().split('T')[0];
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full">
@@ -117,40 +160,62 @@ const RescheduleWidget = ({ appointment, onClose, onRescheduleComplete }) => {
           </div>
         </div>
 
-        {/* New Date and Time Selection */}
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              New Date
-            </label>
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="date"
-                value={newDate}
-                onChange={(e) => setNewDate(e.target.value)}
-                min={today}
-                max={maxDateStr}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              />
+        {/* Time Slot Selection */}
+        <div>
+          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+            Select New Time Slot
+          </h3>
+          
+          {isLoadingSlots ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader className="h-6 w-6 animate-spin text-green-600" />
+              <span className="ml-2 text-gray-600 dark:text-gray-400">Loading available slots...</span>
             </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              New Time
-            </label>
-            <div className="relative">
-              <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="time"
-                value={newTime}
-                onChange={(e) => setNewTime(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              />
+          ) : (
+            <div className="space-y-4 max-h-96 overflow-y-auto">
+              {availableSlots.map((daySlots) => (
+                <div key={daySlots.date} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+                  <h5 className="font-medium text-gray-900 dark:text-white mb-3">
+                    {daySlots.dayName} - {formatDate(daySlots.date)}
+                  </h5>
+                  <div className="grid grid-cols-3 gap-2">
+                    {daySlots.slots.map((slot) => (
+                      <button
+                        key={slot.time}
+                        onClick={() => handleSlotSelect(daySlots, slot)}
+                        className={`p-2 text-sm rounded-md border transition-colors ${
+                          selectedSlot?.dateTime === slot.dateTime
+                            ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300'
+                            : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300'
+                        }`}
+                      >
+                        <Clock className="h-3 w-3 inline mr-1" />
+                        {slot.time}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
+          )}
         </div>
+
+        {/* Selected Slot Summary */}
+        {selectedSlot && (
+          <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+            <h4 className="font-medium text-green-900 dark:text-green-100 mb-2">Selected Time</h4>
+            <div className="space-y-1 text-sm text-green-800 dark:text-green-200">
+              <div className="flex justify-between">
+                <span>Date:</span>
+                <span className="font-medium">{selectedSlot.dayName}, {formatDate(selectedSlot.date)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Time:</span>
+                <span className="font-medium">{selectedSlot.time}</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Info Message */}
         <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
@@ -179,7 +244,7 @@ const RescheduleWidget = ({ appointment, onClose, onRescheduleComplete }) => {
         </button>
         <button
           onClick={handleReschedule}
-          disabled={!newDate || !newTime || loading}
+          disabled={!selectedSlot || loading}
           className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed flex items-center space-x-2"
         >
           {loading ? (
