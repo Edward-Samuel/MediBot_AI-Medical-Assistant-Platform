@@ -93,11 +93,11 @@ class IntentClassifier {
 
       // AI-only approach (no fallback)
       if (classificationMethod === 'ai_only') {
-        console.log('🤖 Using AI-only intent classification (no fallback)...');
+        console.log('Using AI-only intent classification (no fallback)...');
         const aiResult = await this.classifyWithAI(message, conversationHistory);
         
         if (aiResult) {
-          console.log(`✅ AI classified: ${aiResult.intent} (confidence: ${aiResult.confidence})`);
+          console.log(`AI classified: ${aiResult.intent} (confidence: ${aiResult.confidence})`);
           return aiResult;
         }
 
@@ -113,11 +113,11 @@ class IntentClassifier {
 
       // AI-first approach (with fallback)
       if (classificationMethod === 'ai_first') {
-        console.log('🤖 Using AI-first intent classification...');
+        console.log('Using AI-first intent classification...');
         const aiResult = await this.classifyWithAI(message, conversationHistory);
         
         if (aiResult && aiResult.confidence >= (this.config.classification?.aiConfidenceThreshold || 0.7)) {
-          console.log(`✅ AI classified with high confidence: ${aiResult.intent} (${aiResult.confidence})`);
+          console.log(`AI classified with high confidence: ${aiResult.intent} (${aiResult.confidence})`);
           return aiResult;
         }
 
@@ -454,6 +454,7 @@ Classification rules:
 
 Examples:
 - "I need to book an appointment" → APPOINTMENT_BOOKING
+- "I need to schedule my appointment" → APPOINTMENT_BOOKING
 - "Book me a doctor" → APPOINTMENT_BOOKING
 - "Reschedule my appointment" → APPOINTMENT_RESCHEDULE
 - "Change my appointment to tomorrow" → APPOINTMENT_RESCHEDULE
@@ -464,14 +465,37 @@ Examples:
 - "Search for latest COVID treatments" → WEB_SEARCH
 - "Hello" → GENERAL_CHAT
 
-Respond with ONLY the intent name (e.g., APPOINTMENT_BOOKING), nothing else.`;
+Respond with ONLY ONE of these exact words: APPOINTMENT_BOOKING, APPOINTMENT_RESCHEDULE, APPOINTMENT_CANCEL, FAQ, WEB_SEARCH, or GENERAL_CHAT`;
 
       const response = await openRouterService.generateResponse(prompt, [], {
-        maxTokens: 50,
-        temperature: 0.1 // Low temperature for consistent classification
+        maxTokens: 20,
+        temperature: 0.0 // Zero temperature for maximum consistency
       });
 
-      const aiIntent = response.content.trim().toUpperCase();
+      let aiIntent = response.content.trim().toUpperCase();
+      
+      // Clean up the response - remove any extra text
+      const validIntents = ['APPOINTMENT_BOOKING', 'APPOINTMENT_RESCHEDULE', 'APPOINTMENT_CANCEL', 'FAQ', 'WEB_SEARCH', 'GENERAL_CHAT'];
+      const foundIntent = validIntents.find(intent => aiIntent.includes(intent));
+      
+      if (foundIntent) {
+        aiIntent = foundIntent;
+      } else if (!aiIntent || aiIntent === '') {
+        // If AI returns empty, do quick keyword check
+        console.warn('AI returned empty response, using keyword fallback');
+        const lowerMessage = message.toLowerCase();
+        
+        if (lowerMessage.includes('reschedule') || lowerMessage.includes('change appointment')) {
+          aiIntent = 'APPOINTMENT_RESCHEDULE';
+        } else if (lowerMessage.includes('cancel') || lowerMessage.includes('delete appointment')) {
+          aiIntent = 'APPOINTMENT_CANCEL';
+        } else if (lowerMessage.includes('book') || lowerMessage.includes('schedule') || lowerMessage.includes('appointment')) {
+          aiIntent = 'APPOINTMENT_BOOKING';
+        } else {
+          aiIntent = 'GENERAL_CHAT';
+        }
+      }
+      
       let intent;
       
       // Map AI response to internal intent names
@@ -497,9 +521,7 @@ Respond with ONLY the intent name (e.g., APPOINTMENT_BOOKING), nothing else.`;
           break;
       }
 
-      if (this.config.debug.logAIClassification) {
-        console.log(`AI classified as: ${aiIntent} -> ${intent}`);
-      }
+      console.log(`AI classified as: ${aiIntent} -> ${intent}`);
 
       return {
         intent,

@@ -285,7 +285,7 @@ router.patch('/:id/status', authenticateToken, async (req, res) => {
         const googleCalendar = require('../services/googleCalendar');
         
         await googleCalendar.cancelAppointmentEvent(appointment.googleCalendarEventId);
-        console.log('✅ Google Calendar event cancelled successfully');
+        console.log('Google Calendar event cancelled successfully');
       } catch (calendarError) {
         console.error('⚠️ Failed to cancel Google Calendar event:', calendarError.message);
         // Don't fail the cancellation if calendar update fails
@@ -351,7 +351,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
         const googleCalendar = require('../services/googleCalendar');
         
         await googleCalendar.cancelAppointmentEvent(appointment.googleCalendarEventId);
-        console.log('✅ Google Calendar event cancelled successfully');
+        console.log('Google Calendar event cancelled successfully');
       } catch (calendarError) {
         console.error('⚠️ Failed to cancel Google Calendar event:', calendarError.message);
         // Continue with database cancellation even if calendar fails
@@ -606,7 +606,7 @@ router.patch('/:id/reschedule', authenticateToken, async (req, res) => {
           calendarData
         );
 
-        console.log('✅ Google Calendar event updated successfully:', calendarResult.eventId);
+        console.log('Google Calendar event updated successfully:', calendarResult.eventId);
       } catch (calendarError) {
         console.error('⚠️ Failed to update Google Calendar event:', calendarError.message);
         // Don't fail the reschedule if calendar update fails

@@ -187,7 +187,7 @@ Respond with ONLY the JSON object, no other text.`;
         try {
           const googleCalendar = require('./googleCalendar');
           await googleCalendar.cancelAppointmentEvent(appointment.googleCalendarEventId);
-          console.log('✅ Google Calendar event cancelled');
+          console.log('Google Calendar event cancelled');
         } catch (calendarError) {
           console.error('⚠️ Calendar cancellation failed:', calendarError.message);
         }
@@ -245,8 +245,8 @@ Respond with ONLY the JSON object, no other text.`;
         multipleFound: "I found multiple appointments. Please specify which one:\n",
         confirmCancel: "I found your appointment:\n\n**Doctor:** {doctorName}\n**Specialization:** {specialization}\n**Date:** {date}\n**Time:** {time}\n\nAre you sure you want to cancel this appointment? Please confirm by saying 'yes'.",
         confirmCancelAll: "You have {count} upcoming appointments:\n\n{list}\n\nAre you sure you want to cancel ALL of them? Please confirm by saying 'yes to all'.",
-        success: "✅ **Appointment Cancelled Successfully!**\n\n**Doctor:** {doctorName}\n**Date & Time:** {dateTime}\n\nYour Google Calendar has been updated. If you need to book a new appointment, just let me know!",
-        successMultiple: "✅ **{count} Appointments Cancelled Successfully!**\n\nYour Google Calendar has been updated. If you need to book new appointments, just let me know!",
+        success: "**Appointment Cancelled Successfully!**\n\n**Doctor:** {doctorName}\n**Date & Time:** {dateTime}\n\nYour Google Calendar has been updated. If you need to book a new appointment, just let me know!",
+        successMultiple: "**{count} Appointments Cancelled Successfully!**\n\nYour Google Calendar has been updated. If you need to book new appointments, just let me know!",
         alreadyCancelled: "This appointment is already cancelled.",
         error: "I encountered an error while trying to cancel your appointment. Please try again or contact support."
       }

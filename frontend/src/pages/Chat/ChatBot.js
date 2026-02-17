@@ -1242,7 +1242,7 @@ const ChatBot = () => {
       const cancelMessage = {
         id: Date.now() + 2,
         role: "bot",
-        content: `✅ **Appointment Cancelled Successfully!**\n\n**Doctor:** ${result.appointment.doctorId?.name || 'Doctor'}\n**Date & Time:** ${new Date(result.appointment.dateTime).toLocaleString()}\n\nYour Google Calendar has been updated. If you need to book a new appointment, just let me know!`,
+        content: `**Appointment Cancelled Successfully!**\n\n**Doctor:** ${result.appointment.doctorId?.name || 'Doctor'}\n**Date & Time:** ${new Date(result.appointment.dateTime).toLocaleString()}\n\nYour Google Calendar has been updated. If you need to book a new appointment, just let me know!`,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, cancelMessage]);
