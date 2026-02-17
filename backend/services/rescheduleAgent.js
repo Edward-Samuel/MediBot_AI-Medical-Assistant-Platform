@@ -1,14 +1,14 @@
 const Appointment = require('../models/Appointment');
 const Patient = require('../models/Patient');
 const Doctor = require('../models/Doctor');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const openRouterService = require('./openRouterService');
 
 /**
  * Reschedule Agent - Handles appointment rescheduling through chat
  */
 class RescheduleAgent {
   constructor() {
-    this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    // Using OpenRouter service instead of Google Generative AI
   }
 
   /**
@@ -16,8 +16,6 @@ class RescheduleAgent {
    */
   async parseRescheduleRequest(message, userId) {
     try {
-      const model = this.genAI.getGenerativeModel({ model: 'gemini-pro' });
-
       const prompt = `You are a medical appointment rescheduling assistant. Parse the user's request to reschedule an appointment.
 
 User message: "${message}"
@@ -44,11 +42,13 @@ Important:
 
 Respond with ONLY the JSON object, no other text.`;
 
-      const result = await model.generateContent(prompt);
-      const response = result.response.text();
+      const response = await openRouterService.generateResponse(prompt, [], {
+        maxTokens: 200,
+        temperature: 0.1
+      });
       
       // Extract JSON from response
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      const jsonMatch = response.content.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         throw new Error('Failed to parse reschedule request');
       }
