@@ -273,7 +273,7 @@ const AppointmentBookingWidget = ({ appointmentData, onClose, onBookingComplete 
                 className="p-4 text-left border-2 border-gray-200 dark:border-gray-600 rounded-lg hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
               >
                 <div className="font-medium text-gray-900 dark:text-white mb-1">
-                  🤖 Describe Your Symptoms
+                  Describe Your Symptoms
                 </div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">
                   Tell us what you're experiencing and we'll recommend the right specialist
@@ -287,7 +287,7 @@ const AppointmentBookingWidget = ({ appointmentData, onClose, onBookingComplete 
                 className="p-4 text-left border-2 border-gray-200 dark:border-gray-600 rounded-lg hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
               >
                 <div className="font-medium text-gray-900 dark:text-white mb-1">
-                  🏥 Choose Specialization
+                  Choose Specialization
                 </div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">
                   I know which type of doctor I need

@@ -75,7 +75,7 @@ class IntentClassifier {
   }
 
   /**
-   * Classify user intent using parallel rule-based + AI approach
+   * Classify user intent using AI-first approach with rule-based fallback
    */
   async classifyIntent(message, conversationHistory = [], options = {}) {
     try {
@@ -89,49 +89,139 @@ class IntentClassifier {
         };
       }
 
-      // Check for appointment booking with enhanced scoring
-      const appointmentResult = this.classifyAppointmentIntent(message);
-      if (appointmentResult.confidence >= 0.8) {
-        return appointmentResult;
+      const classificationMethod = this.config.classification?.method || 'ai_first';
+
+      // AI-only approach (no fallback)
+      if (classificationMethod === 'ai_only') {
+        console.log('🤖 Using AI-only intent classification (no fallback)...');
+        const aiResult = await this.classifyWithAI(message, conversationHistory);
+        
+        if (aiResult) {
+          console.log(`✅ AI classified: ${aiResult.intent} (confidence: ${aiResult.confidence})`);
+          return aiResult;
+        }
+
+        // If AI completely fails, return general chat as safe default
+        console.error('❌ AI classification failed completely');
+        return {
+          intent: this.intents.GENERAL_CHAT,
+          confidence: 0.3,
+          method: 'fallback',
+          reasoning: 'AI classification failed, defaulting to general chat'
+        };
       }
 
-      // Run rule-based and AI classification in parallel for speed
-      const [ruleBasedResult, aiResult] = await Promise.allSettled([
-        Promise.resolve(this.classifyWithRules(message, conversationHistory)),
-        this.classifyWithAI(message, conversationHistory)
+      // AI-first approach (with fallback)
+      if (classificationMethod === 'ai_first') {
+        console.log('🤖 Using AI-first intent classification...');
+        const aiResult = await this.classifyWithAI(message, conversationHistory);
+        
+        if (aiResult && aiResult.confidence >= (this.config.classification?.aiConfidenceThreshold || 0.7)) {
+          console.log(`✅ AI classified with high confidence: ${aiResult.intent} (${aiResult.confidence})`);
+          return aiResult;
+        }
+
+        // Fallback to rule-based if enabled
+        if (this.config.classification?.fallbackToRules) {
+          console.log('⚠️ AI confidence low, using rule-based fallback');
+          return this.getRuleBasedClassification(message, conversationHistory);
+        }
+
+        return aiResult;
+      }
+
+      // Rule-based approach
+      if (classificationMethod === 'rule_based') {
+        console.log('📋 Using rule-based intent classification...');
+        return this.getRuleBasedClassification(message, conversationHistory);
+      }
+
+      // Hybrid approach (default)
+      console.log('🔀 Using hybrid intent classification...');
+      const [aiResult, ruleResult] = await Promise.allSettled([
+        this.classifyWithAI(message, conversationHistory),
+        Promise.resolve(this.getRuleBasedClassification(message, conversationHistory))
       ]);
 
-      // Use rule-based result if it has high confidence
-      const ruleResult = ruleBasedResult.status === 'fulfilled' ? ruleBasedResult.value : null;
-      if (ruleResult && ruleResult.confidence >= 0.8) {
-        return ruleResult;
+      const aiValue = aiResult.status === 'fulfilled' ? aiResult.value : null;
+      const ruleValue = ruleResult.status === 'fulfilled' ? ruleResult.value : null;
+
+      // Prefer AI if high confidence
+      if (aiValue && aiValue.confidence >= 0.8) {
+        return aiValue;
       }
 
-      // Use AI result if available, otherwise fall back to rule-based
-      const aiResultValue = aiResult.status === 'fulfilled' ? aiResult.value : null;
-      
-      if (aiResultValue && aiResultValue.confidence >= 0.7) {
-        return aiResultValue;
+      // Prefer rule-based if high confidence
+      if (ruleValue && ruleValue.confidence >= 0.8) {
+        return ruleValue;
       }
 
-      // Combine results if both available but low confidence
-      if (ruleResult && aiResultValue) {
-        return this.combineResults(ruleResult, aiResultValue);
+      // Return whichever has higher confidence
+      if (aiValue && ruleValue) {
+        return aiValue.confidence >= ruleValue.confidence ? aiValue : ruleValue;
       }
 
-      // Final fallback to rule-based result
-      return ruleResult || {
+      return aiValue || ruleValue || {
         intent: this.intents.GENERAL_CHAT,
         confidence: 0.5,
         method: 'fallback',
-        reasoning: 'Default classification due to processing errors'
+        reasoning: 'Default classification'
       };
 
     } catch (error) {
       console.error('Intent classification error:', error);
-      // Fallback to rule-based classification
-      return this.classifyWithRules(message, conversationHistory);
+      
+      // For ai_only mode, return general chat on error
+      if (this.config.classification?.method === 'ai_only') {
+        return {
+          intent: this.intents.GENERAL_CHAT,
+          confidence: 0.3,
+          method: 'error_fallback',
+          reasoning: 'AI classification error, defaulting to general chat'
+        };
+      }
+      
+      // For other modes, use rule-based fallback
+      return this.getRuleBasedClassification(message, conversationHistory);
     }
+  }
+
+  /**
+   * Get rule-based classification (consolidated method)
+   */
+  getRuleBasedClassification(message, conversationHistory = []) {
+    // Check for appointment management first (reschedule/cancel)
+    const managementResult = this.checkAppointmentManagement(message);
+    if (managementResult.confidence >= 0.8) {
+      return managementResult;
+    }
+
+    // Check for appointment booking
+    const appointmentResult = this.classifyAppointmentIntent(message);
+    if (appointmentResult.confidence >= 0.8) {
+      return appointmentResult;
+    }
+
+    // Run general rule-based classification
+    return this.classifyWithRules(message, conversationHistory);
+  }
+
+  /**
+   * Quick check for appointment management (reschedule/cancel)
+   */
+  checkAppointmentManagement(message) {
+    const managementPatterns = this.config.patterns.appointment.appointmentManagement;
+    for (const pattern of managementPatterns) {
+      if (pattern.test(message)) {
+        return {
+          intent: 'appointmentManagement',
+          confidence: 0.95,
+          method: 'rule_based',
+          reasoning: 'Appointment management keywords detected'
+        };
+      }
+    }
+    return { confidence: 0 };
   }
 
   /**
@@ -338,24 +428,65 @@ class IntentClassifier {
   }
 
   /**
-   * AI-based intent classification for ambiguous cases
+   * AI-based intent classification with appointment sub-intent detection
    */
   async classifyWithAI(message, conversationHistory = []) {
     try {
-      const response = await openRouterService.generateResponse(this.config.aiClassification.prompt.replace('{message}', message), [], {
-        maxTokens: this.config.aiClassification.maxTokens,
-        temperature: this.config.aiClassification.temperature
+      const prompt = `You are an intent classification system for a medical chatbot. Analyze the user's message and classify it into ONE of these intents:
+
+User message: "${message}"
+
+Available intents:
+1. APPOINTMENT_BOOKING - User wants to book/schedule a NEW appointment
+2. APPOINTMENT_RESCHEDULE - User wants to reschedule/change an EXISTING appointment
+3. APPOINTMENT_CANCEL - User wants to cancel/delete an EXISTING appointment
+4. FAQ - User is asking a question about the platform, services, or general medical information
+5. WEB_SEARCH - User explicitly requests to search the web or needs current/latest information
+6. GENERAL_CHAT - General conversation, greetings, or casual chat
+
+Classification rules:
+- If message contains "reschedule", "change appointment", "modify appointment" → APPOINTMENT_RESCHEDULE
+- If message contains "cancel", "delete appointment", "remove appointment" → APPOINTMENT_CANCEL
+- If message contains "book", "schedule", "need appointment", "want appointment" (without reschedule/cancel) → APPOINTMENT_BOOKING
+- If message asks "what", "how", "why", "when", "where" questions → FAQ
+- If message asks for "latest", "recent", "search for", "look up" → WEB_SEARCH
+- Otherwise → GENERAL_CHAT
+
+Examples:
+- "I need to book an appointment" → APPOINTMENT_BOOKING
+- "Book me a doctor" → APPOINTMENT_BOOKING
+- "Reschedule my appointment" → APPOINTMENT_RESCHEDULE
+- "Change my appointment to tomorrow" → APPOINTMENT_RESCHEDULE
+- "Cancel my appointment" → APPOINTMENT_CANCEL
+- "Delete my appointment with Dr. Smith" → APPOINTMENT_CANCEL
+- "What is MediBot?" → FAQ
+- "How do I book an appointment?" → FAQ
+- "Search for latest COVID treatments" → WEB_SEARCH
+- "Hello" → GENERAL_CHAT
+
+Respond with ONLY the intent name (e.g., APPOINTMENT_BOOKING), nothing else.`;
+
+      const response = await openRouterService.generateResponse(prompt, [], {
+        maxTokens: 50,
+        temperature: 0.1 // Low temperature for consistent classification
       });
 
       const aiIntent = response.content.trim().toUpperCase();
       let intent;
       
+      // Map AI response to internal intent names
       switch (aiIntent) {
+        case 'APPOINTMENT_BOOKING':
+          intent = this.intents.APPOINTMENT;
+          break;
+        case 'APPOINTMENT_RESCHEDULE':
+          intent = 'appointmentManagement';
+          break;
+        case 'APPOINTMENT_CANCEL':
+          intent = 'appointmentManagement';
+          break;
         case 'FAQ':
           intent = this.intents.FAQ;
-          break;
-        case 'APPOINTMENT':
-          intent = this.intents.APPOINTMENT;
           break;
         case 'WEB_SEARCH':
           intent = this.intents.WEB_SEARCH;
@@ -372,9 +503,10 @@ class IntentClassifier {
 
       return {
         intent,
-        confidence: 0.7,
+        confidence: 0.9, // Higher confidence for AI classification
         method: 'ai_classification',
-        reasoning: `AI classification result: ${aiIntent}`
+        reasoning: `AI classification result: ${aiIntent}`,
+        aiIntent: aiIntent // Store original AI intent for debugging
       };
 
     } catch (error) {

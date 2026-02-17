@@ -6,6 +6,13 @@
  */
 
 module.exports = {
+  // Classification method preference
+  classification: {
+    method: 'ai_only', // Options: 'ai_first', 'rule_based', 'hybrid', 'ai_only'
+    aiConfidenceThreshold: 0.5, // Minimum confidence to use AI result (lowered for ai_only)
+    fallbackToRules: false // No fallback - AI only
+  },
+
   // Confidence thresholds
   thresholds: {
     highConfidence: 0.8,
@@ -154,19 +161,24 @@ module.exports = {
     },
 
     appointment: {
-      // Direct appointment requests
+      // Direct appointment requests (excluding reschedule/cancel)
       directRequests: [
-        /book.*appointment/i,
-        /schedule.*appointment/i,
-        /make.*appointment/i,
-        /set.*appointment/i,
-        /arrange.*appointment/i,
-        /fix.*appointment/i,
-        /get.*appointment/i,
-        /need.*appointment/i,
-        /want.*appointment/i,
+        /^book.*appointment/i,
+        /^schedule.*appointment/i,
+        /^make.*appointment/i,
+        /^set.*appointment/i,
+        /^arrange.*appointment/i,
+        /^fix.*appointment/i,
+        /^get.*appointment/i,
+        /^need.*appointment/i,
+        /^want.*appointment/i,
+        /\bbook.*appointment/i,
+        /\bmake.*appointment/i,
+        /\bget.*appointment/i,
+        /\bneed.*appointment/i,
+        /\bwant.*appointment/i,
         /appointment.*book/i,
-        /appointment.*schedule/i
+        /i (need|want|would like).*appointment/i
       ],
       
       // Doctor consultation requests
@@ -215,16 +227,26 @@ module.exports = {
         /immediate.*appointment/i
       ],
       
-      // Appointment management
+      // Appointment management (must be checked first!)
       appointmentManagement: [
-        /cancel.*appointment/i,
-        /reschedule.*appointment/i,
-        /change.*appointment/i,
-        /modify.*appointment/i,
-        /postpone.*appointment/i,
+        /^cancel.*appointment/i,
+        /^reschedule.*appointment/i,
+        /^change.*appointment/i,
+        /^modify.*appointment/i,
+        /^postpone.*appointment/i,
+        /^delete.*appointment/i,
+        /^remove.*appointment/i,
+        /\bcancel.*appointment/i,
+        /\breschedule.*appointment/i,
+        /\bchange.*appointment/i,
+        /\bmodify.*appointment/i,
+        /\bpostpone.*appointment/i,
+        /\bdelete.*appointment/i,
         /appointment.*status/i,
         /appointment.*confirmation/i,
-        /appointment.*details/i
+        /appointment.*details/i,
+        /cancel.*my.*appointment/i,
+        /reschedule.*my.*appointment/i
       ]
     },
 
