@@ -89,9 +89,45 @@ const requirePermission = (permission) => {
   };
 };
 
+// Optional authentication - doesn't fail if no token provided
+const optionalAuth = async (req, res, next) => {
+  try {
+    const authHeader = req.header('Authorization');
+    const token = authHeader && authHeader.replace('Bearer ', '');
+
+    if (!token) {
+      // No token provided, continue without user
+      req.user = null;
+      return next();
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // Look up user in User collection
+    const user = await User.findById(decoded.userId).select('-password');
+    
+    if (!user || !user.isActive) {
+      // Invalid or inactive user, continue without user
+      req.user = null;
+      return next();
+    }
+
+    // Set user object with id compatibility
+    req.user = user;
+    req.user.id = user._id;
+    
+    next();
+  } catch (error) {
+    // Token verification failed, continue without user
+    req.user = null;
+    next();
+  }
+};
+
 module.exports = {
   authenticateToken,
   authorizeRoles,
   requireAdmin,
-  requirePermission
+  requirePermission,
+  optionalAuth
 };

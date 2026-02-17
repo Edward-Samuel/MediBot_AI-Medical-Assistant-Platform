@@ -80,6 +80,8 @@ const ChatBot = () => {
     error: null,
   });
   const [webSearchStatusChecked, setWebSearchStatusChecked] = useState(true); // Already checked
+  const [quickQuestions, setQuickQuestions] = useState([]);
+  const [loadingQuestions, setLoadingQuestions] = useState(false);
   const messagesEndRef = useRef(null);
   const recognitionRef = useRef(null);
   const speechSynthesisRef = useRef(null);
@@ -291,6 +293,7 @@ const ChatBot = () => {
         },
       ]);
       setChatSaved(false);
+      fetchQuickQuestions(); // Refresh questions for new session
       toast.success("New chat session created!");
     } catch (error) {
       console.error("Error creating new session:", error);
@@ -298,10 +301,45 @@ const ChatBot = () => {
     }
   };
 
+  // Fetch dynamic quick questions
+  const fetchQuickQuestions = async () => {
+    setLoadingQuestions(true);
+    try {
+      const response = await axios.get('/api/quick-questions', {
+        params: {
+          language: currentLanguage,
+          count: 5
+        }
+      });
+
+      if (response.data.success && response.data.questions) {
+        setQuickQuestions(response.data.questions);
+      }
+    } catch (error) {
+      console.error('Error fetching quick questions:', error);
+      // Fallback to default questions
+      const fallbackQuestions = t("sampleQuestions") || [
+        "I have a headache and fever",
+        "What should I do for chest pain?",
+        "I need a dermatologist",
+        "How do I book an appointment?",
+        "What are the symptoms of diabetes?",
+      ];
+      setQuickQuestions(fallbackQuestions);
+    } finally {
+      setLoadingQuestions(false);
+    }
+  };
+
   // Auto-scroll disabled - users can manually scroll
   // useEffect(() => {
   //   messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   // }, [messages]);
+
+  // Fetch quick questions on mount and language change
+  useEffect(() => {
+    fetchQuickQuestions();
+  }, [currentLanguage, user]);
 
   // Initialize speech recognition
   useEffect(() => {
@@ -1143,14 +1181,6 @@ const ChatBot = () => {
     }
   };
 
-  const quickQuestions = t("sampleQuestions") || [
-    "I have a headache and fever",
-    "What should I do for chest pain?",
-    "I need a dermatologist",
-    "How do I book an appointment?",
-    "What are the symptoms of diabetes?",
-  ];
-
   const handleQuickQuestion = (question) => {
     setInputMessage(question);
   };
@@ -1463,19 +1493,26 @@ const ChatBot = () => {
           <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
             <div className="max-w-3xl mx-auto px-4 py-6">
               <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
-                Quick questions to get started:
+                {t("quickQuestions") || "Quick questions to get started:"}
               </p>
-              <div className="flex flex-wrap gap-3 mb-4">
-                {quickQuestions.map((question, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleQuickQuestion(question)}
-                    className="text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors border border-gray-200 dark:border-gray-600"
-                  >
-                    {question}
-                  </button>
-                ))}
-              </div>
+              {loadingQuestions ? (
+                <div className="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
+                  <Loader className="h-4 w-4 animate-spin" />
+                  <span className="text-sm">Loading personalized questions...</span>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-3 mb-4">
+                  {quickQuestions.map((question, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleQuickQuestion(question)}
+                      className="text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors border border-gray-200 dark:border-gray-600"
+                    >
+                      {question}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}

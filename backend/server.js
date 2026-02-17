@@ -22,6 +22,7 @@ const chatHistoryRoutes = require("./routes/chatHistory");
 const adminRoutes = require("./routes/admin");
 const faqRoutes = require("./routes/faq");
 const setupRoutes = require("./routes/setup");
+const quickQuestionsRoutes = require("./routes/quickQuestions");
 
 // Initialize services
 const faqService = require("./services/faqService");
@@ -35,9 +36,10 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(",")
       .map((origin) => origin.trim().replace(/\/$/, "")) // Remove trailing slash
       .filter(Boolean)
-  : process.env.NODE_ENV === "production"
-    ? ["*"]
-    : ["http://localhost:3000"];
+  : [
+      "https://medi-bot-ai-medical-assistant-platf.vercel.app",
+      "https://medibot-ai-medical-assistant-platform.onrender.com"
+    ];
 
 // Log CORS configuration on startup
 console.log("CORS Configuration:");
@@ -129,6 +131,7 @@ app.use("/api/chat-history", chatHistoryRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/faq", faqRoutes);
 app.use("/api/setup", setupRoutes);
+app.use("/api/quick-questions", quickQuestionsRoutes);
 
 // Health check
 app.get("/health", (req, res) => {
