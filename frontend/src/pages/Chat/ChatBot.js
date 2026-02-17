@@ -26,6 +26,7 @@ import { useLanguage } from "../../contexts/LanguageContext";
 import { useAuth } from "../../contexts/AuthContext";
 import ChatHistory from "../../components/Chat/ChatHistory";
 import AppointmentBookingWidget from "../../components/Chat/AppointmentBookingWidget";
+import AppointmentSelectionWidget from "../../components/Chat/AppointmentSelectionWidget";
 
 const ChatBot = () => {
   const { t, getCurrentLanguageInfo, currentLanguage } = useLanguage();
@@ -72,6 +73,8 @@ const ChatBot = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showAppointmentWidget, setShowAppointmentWidget] = useState(false);
   const [appointmentData, setAppointmentData] = useState(null);
+  const [showAppointmentSelection, setShowAppointmentSelection] = useState(false);
+  const [appointmentSelectionMode, setAppointmentSelectionMode] = useState(null); // 'reschedule' or 'cancel'
   const [webSearchMode, setWebSearchMode] = useState(false);
   const [webSearchStatus, setWebSearchStatus] = useState({
     available: true, // Always available
@@ -1128,6 +1131,26 @@ const ChatBot = () => {
         setShowAppointmentWidget(true);
       }
 
+      // Handle appointment reschedule intent
+      if (
+        response.data.appointmentData &&
+        response.data.appointmentData.intent === "appointment_reschedule"
+      ) {
+        setAppointmentData(response.data.appointmentData);
+        setAppointmentSelectionMode('reschedule');
+        setShowAppointmentSelection(true);
+      }
+
+      // Handle appointment cancel intent
+      if (
+        response.data.appointmentData &&
+        response.data.appointmentData.intent === "appointment_cancel"
+      ) {
+        setAppointmentData(response.data.appointmentData);
+        setAppointmentSelectionMode('cancel');
+        setShowAppointmentSelection(true);
+      }
+
       // Reset web search mode after sending
       setWebSearchMode(false);
     } catch (error) {
@@ -1203,6 +1226,40 @@ const ChatBot = () => {
     };
 
     setMessages((prev) => [...prev, bookingMessage]);
+  };
+
+  const handleAppointmentSelectionClose = () => {
+    setShowAppointmentSelection(false);
+    setAppointmentSelectionMode(null);
+    setAppointmentData(null);
+  };
+
+  const handleAppointmentSelectionConfirm = (result) => {
+    setShowAppointmentSelection(false);
+    
+    if (appointmentSelectionMode === 'cancel') {
+      // Appointment was cancelled
+      const cancelMessage = {
+        id: Date.now() + 2,
+        role: "bot",
+        content: `✅ **Appointment Cancelled Successfully!**\n\n**Doctor:** ${result.appointment.doctorId?.name || 'Doctor'}\n**Date & Time:** ${new Date(result.appointment.dateTime).toLocaleString()}\n\nYour Google Calendar has been updated. If you need to book a new appointment, just let me know!`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, cancelMessage]);
+    } else if (appointmentSelectionMode === 'reschedule') {
+      // For reschedule, we need to show a date/time picker or ask for new time
+      // For now, let's add a message asking for the new time
+      const rescheduleMessage = {
+        id: Date.now() + 2,
+        role: "bot",
+        content: `I've selected your appointment with **${result.doctorId?.name || 'Doctor'}** on ${new Date(result.dateTime).toLocaleDateString()}.\n\nPlease provide the new date and time you'd like to reschedule to. For example: "Reschedule to tomorrow at 2pm" or "Change to February 25 at 10:30am"`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, rescheduleMessage]);
+    }
+    
+    setAppointmentSelectionMode(null);
+    setAppointmentData(null);
   };
 
   return (
@@ -1795,6 +1852,20 @@ const ChatBot = () => {
               appointmentData={appointmentData}
               onClose={handleCloseAppointmentWidget}
               onBookingComplete={handleBookingComplete}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Appointment Selection Widget Overlay (for reschedule/cancel) */}
+      {showAppointmentSelection && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <AppointmentSelectionWidget
+              appointmentData={appointmentData}
+              mode={appointmentSelectionMode}
+              onClose={handleAppointmentSelectionClose}
+              onConfirm={handleAppointmentSelectionConfirm}
             />
           </div>
         </div>
