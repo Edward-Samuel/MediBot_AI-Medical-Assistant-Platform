@@ -14,10 +14,6 @@ const AppointmentSelectionWidget = ({
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState(false);
 
-  useEffect(() => {
-    fetchAppointments();
-  }, []);
-
   const fetchAppointments = async () => {
     try {
       setLoading(true);
@@ -48,6 +44,11 @@ const AppointmentSelectionWidget = ({
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchAppointments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleConfirm = async () => {
     if (!selectedAppointment) {
