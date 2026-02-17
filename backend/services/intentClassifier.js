@@ -265,14 +265,40 @@ class IntentClassifier {
    */
   classifyAppointmentIntent(message) {
     const lowerMessage = message.toLowerCase().trim();
+    
+    // First check if it's appointment management (reschedule/cancel)
+    const managementPatterns = this.config.patterns.appointment.appointmentManagement;
+    for (const pattern of managementPatterns) {
+      if (pattern.test(message)) {
+        if (this.config.debug.logPatternMatches) {
+          console.log(`Appointment management pattern matched: ${pattern}`);
+        }
+        return {
+          intent: 'appointmentManagement',
+          confidence: 0.95,
+          method: 'rule_based',
+          reasoning: 'Appointment management keywords detected (reschedule/cancel/modify)',
+          scores: { appointmentManagement: 0.95 }
+        };
+      }
+    }
+    
+    // If not management, check for booking
     let appointmentScore = 0;
 
-    // Check appointment patterns
-    for (const pattern of this.appointmentPatterns) {
+    // Check appointment booking patterns (excluding management)
+    const bookingPatterns = [
+      ...this.config.patterns.appointment.directRequests,
+      ...this.config.patterns.appointment.doctorConsultation,
+      ...this.config.patterns.appointment.specialistAppointments,
+      ...this.config.patterns.appointment.timeBasedRequests
+    ];
+    
+    for (const pattern of bookingPatterns) {
       if (pattern.test(message)) {
         appointmentScore += this.config.scoring.appointment.patternMatch;
         if (this.config.debug.logPatternMatches) {
-          console.log(`Appointment pattern matched: ${pattern}`);
+          console.log(`Appointment booking pattern matched: ${pattern}`);
         }
       }
     }
@@ -299,14 +325,14 @@ class IntentClassifier {
     }
 
     if (this.config.debug.logScores) {
-      console.log(`Appointment score: ${appointmentScore.toFixed(2)}, confidence: ${confidence.toFixed(2)}`);
+      console.log(`Appointment booking score: ${appointmentScore.toFixed(2)}, confidence: ${confidence.toFixed(2)}`);
     }
 
     return {
       intent: this.intents.APPOINTMENT,
       confidence,
       method: 'rule_based',
-      reasoning: `Appointment score: ${appointmentScore.toFixed(2)}`,
+      reasoning: `Appointment booking score: ${appointmentScore.toFixed(2)}`,
       scores: { appointment: appointmentScore }
     };
   }
