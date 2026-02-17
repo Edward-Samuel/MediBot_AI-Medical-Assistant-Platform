@@ -519,6 +519,34 @@ router.post("/chat", async (req, res) => {
       }
     }
 
+    // Validate domain relevance (only for text messages)
+    if (message && message.trim()) {
+      console.log("Validating domain relevance...");
+      const domainValidator = require("../services/domainValidator");
+      const domainValidation = await domainValidator.validateDomain(message, language);
+      
+      console.log("Domain validation result:", domainValidation);
+
+      if (!domainValidation.isValid) {
+        console.log("❌ Off-topic message rejected");
+        const rejectionMessage = domainValidator.generateRejectionMessage(language);
+        
+        return res.json({
+          response: rejectionMessage,
+          intent: "off_topic",
+          domainValidation: {
+            isValid: false,
+            confidence: domainValidation.confidence,
+            method: domainValidation.method,
+            reasoning: domainValidation.reasoning
+          },
+          sessionId: currentSessionId || uuidv4()
+        });
+      }
+      
+      console.log("✅ Message validated as healthcare-related");
+    }
+
     let botResponse;
     let usingFallback = false;
     let appointmentData = null;
@@ -1269,6 +1297,31 @@ router.post("/openrouter-chat", async (req, res) => {
         .json({ message: "OpenRouter service not configured" });
     }
 
+    // Validate domain relevance
+    console.log("Validating domain relevance...");
+    const domainValidator = require("../services/domainValidator");
+    const domainValidation = await domainValidator.validateDomain(message, language);
+    
+    console.log("Domain validation result:", domainValidation);
+
+    if (!domainValidation.isValid) {
+      console.log("❌ Off-topic message rejected");
+      const rejectionMessage = domainValidator.generateRejectionMessage(language);
+      
+      return res.json({
+        response: rejectionMessage,
+        intent: "off_topic",
+        domainValidation: {
+          isValid: false,
+          confidence: domainValidation.confidence,
+          method: domainValidation.method,
+          reasoning: domainValidation.reasoning
+        },
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    console.log("✅ Message validated as healthcare-related");
     console.log("OpenRouter reasoning chat request");
 
     const response = await openRouterService.generateResponse(
