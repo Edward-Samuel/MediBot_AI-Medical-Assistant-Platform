@@ -542,8 +542,14 @@ router.patch('/:id/reschedule', authenticateToken, async (req, res) => {
     }
 
     const appointment = await Appointment.findById(req.params.id)
-      .populate('doctorId')
-      .populate('patientId');
+      .populate({
+        path: 'doctorId',
+        populate: { path: 'userId', select: 'profile email googleCalendar' }
+      })
+      .populate({
+        path: 'patientId',
+        populate: { path: 'userId', select: 'profile email googleCalendar' }
+      });
 
     if (!appointment) {
       return res.status(404).json({ message: 'Appointment not found' });
@@ -613,12 +619,27 @@ router.patch('/:id/reschedule', authenticateToken, async (req, res) => {
     // Update Google Calendar event if integrated
     if (appointment.googleCalendarEventId) {
       try {
-        console.log('Updating Google Calendar event:', appointment.googleCalendarEventId);
+        console.log('🔄 Starting Google Calendar update...');
+        console.log('   Event ID:', appointment.googleCalendarEventId);
+        console.log('   Appointment ID:', appointment._id);
+        
         const googleCalendar = require('../services/googleCalendar');
 
-        // Prepare calendar data
-        const patient = await Patient.findById(appointment.patientId).populate('userId');
-        const doctor = await Doctor.findById(appointment.doctorId).populate('userId');
+        // Prepare calendar data - need to populate userId if not already done
+        let patient = appointment.patientId;
+        let doctor = appointment.doctorId;
+        
+        // If not populated, fetch them
+        if (!patient.userId) {
+          patient = await Patient.findById(appointment.patientId).populate('userId');
+        }
+        if (!doctor.userId) {
+          doctor = await Doctor.findById(appointment.doctorId).populate('userId');
+        }
+
+        console.log('   Patient User ID:', patient.userId._id);
+        console.log('   Patient Email:', patient.userId.email);
+        console.log('   New DateTime:', newAppointmentDate.toISOString());
 
         const calendarData = {
           patientName: patient.userId.profile?.firstName && patient.userId.profile?.lastName
@@ -637,21 +658,25 @@ router.patch('/:id/reschedule', authenticateToken, async (req, res) => {
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
         };
 
-        const patientUserId = patient.userId._id || req.user._id;
+        // Use the patient's user ID for OAuth
+        const patientUserId = patient.userId._id;
 
-        // Use patient-specific calendar update method
+        console.log('   Calling updateUserCalendarEvent...');
         const calendarResult = await googleCalendar.updateUserCalendarEvent(
           appointment.googleCalendarEventId,
           calendarData,
-          patientUserId // Pass the patient's user ID for OAuth
+          patientUserId
         );
 
-        console.log('Google Calendar event updated successfully:', calendarResult.eventId);
+        console.log('✅ Google Calendar event updated successfully:', calendarResult.eventId);
       } catch (calendarError) {
-        console.error('⚠️ Failed to update Google Calendar event:', calendarError.message);
+        console.error('❌ Failed to update Google Calendar event:', calendarError.message);
+        console.error('   Full error:', calendarError);
         // Don't fail the reschedule if calendar update fails
         // The appointment is already updated in the database
       }
+    } else {
+      console.log('ℹ️  No Google Calendar event ID found for this appointment');
     }
 
     res.json({
