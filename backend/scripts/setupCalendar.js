@@ -54,7 +54,7 @@ async function setupCalendarIntegration() {
 }
 
 async function guideSetup() {
-  console.log("\n📋 Calendar Integration Setup Guide:");
+  console.log("\nCalendar Integration Setup Guide:");
   console.log("");
   console.log("Step 1: Google Cloud Console Setup");
   console.log("   1. Go to: https://console.cloud.google.com/");

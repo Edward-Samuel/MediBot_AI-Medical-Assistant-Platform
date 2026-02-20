@@ -132,7 +132,7 @@ class IntentClassifier {
 
       // Rule-based approach
       if (classificationMethod === 'rule_based') {
-        console.log('📋 Using rule-based intent classification...');
+        console.log('Using rule-based intent classification...');
         return this.getRuleBasedClassification(message, conversationHistory);
       }
 

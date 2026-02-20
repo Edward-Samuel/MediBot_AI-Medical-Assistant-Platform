@@ -323,7 +323,7 @@ class FAQService {
       // Prepare context from search results with Q&A prioritization
       const context = searchResults.results
         .map((result, index) => {
-          console.log(`📋 Result ${index + 1}:`, {
+          console.log(`Result ${index + 1}:`, {
             isQAPair: result.isQAPair,
             hasQuestion: !!result.question,
             hasAnswer: !!result.answer,

@@ -138,7 +138,7 @@ async function addMissingDoctors() {
       const needed = TARGET_PER_SPEC - currentCount;
 
       if (needed > 0) {
-        console.log(`📋 ${specialization}: has ${currentCount}, adding ${needed} more...`);
+        console.log(`${specialization}: has ${currentCount}, adding ${needed} more...`);
         
         const doctorsToAdd = additionalDoctors[specialization] || [];
         const doctorsAdded = Math.min(needed, doctorsToAdd.length);

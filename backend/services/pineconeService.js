@@ -52,7 +52,7 @@ class PineconeService {
       );
 
       if (!indexExists) {
-        console.log(`📋 Creating Pinecone index: ${this.indexName}`);
+        console.log(`Creating Pinecone index: ${this.indexName}`);
         await this.pinecone.createIndex({
           name: this.indexName,
           dimension: this.dimension,

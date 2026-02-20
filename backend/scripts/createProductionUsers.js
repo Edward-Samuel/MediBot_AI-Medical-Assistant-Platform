@@ -20,7 +20,7 @@ async function createProductionUsers() {
     console.log("Connected to MongoDB");
 
     // Create Admin User
-    console.log("\n📋 Creating Admin User...");
+    console.log("\nCreating Admin User...");
     const existingAdmin = await User.findOne({ email: "admin@medibot.com" });
     
     if (existingAdmin) {
@@ -49,7 +49,7 @@ async function createProductionUsers() {
     }
 
     // Create Demo Patient User
-    console.log("\n📋 Creating Demo Patient User...");
+    console.log("\nCreating Demo Patient User...");
     const existingPatient = await User.findOne({ email: "patient@demo.com" });
     
     if (existingPatient) {
@@ -77,7 +77,7 @@ async function createProductionUsers() {
     }
 
     // Create Demo Doctor User
-    console.log("\n📋 Creating Demo Doctor User...");
+    console.log("\nCreating Demo Doctor User...");
     const existingDoctor = await User.findOne({ email: "doctor@demo.com" });
     
     if (existingDoctor) {

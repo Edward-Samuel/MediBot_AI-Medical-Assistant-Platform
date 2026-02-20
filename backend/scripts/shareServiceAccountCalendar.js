@@ -65,7 +65,7 @@ async function shareServiceAccountCalendar() {
       console.log('Shared with:', yourEmail);
       console.log('🔑 Permission level: Reader (view only)');
       
-      console.log('\n📋 Next Steps:');
+      console.log('\nNext Steps:');
       console.log('1. Go to Google Calendar (calendar.google.com)');
       console.log('2. Look for "Other calendars" in the left sidebar');
       console.log('3. You should see the MEDIBOT calendar there');

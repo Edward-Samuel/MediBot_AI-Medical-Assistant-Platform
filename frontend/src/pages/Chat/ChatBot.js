@@ -817,7 +817,7 @@ const ChatBot = () => {
   // Enhanced debug function with ElevenLabs status
   const debugVoices = async () => {
     console.log("🔊 === TTS DEBUG INFO ===");
-    console.log(`📱 Browser: ${navigator.userAgent.split(" ")[0]}`);
+    console.log(`Browser: ${navigator.userAgent.split(" ")[0]}`);
 
     const currentLangInfo = getCurrentLanguageInfo();
     console.log(

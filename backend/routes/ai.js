@@ -41,7 +41,7 @@ async function generateAIResponse(
 
     // Log if template was used
     if (response.isTemplate) {
-      console.log("📋 Used structured template response");
+      console.log("Used structured template response");
     }
 
     return response.content;
@@ -776,7 +776,7 @@ router.post("/chat", async (req, res) => {
             );
             if (faqResults.results?.length > 0) {
               console.log(
-                "📋 FAQ results preview:",
+                "FAQ results preview:",
                 faqResults.results.map((r) => ({
                   title: r.title,
                   isQAPair: r.isQAPair,
@@ -1622,7 +1622,7 @@ router.post("/book-appointment", async (req, res) => {
         await savedAppointment.save();
 
         console.log(
-          "📋 Calendar integration failed, manual instructions provided",
+          "Calendar integration failed, manual instructions provided",
         );
       }
     } catch (calendarError) {

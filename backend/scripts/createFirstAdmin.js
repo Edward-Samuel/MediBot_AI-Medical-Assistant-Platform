@@ -48,7 +48,7 @@ async function createFirstAdmin() {
     await admin.save();
 
     console.log("First admin user created successfully!");
-    console.log("📋 Login credentials:");
+    console.log("Login credentials:");
     console.log(`   Email: ${adminData.email}`);
     console.log(`   Password: ${adminData.password}`);
     console.log("");

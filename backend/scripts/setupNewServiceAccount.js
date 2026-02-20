@@ -16,7 +16,7 @@ async function setupNewServiceAccount() {
     console.log("❌ google-credentials.json file not found");
     console.log("📁 Please place your downloaded JSON key file at:");
     console.log("   backend/config/google-credentials.json");
-    console.log("\n📋 To get the JSON key file:");
+    console.log("\nTo get the JSON key file:");
     console.log("1. Go to Google Cloud Console");
     console.log("2. Navigate to APIs & Services > Credentials");
     console.log("3. Click on your service account");
@@ -57,7 +57,7 @@ async function setupNewServiceAccount() {
     const calendars = calendarListResponse.data.items || [];
 
     console.log("Google Calendar API access successful");
-    console.log("📋 Accessible calendars:");
+    console.log("Accessible calendars:");
 
     if (calendars.length === 0) {
       console.log("   (No calendars accessible yet)");
@@ -141,7 +141,7 @@ async function setupNewServiceAccount() {
         "\n🔧 SOLUTION: Share the calendar with your service account",
       );
       console.log("Service account email:", credentials.client_email);
-      console.log("\n📋 Steps to share the calendar:");
+      console.log("\nSteps to share the calendar:");
       console.log("1. Go to Google Calendar (calendar.google.com)");
       console.log("2. Find your calendar in the left sidebar");
       console.log("3. Click the three dots next to the calendar name");

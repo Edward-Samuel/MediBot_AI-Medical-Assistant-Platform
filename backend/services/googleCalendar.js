@@ -119,7 +119,7 @@ class GoogleCalendarService {
           }
         } else {
           console.log("Google Calendar credentials not found");
-          console.log("   📋 To enable calendar integration:");
+          console.log("   To enable calendar integration:");
           console.log("   1. Create a Google Cloud Project");
           console.log("   2. Enable Google Calendar API");
           console.log("   3. Create a Service Account");
@@ -169,14 +169,14 @@ class GoogleCalendarService {
         console.log(
           "   🔧 Fix: Ensure the service account has Calendar API access",
         );
-        console.log("   📋 Required permissions:");
+        console.log("   Required permissions:");
         console.log("   - Google Calendar API enabled in Google Cloud Console");
         console.log("   - Service account has calendar access permissions");
       } else if (error.message.includes("not found")) {
         console.log(
           "   🔧 Fix: Check that the calendar ID exists and is accessible",
         );
-        console.log("   📋 Current calendar ID:", this.calendarId);
+        console.log("   Current calendar ID:", this.calendarId);
       }
 
       console.log("   Calendar integration will be disabled");
@@ -303,7 +303,7 @@ class GoogleCalendarService {
         const calendarListResponse = await this.calendar.calendarList.list();
         const calendars = calendarListResponse.data.items || [];
 
-        console.log("📋 Available calendars:");
+        console.log("Available calendars:");
         if (calendars.length > 0) {
           calendars.forEach((cal) => {
             console.log(
@@ -315,7 +315,7 @@ class GoogleCalendarService {
         }
       } catch (listError) {
         console.log(
-          "📋 Calendar list access limited (this is normal for service accounts)",
+          "Calendar list access limited (this is normal for service accounts)",
         );
       }
 
@@ -516,11 +516,11 @@ class GoogleCalendarService {
     if (patientEmail) description += ` (${patientEmail})`;
     description += `\n`;
 
-    description += `👨‍⚕️ Doctor: ${doctorName}`;
+    description += `Doctor: ${doctorName}`;
     if (doctorEmail) description += ` (${doctorEmail})`;
     description += `\n`;
 
-    description += `📋 Type: ${appointmentType}\n\n`;
+    description += `Type: ${appointmentType}\n\n`;
 
     if (chiefComplaint) {
       description += `Chief Complaint: ${chiefComplaint}\n\n`;
@@ -530,8 +530,8 @@ class GoogleCalendarService {
       description += `Symptoms: ${symptoms.join(", ")}\n\n`;
     }
 
-    description += `📱 Booked via: MEDIBOT Platform\n`;
-    description += `🕐 Created: ${new Date().toLocaleString()}\n\n`;
+    description += `Booked via: MEDIBOT Platform\n`;
+    description += `Created: ${new Date().toLocaleString()}\n\n`;
 
     description += `Important Notes:\n`;
     description += `• This appointment was automatically created by MEDIBOT\n`;
@@ -540,7 +540,7 @@ class GoogleCalendarService {
     description += `• Contact information is provided above for coordination\n`;
     description += `• Please confirm attendance 24 hours before the appointment\n\n`;
 
-    description += `🔒 Privacy: This is a confidential medical appointment`;
+    description += `Privacy: This is a confidential medical appointment`;
 
     return description;
   }

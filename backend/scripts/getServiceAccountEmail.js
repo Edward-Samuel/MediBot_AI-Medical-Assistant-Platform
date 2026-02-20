@@ -18,7 +18,7 @@ function getServiceAccountEmail() {
     console.log('   Project ID:', credentials.project_id);
     console.log('   Private Key ID:', credentials.private_key_id);
     
-    console.log('\n📋 Next Steps:');
+    console.log('\nNext Steps:');
     console.log('1. Copy this email:', credentials.client_email);
     console.log('2. Go to Google Calendar (calendar.google.com)');
     console.log('3. Find your target calendar');
