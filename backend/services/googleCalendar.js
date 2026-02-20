@@ -744,18 +744,6 @@ END:VCALENDAR`;
       throw new Error(`Failed to delete calendar event: ${error.message}`);
     }
   }
-    } catch (error) {
-      console.log("Calendar integration failed, providing manual options");
-      return {
-        eventId: null,
-        eventLink: null,
-        meetingLink: null,
-        manualInstructions:
-          this.generateManualCalendarInstructions(appointmentData),
-        error: error.message,
-      };
-    }
-  }
 
   async updateAppointmentEvent(eventId, appointmentData) {
     if (!this.initialized) {
