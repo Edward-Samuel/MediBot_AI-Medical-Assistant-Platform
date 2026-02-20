@@ -3,9 +3,9 @@ import { X, Calendar, Clock, User, AlertCircle, Loader } from 'lucide-react';
 import axios from '../../config/axios';
 import toast from 'react-hot-toast';
 
-const AppointmentSelectionWidget = ({ 
-  appointmentData, 
-  onClose, 
+const AppointmentSelectionWidget = ({
+  appointmentData,
+  onClose,
   onConfirm,
   mode = 'reschedule' // 'reschedule' or 'cancel'
 }) => {
@@ -18,14 +18,14 @@ const AppointmentSelectionWidget = ({
     try {
       setLoading(true);
       const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
-      
+
       const response = await axios.get('/api/appointments/my-appointments', {
         headers: { Authorization: `Bearer ${token}` }
       });
 
       // Filter only upcoming appointments that can be rescheduled/cancelled
-      const upcomingAppointments = response.data.appointments.filter(apt => 
-        ['scheduled', 'confirmed'].includes(apt.status) && 
+      const upcomingAppointments = response.data.appointments.filter(apt =>
+        ['scheduled', 'confirmed'].includes(apt.status) &&
         new Date(apt.dateTime) > new Date()
       );
 
@@ -83,15 +83,15 @@ const AppointmentSelectionWidget = ({
   const formatDateTime = (dateTime) => {
     const date = new Date(dateTime);
     return {
-      date: date.toLocaleDateString('en-US', { 
-        weekday: 'short', 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric' 
+      date: date.toLocaleDateString('en-US', {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
       }),
-      time: date.toLocaleTimeString('en-US', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
+      time: date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit'
       })
     };
   };
@@ -105,7 +105,7 @@ const AppointmentSelectionWidget = ({
             {mode === 'cancel' ? 'Cancel Appointment' : 'Select Appointment to Reschedule'}
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            {mode === 'cancel' 
+            {mode === 'cancel'
               ? 'Choose the appointment you want to cancel'
               : 'Choose the appointment you want to reschedule'
             }
@@ -143,32 +143,33 @@ const AppointmentSelectionWidget = ({
                 <div
                   key={appointment._id}
                   onClick={() => setSelectedAppointment(appointment)}
-                  className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                    isSelected
+                  className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${isSelected
                       ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
                       : 'border-gray-200 dark:border-gray-700 hover:border-green-300 dark:hover:border-green-700'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-2 mb-2">
                         <User className="h-5 w-5 text-green-600" />
                         <h3 className="font-semibold text-gray-900 dark:text-white">
-                          {appointment.doctorId?.name || 'Doctor'}
+                          {appointment.doctorId?.userId?.profile
+                            ? `Dr. ${appointment.doctorId.userId.profile.firstName} ${appointment.doctorId.userId.profile.lastName}`
+                            : (appointment.doctorId?.name || 'Doctor')}
                         </h3>
                       </div>
-                      
+
                       <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
                         <div className="flex items-center space-x-2">
                           <span className="font-medium">Specialization:</span>
                           <span>{appointment.doctorId?.specialization || 'N/A'}</span>
                         </div>
-                        
+
                         <div className="flex items-center space-x-2">
                           <Calendar className="h-4 w-4" />
                           <span>{date}</span>
                         </div>
-                        
+
                         <div className="flex items-center space-x-2">
                           <Clock className="h-4 w-4" />
                           <span>{time}</span>
@@ -225,11 +226,10 @@ const AppointmentSelectionWidget = ({
         <button
           onClick={handleConfirm}
           disabled={!selectedAppointment || confirming || loading}
-          className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-            mode === 'cancel'
+          className={`px-6 py-2 rounded-lg font-medium transition-colors ${mode === 'cancel'
               ? 'bg-red-600 hover:bg-red-700 text-white disabled:bg-gray-300 dark:disabled:bg-gray-700'
               : 'bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-300 dark:disabled:bg-gray-700'
-          } disabled:cursor-not-allowed`}
+            } disabled:cursor-not-allowed`}
         >
           {confirming ? (
             <span className="flex items-center space-x-2">

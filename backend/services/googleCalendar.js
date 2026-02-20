@@ -479,7 +479,7 @@ class GoogleCalendarService {
 
       console.log("User calendar event created successfully:", response.data.id);
       console.log("Event link:", response.data.htmlLink);
-      
+
       return {
         eventId: response.data.id,
         eventLink: response.data.htmlLink,
@@ -687,16 +687,16 @@ END:VCALENDAR`;
         visibility: "private"
       };
 
-      const response = await calendar.events.update({
+      const response = await calendar.events.patch({
         calendarId: "primary",
         eventId: eventId,
         resource: event,
-        sendUpdates: "none" // Don't send email notifications
+        sendUpdates: "all" // Send email notifications so the user knows
       });
 
       console.log("User calendar event updated successfully:", response.data.id);
       console.log("Event link:", response.data.htmlLink);
-      
+
       return {
         eventId: response.data.id,
         eventLink: response.data.htmlLink,
@@ -735,12 +735,12 @@ END:VCALENDAR`;
       return true;
     } catch (error) {
       console.error("❌ Error deleting user calendar event:", error.message);
-      
+
       if (error.message.includes('Not Found') || error.message.includes('404')) {
         console.log('Event already deleted or not found');
         return true; // Consider it successful if already deleted
       }
-      
+
       throw new Error(`Failed to delete calendar event: ${error.message}`);
     }
   }

@@ -99,14 +99,14 @@ router.post('/book', authenticateToken, async (req, res) => {
       console.log('   User email:', req.user.email);
       console.log('   Calendar connected:', req.user.googleCalendar?.connected);
       console.log('   Connected calendar email:', req.user.googleCalendar?.calendarId);
-      
+
       // Create Google Calendar event
       const googleCalendar = require('../services/googleCalendar');
-      
+
       // Use connected Google Calendar email if available, otherwise fall back to registration email
       const connectedPatientEmail = patient.userId.googleCalendar?.calendarId || patient.userId.email;
       const connectedDoctorEmail = doctor.userId.googleCalendar?.calendarId || doctor.userId.email;
-      
+
       const eventDetails = {
         patientName: `${patient.userId.profile.firstName} ${patient.userId.profile.lastName}`,
         patientEmail: connectedPatientEmail,
@@ -183,9 +183,14 @@ router.get('/my-appointments', authenticateToken, async (req, res) => {
       appointments = await Appointment.find({ patientId: patient._id })
         .populate({
           path: 'doctorId',
-          populate: { path: 'userId', select: 'profile' }
+          populate: { path: 'userId', select: 'profile email' }
         })
-        .sort({ dateTime: -1 });
+        .populate({
+          path: 'patientId',
+          populate: { path: 'userId', select: 'profile email' }
+        })
+        .sort({ dateTime: -1 })
+        .lean();
 
     } else if (req.user.role === 'doctor') {
       const doctor = await Doctor.findOne({ userId: req.user._id });
@@ -196,12 +201,27 @@ router.get('/my-appointments', authenticateToken, async (req, res) => {
       appointments = await Appointment.find({ doctorId: doctor._id })
         .populate({
           path: 'patientId',
-          populate: { path: 'userId', select: 'profile' }
+          populate: { path: 'userId', select: 'profile email' }
         })
-        .sort({ dateTime: -1 });
+        .populate({
+          path: 'doctorId',
+          populate: { path: 'userId', select: 'profile email' }
+        })
+        .sort({ dateTime: -1 })
+        .lean();
+    } else {
+      return res.status(403).json({ message: 'Access denied' });
     }
 
-    res.json({ appointments });
+    // Add reschedule capability flag
+    const appointmentsWithFlags = appointments.map(apt => ({
+      ...apt,
+      canReschedule: ['scheduled', 'confirmed'].includes(apt.status) &&
+        new Date(apt.dateTime) > new Date() &&
+        (apt.rescheduleCount || 0) < 2
+    }));
+
+    res.json({ appointments: appointmentsWithFlags });
 
   } catch (error) {
     console.error('Get appointments error:', error);
@@ -252,7 +272,7 @@ router.patch('/:id/status', authenticateToken, async (req, res) => {
     const appointment = await Appointment.findById(req.params.id)
       .populate('doctorId')
       .populate('patientId');
-      
+
     if (!appointment) {
       return res.status(404).json({ message: 'Appointment not found' });
     }
@@ -283,7 +303,7 @@ router.patch('/:id/status', authenticateToken, async (req, res) => {
       try {
         console.log('Cancelling Google Calendar event:', appointment.googleCalendarEventId);
         const googleCalendar = require('../services/googleCalendar');
-        
+
         // Use user-specific calendar delete method
         await googleCalendar.deleteUserCalendarEvent(
           appointment.googleCalendarEventId,
@@ -296,8 +316,8 @@ router.patch('/:id/status', authenticateToken, async (req, res) => {
       }
     }
 
-    res.json({ 
-      message: 'Appointment status updated', 
+    res.json({
+      message: 'Appointment status updated',
       appointment,
       oldStatus,
       calendarUpdated: status === 'cancelled' && appointment.googleCalendarEventId
@@ -337,14 +357,14 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 
     // Check if appointment can be cancelled
     if (appointment.status === 'completed') {
-      return res.status(400).json({ 
-        message: 'Cannot cancel completed appointments' 
+      return res.status(400).json({
+        message: 'Cannot cancel completed appointments'
       });
     }
 
     if (appointment.status === 'cancelled') {
-      return res.status(400).json({ 
-        message: 'Appointment is already cancelled' 
+      return res.status(400).json({
+        message: 'Appointment is already cancelled'
       });
     }
 
@@ -353,7 +373,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
       try {
         console.log('Cancelling Google Calendar event:', appointment.googleCalendarEventId);
         const googleCalendar = require('../services/googleCalendar');
-        
+
         // Use user-specific calendar delete method
         await googleCalendar.deleteUserCalendarEvent(
           appointment.googleCalendarEventId,
@@ -370,7 +390,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     appointment.status = 'cancelled';
     await appointment.save();
 
-    res.json({ 
+    res.json({
       message: 'Appointment cancelled successfully',
       appointment,
       calendarUpdated: !!appointment.googleCalendarEventId
@@ -546,8 +566,15 @@ router.patch('/:id/reschedule', authenticateToken, async (req, res) => {
 
     // Check if appointment can be rescheduled
     if (appointment.status === 'completed' || appointment.status === 'cancelled') {
-      return res.status(400).json({ 
-        message: `Cannot reschedule ${appointment.status} appointments` 
+      return res.status(400).json({
+        message: `Cannot reschedule ${appointment.status} appointments`
+      });
+    }
+
+    // Check reschedule instances
+    if ((appointment.rescheduleCount || 0) >= 2) {
+      return res.status(400).json({
+        message: 'Maximum reschedule limit (2 times) reached.'
       });
     }
 
@@ -569,8 +596,8 @@ router.patch('/:id/reschedule', authenticateToken, async (req, res) => {
     });
 
     if (conflictingAppointment) {
-      return res.status(409).json({ 
-        message: 'Time slot not available. Please choose a different time.' 
+      return res.status(409).json({
+        message: 'Time slot not available. Please choose a different time.'
       });
     }
 
@@ -580,6 +607,7 @@ router.patch('/:id/reschedule', authenticateToken, async (req, res) => {
     // Update appointment
     appointment.dateTime = newAppointmentDate;
     appointment.status = 'scheduled'; // Reset to scheduled
+    appointment.rescheduleCount = (appointment.rescheduleCount || 0) + 1;
     await appointment.save();
 
     // Update Google Calendar event if integrated
@@ -587,11 +615,11 @@ router.patch('/:id/reschedule', authenticateToken, async (req, res) => {
       try {
         console.log('Updating Google Calendar event:', appointment.googleCalendarEventId);
         const googleCalendar = require('../services/googleCalendar');
-        
+
         // Prepare calendar data
         const patient = await Patient.findById(appointment.patientId).populate('userId');
         const doctor = await Doctor.findById(appointment.doctorId).populate('userId');
-        
+
         const calendarData = {
           patientName: patient.userId.profile?.firstName && patient.userId.profile?.lastName
             ? `${patient.userId.profile.firstName} ${patient.userId.profile.lastName}`
@@ -609,11 +637,13 @@ router.patch('/:id/reschedule', authenticateToken, async (req, res) => {
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
         };
 
-        // Use user-specific calendar update method
+        const patientUserId = patient.userId._id || req.user._id;
+
+        // Use patient-specific calendar update method
         const calendarResult = await googleCalendar.updateUserCalendarEvent(
           appointment.googleCalendarEventId,
           calendarData,
-          req.user._id // Pass the user ID for OAuth
+          patientUserId // Pass the patient's user ID for OAuth
         );
 
         console.log('Google Calendar event updated successfully:', calendarResult.eventId);
@@ -624,7 +654,7 @@ router.patch('/:id/reschedule', authenticateToken, async (req, res) => {
       }
     }
 
-    res.json({ 
+    res.json({
       message: 'Appointment rescheduled successfully',
       appointment,
       oldDateTime,
@@ -634,48 +664,6 @@ router.patch('/:id/reschedule', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Reschedule error:', error);
     res.status(500).json({ message: 'Error rescheduling appointment' });
-  }
-});
-
-// Get user's appointments with reschedule capability info
-router.get('/my-appointments', authenticateToken, async (req, res) => {
-  try {
-    let query = {};
-
-    if (req.user.role === 'patient') {
-      const patient = await Patient.findOne({ userId: req.user._id });
-      if (!patient) {
-        return res.status(404).json({ message: 'Patient profile not found' });
-      }
-      query.patientId = patient._id;
-    } else if (req.user.role === 'doctor') {
-      const doctor = await Doctor.findOne({ userId: req.user._id });
-      if (!doctor) {
-        return res.status(404).json({ message: 'Doctor profile not found' });
-      }
-      query.doctorId = doctor._id;
-    } else {
-      return res.status(403).json({ message: 'Access denied' });
-    }
-
-    const appointments = await Appointment.find(query)
-      .populate('doctorId', 'name specialization')
-      .populate('patientId', 'name')
-      .sort({ dateTime: -1 })
-      .lean();
-
-    // Add reschedule capability flag
-    const appointmentsWithFlags = appointments.map(apt => ({
-      ...apt,
-      canReschedule: ['scheduled', 'confirmed'].includes(apt.status) && 
-                     new Date(apt.dateTime) > new Date()
-    }));
-
-    res.json({ appointments: appointmentsWithFlags });
-
-  } catch (error) {
-    console.error('Get appointments error:', error);
-    res.status(500).json({ message: 'Error fetching appointments' });
   }
 });
 

@@ -33,7 +33,7 @@ async function setupProduction() {
     
     if (!existingAdmin) {
       // Create Admin User
-      console.log("\n📋 Creating Admin User...");
+      console.log("\nCreating Admin User...");
       const adminData = {
         email: "admin@medibot.com",
         password: "Admin@123456",
@@ -54,7 +54,7 @@ async function setupProduction() {
       results.admin = adminData.email;
       console.log("Admin created:", adminData.email);
     } else {
-      console.log("⚠️  Admin already exists:", existingAdmin.email);
+      console.log("Admin already exists:", existingAdmin.email);
       results.admin = existingAdmin.email;
     }
 
@@ -63,7 +63,7 @@ async function setupProduction() {
     
     if (!existingPatient) {
       // Create Demo Patient User
-      console.log("\n📋 Creating Demo Patient User...");
+      console.log("\nCreating Demo Patient User...");
       const patientData = {
         email: "patient@demo.com",
         password: "password123",
@@ -89,16 +89,16 @@ async function setupProduction() {
       results.patient = patientData.email;
       console.log("Demo patient created:", patientData.email);
     } else {
-      console.log("⚠️  Demo patient already exists");
+      console.log("Demo patient already exists");
       results.patient = existingPatient.email;
     }
 
     // Check how many doctors exist
     const existingDoctorsCount = await Doctor.countDocuments();
-    console.log(`\n📋 Current doctors in database: ${existingDoctorsCount}`);
+    console.log(`\nCurrent doctors in database: ${existingDoctorsCount}`);
 
     if (existingDoctorsCount === 0) {
-      console.log(`\n📋 Creating ${doctorsData.length} doctors...`);
+      console.log(`\nCreating ${doctorsData.length} doctors...`);
       const specializationCount = {};
 
       for (const doctorData of doctorsData) {
@@ -167,7 +167,7 @@ async function setupProduction() {
         console.log(`  ${spec}: ${count}`);
       });
     } else {
-      console.log("⚠️  Doctors already exist in database");
+      console.log("Doctors already exist in database");
       results.doctors = existingDoctorsCount;
     }
 
@@ -186,7 +186,7 @@ async function setupProduction() {
     console.log(`\nDoctors: ${results.doctors} total`);
     console.log("  All doctors use password: password123");
     
-    console.log("\n⚠️  IMPORTANT:");
+    console.log("\nIMPORTANT:");
     console.log("  1. Change admin password immediately");
     console.log("  2. Set SETUP_ENABLED=false in Render");
     console.log("  3. Test login at your frontend URL");

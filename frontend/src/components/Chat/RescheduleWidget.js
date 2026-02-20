@@ -20,15 +20,15 @@ const RescheduleWidget = ({ appointment, onClose, onRescheduleComplete }) => {
   const formatDateTime = (dateTime) => {
     const date = new Date(dateTime);
     return {
-      date: date.toLocaleDateString('en-US', { 
-        weekday: 'short', 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric' 
+      date: date.toLocaleDateString('en-US', {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
       }),
-      time: date.toLocaleTimeString('en-US', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
+      time: date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit'
       })
     };
   };
@@ -36,18 +36,18 @@ const RescheduleWidget = ({ appointment, onClose, onRescheduleComplete }) => {
   const generateAvailableSlots = () => {
     const slots = [];
     const today = new Date();
-    
+
     // Generate slots for next 7 days
     for (let i = 1; i <= 7; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
-      
+
       // Get the date string in local timezone (YYYY-MM-DD)
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const day = String(date.getDate()).padStart(2, '0');
       const dateString = `${year}-${month}-${day}`;
-      
+
       const daySlots = {
         date: dateString,
         dayName: date.toLocaleDateString('en-US', { weekday: 'long' }),
@@ -62,7 +62,7 @@ const RescheduleWidget = ({ appointment, onClose, onRescheduleComplete }) => {
       };
       slots.push(daySlots);
     }
-    
+
     return slots;
   };
 
@@ -83,7 +83,7 @@ const RescheduleWidget = ({ appointment, onClose, onRescheduleComplete }) => {
 
     // Convert local datetime string to proper Date object
     const newDateTime = new Date(selectedSlot.dateTime);
-    
+
     // Validate future date
     if (newDateTime <= new Date()) {
       toast.error('Please select a future date and time');
@@ -93,7 +93,7 @@ const RescheduleWidget = ({ appointment, onClose, onRescheduleComplete }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
-      
+
       const response = await axios.patch(
         `/api/appointments/${appointment._id}/reschedule`,
         { newDateTime: newDateTime.toISOString() },
@@ -143,7 +143,9 @@ const RescheduleWidget = ({ appointment, onClose, onRescheduleComplete }) => {
             <div className="flex items-center space-x-2 text-sm">
               <User className="h-4 w-4 text-green-600" />
               <span className="font-medium text-gray-900 dark:text-white">
-                {appointment.doctorId?.name || 'Doctor'}
+                {appointment.doctorId?.userId?.profile
+                  ? `Dr. ${appointment.doctorId.userId.profile.firstName} ${appointment.doctorId.userId.profile.lastName}`
+                  : (appointment.doctorId?.name || 'Doctor')}
               </span>
               <span className="text-gray-500 dark:text-gray-400">
                 ({appointment.doctorId?.specialization || 'N/A'})
@@ -165,7 +167,7 @@ const RescheduleWidget = ({ appointment, onClose, onRescheduleComplete }) => {
           <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
             Select New Time Slot
           </h3>
-          
+
           {isLoadingSlots ? (
             <div className="flex items-center justify-center py-8">
               <Loader className="h-6 w-6 animate-spin text-green-600" />
@@ -183,11 +185,10 @@ const RescheduleWidget = ({ appointment, onClose, onRescheduleComplete }) => {
                       <button
                         key={slot.time}
                         onClick={() => handleSlotSelect(daySlots, slot)}
-                        className={`p-2 text-sm rounded-md border transition-colors ${
-                          selectedSlot?.dateTime === slot.dateTime
+                        className={`p-2 text-sm rounded-md border transition-colors ${selectedSlot?.dateTime === slot.dateTime
                             ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300'
                             : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300'
-                        }`}
+                          }`}
                       >
                         <Clock className="h-3 w-3 inline mr-1" />
                         {slot.time}

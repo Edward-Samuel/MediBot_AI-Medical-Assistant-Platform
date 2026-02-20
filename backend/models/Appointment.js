@@ -61,6 +61,10 @@ const appointmentSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: Date.now
+  },
+  rescheduleCount: {
+    type: Number,
+    default: 0
   }
 });
 
