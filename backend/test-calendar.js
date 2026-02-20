@@ -38,7 +38,7 @@ async function testCalendarIntegration() {
       console.log(`   Found ${usersWithCalendar.length} user(s) with connected calendar:\n`);
       
       for (const user of usersWithCalendar) {
-        console.log(`   👤 User: ${user.email}`);
+        console.log(`   User: ${user.email}`);
         console.log(`      Role: ${user.role}`);
         console.log(`      Calendar ID: ${user.googleCalendar.calendarId}`);
         console.log(`      Connected At: ${user.googleCalendar.connectedAt}`);

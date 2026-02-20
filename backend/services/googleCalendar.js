@@ -422,15 +422,14 @@ class GoogleCalendarService {
       console.log(`🌍 Using timezone: ${timezone}`);
 
       // Validate emails before creating event
-      if (!patientEmail || !doctorEmail) {
-        throw new Error(`Missing attendee email. Patient: ${patientEmail || 'MISSING'}, Doctor: ${doctorEmail || 'MISSING'}`);
+      if (!patientEmail) {
+        throw new Error(`Missing patient email: ${patientEmail || 'MISSING'}`);
       }
 
-      // Filter out any undefined/null emails and create attendees array
+      // Only add patient as attendee - don't send emails to doctors
       const attendees = [
-        patientEmail && { email: patientEmail },
-        doctorEmail && { email: doctorEmail }
-      ].filter(Boolean);
+        { email: patientEmail }
+      ];
 
       console.log(`Attendees array:`, JSON.stringify(attendees));
 
@@ -475,7 +474,7 @@ class GoogleCalendarService {
         calendarId: "primary",
         resource: event,
         conferenceDataVersion: 1,
-        sendUpdates: "all" // Send email notifications to attendees
+        sendUpdates: "none" // Don't send email notifications to attendees
       });
 
       console.log("User calendar event created successfully:", response.data.id);
@@ -609,6 +608,142 @@ END:VCALENDAR`;
   async safeCreateEvent(appointmentData, userId = null) {
     try {
       return await this.createAppointmentEvent(appointmentData, userId);
+    } catch (error) {
+      console.error("Calendar event creation failed:", error.message);
+      return {
+        eventId: null,
+        eventLink: null,
+        meetingLink: null,
+        error: error.message,
+        fallback: this.generateManualCalendarInstructions(appointmentData),
+      };
+    }
+  }
+
+  // Update calendar event using user's OAuth tokens
+  async updateUserCalendarEvent(eventId, appointmentData, userId) {
+    try {
+      console.log(`Updating calendar event ${eventId} for user ${userId}`);
+      const auth = await this.getUserOAuthClient(userId);
+      const calendar = google.calendar({ version: "v3", auth });
+
+      const {
+        patientName,
+        patientEmail,
+        doctorName,
+        doctorEmail,
+        dateTime,
+        duration = 30,
+        appointmentType,
+        chiefComplaint,
+        symptoms = [],
+        timezone = 'UTC'
+      } = appointmentData;
+
+      const startTime = new Date(dateTime);
+      const endTime = new Date(startTime.getTime() + duration * 60000);
+
+      console.log(`Updating event: ${patientName} with ${doctorName} at ${startTime.toISOString()}`);
+      console.log(`🌍 Using timezone: ${timezone}`);
+
+      // Validate patient email
+      if (!patientEmail) {
+        throw new Error(`Missing patient email: ${patientEmail || 'MISSING'}`);
+      }
+
+      // Only add patient as attendee
+      const attendees = [
+        { email: patientEmail }
+      ];
+
+      const event = {
+        summary: `Medical Appointment: ${patientName} with ${doctorName}`,
+        description: this.createEventDescription({
+          patientName,
+          patientEmail,
+          doctorName,
+          doctorEmail,
+          appointmentType,
+          chiefComplaint,
+          symptoms,
+        }),
+        start: {
+          dateTime: startTime.toISOString(),
+          timeZone: timezone,
+        },
+        end: {
+          dateTime: endTime.toISOString(),
+          timeZone: timezone,
+        },
+        attendees: attendees,
+        reminders: {
+          useDefault: false,
+          overrides: [
+            { method: "popup", minutes: 30 },
+            { method: "popup", minutes: 10 },
+          ],
+        },
+        colorId: "2",
+        visibility: "private"
+      };
+
+      const response = await calendar.events.update({
+        calendarId: "primary",
+        eventId: eventId,
+        resource: event,
+        sendUpdates: "none" // Don't send email notifications
+      });
+
+      console.log("User calendar event updated successfully:", response.data.id);
+      console.log("Event link:", response.data.htmlLink);
+      
+      return {
+        eventId: response.data.id,
+        eventLink: response.data.htmlLink,
+        meetingLink: response.data.conferenceData?.entryPoints?.[0]?.uri || null
+      };
+    } catch (error) {
+      console.error("❌ Error updating user calendar event:", error.message);
+      console.error("❌ Full error:", error);
+
+      if (error.message.includes('User calendar not connected')) {
+        throw new Error('Please connect your Google Calendar first');
+      } else if (error.message.includes('invalid_grant')) {
+        throw new Error('Calendar access expired - please reconnect your Google Calendar');
+      } else if (error.message.includes('Not Found') || error.message.includes('404')) {
+        throw new Error('Calendar event not found - it may have been deleted');
+      } else {
+        throw new Error(`Calendar update failed: ${error.message}`);
+      }
+    }
+  }
+
+  // Delete calendar event using user's OAuth tokens
+  async deleteUserCalendarEvent(eventId, userId) {
+    try {
+      console.log(`Deleting calendar event ${eventId} for user ${userId}`);
+      const auth = await this.getUserOAuthClient(userId);
+      const calendar = google.calendar({ version: "v3", auth });
+
+      await calendar.events.delete({
+        calendarId: "primary",
+        eventId: eventId,
+        sendUpdates: "none" // Don't send notifications
+      });
+
+      console.log("User calendar event deleted successfully:", eventId);
+      return true;
+    } catch (error) {
+      console.error("❌ Error deleting user calendar event:", error.message);
+      
+      if (error.message.includes('Not Found') || error.message.includes('404')) {
+        console.log('Event already deleted or not found');
+        return true; // Consider it successful if already deleted
+      }
+      
+      throw new Error(`Failed to delete calendar event: ${error.message}`);
+    }
+  }
     } catch (error) {
       console.log("Calendar integration failed, providing manual options");
       return {

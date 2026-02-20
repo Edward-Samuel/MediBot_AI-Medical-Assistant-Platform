@@ -249,6 +249,11 @@ router.get('/me', async (req, res) => {
         profile: user.profile,
         lastLogin: user.lastLogin,
         createdAt: user.createdAt,
+        googleCalendar: {
+          connected: user.googleCalendar?.connected || false,
+          connectedAt: user.googleCalendar?.connectedAt || null,
+          calendarId: user.googleCalendar?.calendarId || null
+        },
         ...additionalData
       }
     });
@@ -302,7 +307,7 @@ router.get('/google/callback', async (req, res) => {
       return res.status(400).send('Authorization code not provided');
     }
 
-    console.log('📥 Received OAuth callback with code');
+    console.log('Received OAuth callback with code');
 
     // Exchange authorization code for tokens
     const { tokens } = await oauth2Client.getToken(code);
@@ -319,7 +324,7 @@ router.get('/google/callback', async (req, res) => {
       return res.status(404).send('User not found');
     }
 
-    console.log('👤 User found:', user.email);
+    console.log('User found:', user.email);
 
     // Set credentials to use for fetching profile
     oauth2Client.setCredentials(tokens);
@@ -330,7 +335,7 @@ router.get('/google/callback', async (req, res) => {
       const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
       const userInfo = await oauth2.userinfo.get();
       calendarId = userInfo.data.email;
-      console.log('✓ Connected Google Calendar Email:', calendarId);
+      console.log('Connected Google Calendar Email:', calendarId);
     } catch (profileError) {
       console.error('❌ Error fetching Google profile:', profileError.message);
       console.error('Full error:', profileError);

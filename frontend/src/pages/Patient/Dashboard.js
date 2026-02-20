@@ -23,7 +23,10 @@ const PatientDashboard = () => {
   const fetchAppointments = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/appointments/my-appointments');
+      const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
+      const response = await axios.get('/api/appointments/my-appointments', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       const allAppointments = response.data.appointments || [];
       
       setAppointments(allAppointments);
@@ -47,7 +50,7 @@ const PatientDashboard = () => {
       setError(null);
     } catch (err) {
       console.error('Error fetching appointments:', err);
-      setError('Failed to load appointments');
+      setError('Failed to load appointments. Please try again.');
     } finally {
       setLoading(false);
     }

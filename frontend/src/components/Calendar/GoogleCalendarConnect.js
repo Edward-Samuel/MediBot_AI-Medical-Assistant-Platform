@@ -3,17 +3,33 @@ import { format } from 'date-fns';
 import { Calendar, CheckCircle, XCircle, ExternalLink } from 'lucide-react';
 import axios from '../../config/axios';
 import toast from 'react-hot-toast';
+import { useAuth } from '../../contexts/AuthContext';
 
 const GoogleCalendarConnect = ({ onConnectionChange }) => {
+  const { user, updateCalendarStatus } = useAuth();
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [connectedAt, setConnectedAt] = useState(null);
   const [calendarId, setCalendarId] = useState(null);
 
   useEffect(() => {
-    checkConnectionStatus();
+    // Initialize from user context if available
+    if (user?.googleCalendar) {
+      setIsConnected(user.googleCalendar.connected || false);
+      setConnectedAt(user.googleCalendar.connectedAt || null);
+      setCalendarId(user.googleCalendar.calendarId || null);
+      setIsLoading(false);
+      
+      // Notify parent component
+      if (onConnectionChange) {
+        onConnectionChange(user.googleCalendar.connected, user.googleCalendar.calendarId);
+      }
+    } else {
+      // Fallback: check status from API
+      checkConnectionStatus();
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [user]);
 
   const checkConnectionStatus = async () => {
     try {
@@ -27,6 +43,15 @@ const GoogleCalendarConnect = ({ onConnectionChange }) => {
       setIsConnected(response.data.connected);
       setConnectedAt(response.data.connectedAt);
       setCalendarId(response.data.calendarId);
+
+      // Update auth context
+      if (updateCalendarStatus) {
+        updateCalendarStatus(
+          response.data.connected,
+          response.data.calendarId,
+          response.data.connectedAt
+        );
+      }
 
       // Notify parent component about connection status and ID
       if (onConnectionChange) {
@@ -69,6 +94,11 @@ const GoogleCalendarConnect = ({ onConnectionChange }) => {
       setConnectedAt(null);
       setCalendarId(null);
 
+      // Update auth context
+      if (updateCalendarStatus) {
+        updateCalendarStatus(false, null, null);
+      }
+
       if (onConnectionChange) {
         onConnectionChange(false, null);
       }
@@ -108,7 +138,7 @@ const GoogleCalendarConnect = ({ onConnectionChange }) => {
         <div className="space-y-4">
           <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
             <p className="text-sm text-green-800 dark:text-green-200 font-medium">
-              ✓ Your Google Calendar is connected
+              Your Google Calendar is connected
             </p>
             {calendarId && (
               <p className="text-sm text-green-700 dark:text-green-300 mt-1">

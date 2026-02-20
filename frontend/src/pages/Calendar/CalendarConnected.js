@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CheckCircle, XCircle, ArrowLeft } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 const CalendarConnected = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { checkAuth } = useAuth();
   const [success, setSuccess] = useState(null);
   const [error, setError] = useState(null);
 
@@ -15,13 +17,18 @@ const CalendarConnected = () => {
     setSuccess(successParam === 'true');
     setError(errorParam);
 
+    // Refresh auth context to get updated calendar status
+    if (successParam === 'true') {
+      checkAuth();
+    }
+
     // Auto-redirect after 3 seconds
     const timer = setTimeout(() => {
       navigate('/profile');
     }, 3000);
 
     return () => clearTimeout(timer);
-  }, [searchParams, navigate]);
+  }, [searchParams, navigate, checkAuth]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">

@@ -110,13 +110,28 @@ export const AuthProvider = ({ children }) => {
     toast.success('Logged out successfully');
   };
 
+  // Update user's Google Calendar connection status
+  const updateCalendarStatus = (connected, calendarId = null, connectedAt = null) => {
+    if (user) {
+      setUser({
+        ...user,
+        googleCalendar: {
+          connected,
+          calendarId,
+          connectedAt
+        }
+      });
+    }
+  };
+
   const value = {
     user,
     loading,
     login,
     register,
     logout,
-    checkAuth
+    checkAuth,
+    updateCalendarStatus
   };
 
   return (

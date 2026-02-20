@@ -284,7 +284,11 @@ router.patch('/:id/status', authenticateToken, async (req, res) => {
         console.log('Cancelling Google Calendar event:', appointment.googleCalendarEventId);
         const googleCalendar = require('../services/googleCalendar');
         
-        await googleCalendar.cancelAppointmentEvent(appointment.googleCalendarEventId);
+        // Use user-specific calendar delete method
+        await googleCalendar.deleteUserCalendarEvent(
+          appointment.googleCalendarEventId,
+          req.user._id // Pass the user ID for OAuth
+        );
         console.log('Google Calendar event cancelled successfully');
       } catch (calendarError) {
         console.error('⚠️ Failed to cancel Google Calendar event:', calendarError.message);
@@ -350,7 +354,11 @@ router.delete('/:id', authenticateToken, async (req, res) => {
         console.log('Cancelling Google Calendar event:', appointment.googleCalendarEventId);
         const googleCalendar = require('../services/googleCalendar');
         
-        await googleCalendar.cancelAppointmentEvent(appointment.googleCalendarEventId);
+        // Use user-specific calendar delete method
+        await googleCalendar.deleteUserCalendarEvent(
+          appointment.googleCalendarEventId,
+          req.user._id // Pass the user ID for OAuth
+        );
         console.log('Google Calendar event cancelled successfully');
       } catch (calendarError) {
         console.error('⚠️ Failed to cancel Google Calendar event:', calendarError.message);
@@ -598,12 +606,14 @@ router.patch('/:id/reschedule', authenticateToken, async (req, res) => {
           appointmentType: appointment.type,
           chiefComplaint: appointment.chiefComplaint,
           symptoms: appointment.symptoms || [],
-          timezone: process.env.TIMEZONE || 'UTC'
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
         };
 
-        const calendarResult = await googleCalendar.updateAppointmentEvent(
+        // Use user-specific calendar update method
+        const calendarResult = await googleCalendar.updateUserCalendarEvent(
           appointment.googleCalendarEventId,
-          calendarData
+          calendarData,
+          req.user._id // Pass the user ID for OAuth
         );
 
         console.log('Google Calendar event updated successfully:', calendarResult.eventId);

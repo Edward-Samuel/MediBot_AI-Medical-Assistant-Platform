@@ -1895,8 +1895,10 @@ router.put("/appointments/:appointmentId/cancel", async (req, res) => {
     if (appointment.googleCalendarEventId) {
       try {
         const googleCalendar = require("../services/googleCalendar");
-        await googleCalendar.deleteAppointmentEvent(
+        // Use user-specific calendar delete method
+        await googleCalendar.deleteUserCalendarEvent(
           appointment.googleCalendarEventId,
+          userId // Pass the user ID for OAuth
         );
         calendarDeletionStatus = "success";
         calendarDeletionMessage = "Calendar event deleted successfully";
