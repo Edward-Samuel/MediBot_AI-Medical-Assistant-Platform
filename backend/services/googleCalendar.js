@@ -89,7 +89,7 @@ class GoogleCalendarService {
           this.authType = "service_account";
         } catch (parseError) {
           console.error(
-            "❌ Invalid service account JSON in environment variable",
+            "Invalid service account JSON in environment variable",
           );
           throw parseError;
         }
@@ -114,7 +114,7 @@ class GoogleCalendarService {
             });
             this.authType = "service_account";
           } catch (fileError) {
-            console.error("❌ Invalid service account JSON file");
+            console.error("Invalid service account JSON file");
             throw fileError;
           }
         } else {
@@ -269,7 +269,7 @@ class GoogleCalendarService {
         calendarName: targetCalendarId,
       };
     } catch (error) {
-      console.error("❌ Error creating calendar event:", error.message);
+      console.error("Error creating calendar event:", error.message);
 
       // Provide specific error guidance
       if (error.message.includes("notFound")) {
@@ -384,7 +384,7 @@ class GoogleCalendarService {
         authType: this.authType,
       };
     } catch (error) {
-      console.error("❌ Calendar connection test failed:", error.message);
+      console.error("Calendar connection test failed:", error.message);
       return {
         success: false,
         error: error.message,
@@ -488,8 +488,8 @@ class GoogleCalendarService {
         authType: "oauth"
       };
     } catch (error) {
-      console.error("❌ Error creating user calendar event:", error.message);
-      console.error("❌ Full error:", error);
+      console.error("Error creating user calendar event:", error.message);
+      console.error("Full error:", error);
 
       if (error.message.includes('User calendar not connected')) {
         throw new Error('Please connect your Google Calendar first');
@@ -643,8 +643,10 @@ END:VCALENDAR`;
       const startTime = new Date(dateTime);
       const endTime = new Date(startTime.getTime() + duration * 60000);
 
-      console.log(`Updating event: ${patientName} with ${doctorName} at ${startTime.toISOString()}`);
+      console.log(`Updating event: ${patientName} with ${doctorName}`);
+      console.log(`New time: ${startTime.toISOString()}`);
       console.log(`🌍 Using timezone: ${timezone}`);
+      console.log(`Event ID: ${eventId}`);
 
       // Validate patient email
       if (!patientEmail) {
@@ -687,14 +689,15 @@ END:VCALENDAR`;
         visibility: "private"
       };
 
-      const response = await calendar.events.patch({
+      console.log('Sending update request to Google Calendar...');
+      const response = await calendar.events.update({
         calendarId: "primary",
         eventId: eventId,
         resource: event,
-        sendUpdates: "all" // Send email notifications so the user knows
+        sendUpdates: "none" // Don't send email notifications
       });
 
-      console.log("User calendar event updated successfully:", response.data.id);
+      console.log("✅ User calendar event updated successfully:", response.data.id);
       console.log("Event link:", response.data.htmlLink);
 
       return {
@@ -703,8 +706,8 @@ END:VCALENDAR`;
         meetingLink: response.data.conferenceData?.entryPoints?.[0]?.uri || null
       };
     } catch (error) {
-      console.error("❌ Error updating user calendar event:", error.message);
-      console.error("❌ Full error:", error);
+      console.error("Error updating user calendar event:", error.message);
+      console.error("Full error:", error);
 
       if (error.message.includes('User calendar not connected')) {
         throw new Error('Please connect your Google Calendar first');
@@ -734,7 +737,7 @@ END:VCALENDAR`;
       console.log("User calendar event deleted successfully:", eventId);
       return true;
     } catch (error) {
-      console.error("❌ Error deleting user calendar event:", error.message);
+      console.error("Error deleting user calendar event:", error.message);
 
       if (error.message.includes('Not Found') || error.message.includes('404')) {
         console.log('Event already deleted or not found');
