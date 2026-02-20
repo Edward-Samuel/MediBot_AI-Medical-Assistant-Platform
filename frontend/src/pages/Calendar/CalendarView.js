@@ -25,7 +25,7 @@ const CalendarView = () => {
     if (user) {
       fetchAppointmentStats();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const fetchAppointmentStats = async () => {
@@ -147,7 +147,7 @@ const CalendarView = () => {
                 </div>
               </div>
             )}
-            
+
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
               <div className="flex items-center mb-4">
                 <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
@@ -203,24 +203,26 @@ const CalendarView = () => {
                   </a>
                 </div>
               </div>
-              
-              <div className="relative w-full" style={{ height: '600px' }}>
-                <iframe
-                  src={`https://calendar.google.com/calendar/embed?src=${encodeURIComponent(connectedCalendarId)}&mode=MONTH&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=1&showCalendars=0&showTz=1&bgcolor=%23ffffff`}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    border: 0
-                  }}
-                  title="Google Calendar"
-                  className="dark:invert dark:hue-rotate-180"
-                />
-              </div>
-              
-              <div className="p-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
-                <p className="text-xs text-gray-600 dark:text-gray-400 text-center">
-                  All appointments booked through MediBot will automatically appear in your calendar
+
+              <div className="p-8 flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
+                <div className="bg-green-100 dark:bg-green-900/20 p-4 rounded-full mb-4">
+                  <Calendar className="h-12 w-12 text-green-600 dark:text-green-400" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                  View Your Schedule
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400 text-center max-w-md mb-6">
+                  For privacy and security reasons, your full Google Calendar cannot be embedded. Click below to view and manage your appointments securely in Google Calendar.
                 </p>
+                <a
+                  href="https://calendar.google.com/calendar/u/0/r"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-lg shadow-md transition-colors flex items-center space-x-2"
+                >
+                  <Calendar className="h-5 w-5" />
+                  <span>Open Google Calendar</span>
+                </a>
               </div>
             </div>
           ) : (
