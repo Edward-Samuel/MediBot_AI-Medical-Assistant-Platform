@@ -187,12 +187,6 @@ const AppointmentHistory = () => {
                       a.status === "completed",
                   ).length,
                 },
-                {
-                  key: "cancelled",
-                  label: "Cancelled",
-                  count: appointments.filter((a) => a.status === "cancelled")
-                    .length,
-                },
               ].map((tab) => (
                 <button
                   key={tab.key}

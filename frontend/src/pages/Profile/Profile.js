@@ -2,10 +2,13 @@ import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { User, Mail, Phone, MapPin, Calendar, Shield } from 'lucide-react';
 import GoogleCalendarConnect from '../../components/Calendar/GoogleCalendarConnect';
+import axios from '../../config/axios';
+import toast from 'react-hot-toast';
 
 const Profile = () => {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     firstName: user?.profile?.firstName || '',
     lastName: user?.profile?.lastName || '',
@@ -41,11 +44,38 @@ const Profile = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle profile update
-    console.log('Updating profile:', formData);
-    setIsEditing(false);
+    setLoading(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Update user profile (basic info)
+      const response = await axios.put('/api/auth/profile', {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phone: formData.phone,
+        dateOfBirth: formData.dateOfBirth,
+        gender: formData.gender,
+        address: formData.address
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      // Update local user context
+      if (updateUser) {
+        updateUser(response.data.user);
+      }
+
+      toast.success('Profile updated successfully');
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Profile update error:', error);
+      toast.error(error.response?.data?.message || 'Failed to update profile');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -274,13 +304,18 @@ const Profile = () => {
 
                 {isEditing && (
                   <div className="mt-8 flex space-x-4">
-                    <button type="submit" className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors">
-                      Save Changes
+                    <button 
+                      type="submit" 
+                      disabled={loading}
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    >
+                      {loading ? 'Saving...' : 'Save Changes'}
                     </button>
                     <button 
                       type="button" 
                       onClick={() => setIsEditing(false)}
-                      className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                      disabled={loading}
+                      className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Cancel
                     </button>

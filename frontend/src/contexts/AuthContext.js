@@ -124,6 +124,11 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Update user profile data
+  const updateUser = (updatedUserData) => {
+    setUser(updatedUserData);
+  };
+
   const value = {
     user,
     loading,
@@ -131,7 +136,8 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     checkAuth,
-    updateCalendarStatus
+    updateCalendarStatus,
+    updateUser
   };
 
   return (

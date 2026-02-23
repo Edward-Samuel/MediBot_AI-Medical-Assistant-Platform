@@ -510,4 +510,59 @@ router.get('/google/status', async (req, res) => {
   }
 });
 
+// Middleware to authenticate user
+const authenticateToken = async (req, res, next) => {
+  try {
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ message: 'Access denied. No token provided.' });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.userId);
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid token.' });
+    }
+
+    req.user = user;
+    next();
+  } catch (error) {
+    res.status(401).json({ message: 'Invalid token.' });
+  }
+};
+
+// Update user profile
+router.put('/profile', authenticateToken, async (req, res) => {
+  try {
+    const { firstName, lastName, phone, dateOfBirth, gender, address } = req.body;
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Update profile fields
+    if (firstName) user.profile.firstName = firstName;
+    if (lastName) user.profile.lastName = lastName;
+    if (phone) user.profile.phone = phone;
+    if (dateOfBirth) user.profile.dateOfBirth = dateOfBirth;
+    if (gender) user.profile.gender = gender;
+    if (address) user.profile.address = address;
+
+    await user.save();
+
+    // Return updated user without password
+    const updatedUser = await User.findById(user._id).select('-password');
+
+    res.json({ 
+      message: 'Profile updated successfully', 
+      user: updatedUser 
+    });
+
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({ message: 'Error updating profile' });
+  }
+});
+
 module.exports = router;
