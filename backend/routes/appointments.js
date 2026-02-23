@@ -141,8 +141,15 @@ router.post('/book', authenticateToken, async (req, res) => {
         if (calendarResult.meetingLink) {
           appointment.googleMeetLink = calendarResult.meetingLink;
         }
+        console.log('Saving calendar event ID to appointment...');
+        console.log('   Appointment ID:', appointment._id);
+        console.log('   Calendar Event ID:', calendarResult.eventId);
+        console.log('   Meeting Link:', calendarResult.meetingLink || 'N/A');
+        
         await appointment.save();
-        console.log('Calendar event saved to appointment');
+        
+        console.log('Calendar event ID saved to appointment successfully');
+        console.log('   Verification - appointment.googleCalendarEventId:', appointment.googleCalendarEventId);
       } else {
         console.log('Calendar event not created:', calendarResult.error);
       }

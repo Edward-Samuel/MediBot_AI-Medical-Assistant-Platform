@@ -135,7 +135,7 @@ class EmbeddingService {
     } catch (error) {
       console.error("Error generating embedding:", error.message);
       console.error("Text length:", text.length);
-      console.error("💾 Memory usage:", process.memoryUsage());
+      console.error("Memory usage:", process.memoryUsage());
 
       // Return zero vector as fallback
       return new Array(this.dimension).fill(0);

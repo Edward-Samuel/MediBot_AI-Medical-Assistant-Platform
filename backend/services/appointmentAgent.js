@@ -336,7 +336,13 @@ Examples:
           if (calendarResult.meetingLink) {
             appointment.googleMeetLink = calendarResult.meetingLink;
           }
+          console.log('Saving calendar event ID to appointment...');
+          console.log('   Appointment ID:', appointment._id);
+          console.log('   Calendar Event ID:', calendarResult.eventId);
+          
           await appointment.save();
+          
+          console.log('Calendar event ID saved successfully');
         }
       } catch (calendarError) {
         console.error('Calendar sync error:', calendarError);

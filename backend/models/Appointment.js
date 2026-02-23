@@ -50,6 +50,7 @@ const appointmentSchema = new mongoose.Schema({
     paid: { type: Boolean, default: false }
   },
   googleCalendarEventId: String,
+  googleMeetLink: String,
   reminderSent: {
     type: Boolean,
     default: false

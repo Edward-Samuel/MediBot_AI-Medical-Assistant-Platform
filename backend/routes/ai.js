@@ -1610,6 +1610,14 @@ router.post("/book-appointment", async (req, res) => {
         meetingLink = calendarResult.meetingLink;
         calendarIntegrationStatus = "success";
         console.log("Calendar event created successfully:", calendarEventId);
+        
+        // Save the calendar event ID to the appointment
+        savedAppointment.googleCalendarEventId = calendarEventId;
+        if (meetingLink) {
+          savedAppointment.googleMeetLink = meetingLink;
+        }
+        await savedAppointment.save();
+        console.log("Calendar event ID saved to appointment");
       } else {
         // Calendar integration failed, but we have manual instructions
         calendarIntegrationStatus = "manual_required";
