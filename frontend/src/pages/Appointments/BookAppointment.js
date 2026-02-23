@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Calendar, Clock, FileText } from 'lucide-react';
+import { formatDate } from '../../utils/dateFormatter';
 
 const BookAppointment = () => {
   const { doctorId } = useParams();
@@ -138,7 +139,7 @@ const BookAppointment = () => {
               <div className="bg-medical-50 p-4 rounded-lg">
                 <h3 className="font-medium text-medical-800 mb-2">Appointment Summary</h3>
                 <div className="text-sm text-medical-700 space-y-1">
-                  <p>Date: {new Date(selectedDate).toLocaleDateString()}</p>
+                  <p>Date: {formatDate(selectedDate)}</p>
                   <p>Time: {selectedTime}</p>
                   <p>Type: {appointmentTypes.find(t => t.value === appointmentType)?.label}</p>
                 </div>

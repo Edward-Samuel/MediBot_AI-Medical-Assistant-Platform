@@ -28,6 +28,7 @@ import ChatHistory from "../../components/Chat/ChatHistory";
 import AppointmentBookingWidget from "../../components/Chat/AppointmentBookingWidget";
 import AppointmentSelectionWidget from "../../components/Chat/AppointmentSelectionWidget";
 import RescheduleWidget from "../../components/Chat/RescheduleWidget";
+import { formatDateTime } from "../../utils/dateFormatter";
 
 const ChatBot = () => {
   const { t, getCurrentLanguageInfo, currentLanguage } = useLanguage();
@@ -835,7 +836,7 @@ const ChatBot = () => {
           `ElevenLabs API: ${data.elevenlabs_configured ? "Configured" : "Not configured"}`,
         );
         console.log(
-          `🌍 Supported Languages: ${data.supported_languages.join(", ")}`,
+          `Supported Languages: ${data.supported_languages.join(", ")}`,
         );
 
         if (data.elevenlabs_configured) {
@@ -1224,7 +1225,7 @@ const ChatBot = () => {
     const bookingMessage = {
       id: Date.now() + 2,
       role: "bot",
-      content: `**Appointment Confirmed!**\n\n**Doctor:** ${appointment.doctorName}\n**Date & Time:** ${new Date(appointment.dateTime).toLocaleString()}\n**Type:** ${appointment.type}\n**Fee:** ₹${appointment.fee?.total || "Free"}\n\nYou will receive a confirmation email shortly. You can view all your appointments in your dashboard.`,
+      content: `**Appointment Confirmed!**\n\n**Doctor:** ${appointment.doctorName}\n**Date & Time:** ${formatDateTime(appointment.dateTime)}\n**Type:** ${appointment.type}\n**Fee:** ₹${appointment.fee?.total || "Free"}\n\nYou will receive a confirmation email shortly. You can view all your appointments in your dashboard.`,
       timestamp: new Date(),
     };
 
@@ -1245,7 +1246,7 @@ const ChatBot = () => {
       const cancelMessage = {
         id: Date.now() + 2,
         role: "bot",
-        content: `**Appointment Cancelled Successfully!**\n\n**Doctor:** ${result.appointment.doctorId?.name || 'Doctor'}\n**Date & Time:** ${new Date(result.appointment.dateTime).toLocaleString()}\n\nYour Google Calendar has been updated. If you need to book a new appointment, just let me know!`,
+        content: `**Appointment Cancelled Successfully!**\n\n**Doctor:** ${result.appointment.doctorId?.name || 'Doctor'}\n**Date & Time:** ${formatDateTime(result.appointment.dateTime)}\n\nYour Google Calendar has been updated. If you need to book a new appointment, just let me know!`,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, cancelMessage]);
@@ -1269,8 +1270,8 @@ const ChatBot = () => {
     setShowRescheduleWidget(false);
     setSelectedAppointmentToReschedule(null);
     
-    const oldDateTime = new Date(result.oldDateTime).toLocaleString();
-    const newDateTime = new Date(result.newDateTime).toLocaleString();
+    const oldDateTime = formatDateTime(result.oldDateTime);
+    const newDateTime = formatDateTime(result.newDateTime);
     
     const rescheduleMessage = {
       id: Date.now() + 2,

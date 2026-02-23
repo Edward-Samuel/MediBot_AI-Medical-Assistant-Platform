@@ -419,7 +419,7 @@ class GoogleCalendarService {
 
       console.log(`Event details: ${patientName} with ${doctorName} at ${startTime.toISOString()}`);
       console.log(`Attendee emails - Patient: ${patientEmail}, Doctor: ${doctorEmail}`);
-      console.log(`🌍 Using timezone: ${timezone}`);
+      console.log(`Using timezone: ${timezone}`);
 
       // Validate emails before creating event
       if (!patientEmail) {
@@ -759,7 +759,7 @@ END:VCALENDAR`;
       const endTime = new Date(startTime.getTime() + duration * 60000);
 
       console.log(`New time: ${startTime.toISOString()}`);
-      console.log(`🌍 Using timezone: ${timezone}`);
+      console.log(`Using timezone: ${timezone}`);
 
       // Fetch the existing event first
       const existingEvent = await calendar.events.get({
@@ -820,7 +820,7 @@ END:VCALENDAR`;
       const endTime = new Date(startTime.getTime() + duration * 60000);
 
       console.log(`New time: ${startTime.toISOString()}`);
-      console.log(`🌍 Using timezone: ${timezone}`);
+      console.log(`Using timezone: ${timezone}`);
 
       // Fetch the existing event first
       const existingEvent = await calendar.events.get({

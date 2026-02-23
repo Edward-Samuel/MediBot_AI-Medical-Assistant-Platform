@@ -47,24 +47,40 @@ Respond with ONLY the JSON object, no other text.`;
         temperature: 0.1
       });
       
-      // Extract JSON from response
-      const jsonMatch = response.content.match(/\{[\s\S]*\}/);
+      console.log('Reschedule AI response:', response.content);
+      
+      // Extract JSON from response - try multiple patterns
+      let jsonMatch = response.content.match(/\{[\s\S]*\}/);
+      
       if (!jsonMatch) {
-        throw new Error('Failed to parse reschedule request');
+        // Try to find JSON in code blocks
+        jsonMatch = response.content.match(/```json\s*([\s\S]*?)\s*```/);
+        if (jsonMatch) {
+          jsonMatch[0] = jsonMatch[1];
+        }
+      }
+      
+      if (!jsonMatch) {
+        console.error('No JSON found in response:', response.content);
+        throw new Error('Failed to parse reschedule request - no JSON found');
       }
 
       const parsed = JSON.parse(jsonMatch[0]);
+      console.log('Parsed reschedule request:', parsed);
       return parsed;
 
     } catch (error) {
       console.error('Error parsing reschedule request:', error);
+      console.error('Error details:', error.message);
+      
+      // Return a default structure instead of throwing
       return {
         intent: 'reschedule',
-        appointmentIdentifier: null,
+        appointmentIdentifier: 'next',
         newDate: null,
         newTime: null,
         reason: null,
-        error: 'Could not understand reschedule request'
+        error: 'Could not understand reschedule request. Please specify which appointment and the new date/time.'
       };
     }
   }
@@ -191,11 +207,17 @@ Respond with ONLY the JSON object, no other text.`;
         missingDateTime: "I found your appointment with **{doctorName}** on {currentDate}.\n\nPlease provide the new date and time you'd like to reschedule to.",
         success: "**Appointment Rescheduled Successfully!**\n\n**Doctor:** {doctorName}\n**Old Date & Time:** {oldDateTime}\n**New Date & Time:** {newDateTime}\n\nYou will receive a confirmation email shortly.",
         slotUnavailable: "The requested time slot is not available. Please choose a different time.",
-        error: "I encountered an error while trying to reschedule your appointment. Please try again or contact support."
+        error: "I encountered an error while trying to reschedule your appointment. Please try again or contact support.",
+        parseError: "I couldn't understand your reschedule request. Please try again with:\n- Which appointment (e.g., 'my next appointment' or 'appointment with Dr. Smith')\n- New date and time (e.g., 'tomorrow at 2pm' or '25/02/2026 at 14:00')"
       }
     };
 
     const lang = responses[language] || responses.en;
+
+    // Handle parsing error
+    if (parsedRequest.error) {
+      return lang.parseError;
+    }
 
     if (findResult.error) {
       return lang.noAppointments;
@@ -204,23 +226,23 @@ Respond with ONLY the JSON object, no other text.`;
     if (findResult.needsClarification) {
       let message = lang.multiplefound;
       findResult.appointments.forEach((apt, index) => {
-        const date = new Date(apt.dateTime).toLocaleDateString();
-        const time = new Date(apt.dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const date = new Date(apt.dateTime).toLocaleDateString('en-GB');
+        const time = new Date(apt.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
         message += `\n${index + 1}. **${apt.doctorId.name}** (${apt.doctorId.specialization}) - ${date} at ${time}`;
       });
       return message;
     }
 
     if (!parsedRequest.newDate || !parsedRequest.newTime) {
-      const currentDate = new Date(findResult.appointment.dateTime).toLocaleDateString();
+      const currentDate = new Date(findResult.appointment.dateTime).toLocaleDateString('en-GB');
       return lang.missingDateTime
         .replace('{doctorName}', findResult.appointment.doctorId.name)
         .replace('{currentDate}', currentDate);
     }
 
     // Has all info - ready to reschedule
-    const currentDate = new Date(findResult.appointment.dateTime).toLocaleDateString();
-    const currentTime = new Date(findResult.appointment.dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const currentDate = new Date(findResult.appointment.dateTime).toLocaleDateString('en-GB');
+    const currentTime = new Date(findResult.appointment.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
     
     return lang.confirmReschedule
       .replace('{doctorName}', findResult.appointment.doctorId.name)

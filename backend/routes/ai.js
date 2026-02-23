@@ -1596,7 +1596,7 @@ router.post("/book-appointment", async (req, res) => {
         timezone: userTimezone // Pass user's timezone
       };
 
-      console.log("🗓️  Attempting to create calendar event...");
+      console.log("Attempting to create calendar event...");
       console.log("   Patient email:", calendarData.patientEmail);
       console.log("   Doctor email:", calendarData.doctorEmail);
       console.log("   Full calendar data:", JSON.stringify(calendarData, null, 2));
