@@ -1872,12 +1872,6 @@ router.put("/appointments/:appointmentId/cancel", async (req, res) => {
       return res.status(404).json({ message: "Appointment not found" });
     }
 
-    if (appointment.status === "cancelled") {
-      return res
-        .status(400)
-        .json({ message: "Appointment is already cancelled" });
-    }
-
     if (appointment.status === "completed") {
       return res
         .status(400)

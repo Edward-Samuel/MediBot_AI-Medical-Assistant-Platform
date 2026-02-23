@@ -302,26 +302,41 @@ router.patch('/:id/status', authenticateToken, async (req, res) => {
     }
 
     const oldStatus = appointment.status;
+
+    // If appointment is being cancelled, delete from Google Calendar and database
+    if (status === 'cancelled') {
+      if (appointment.googleCalendarEventId) {
+        try {
+          console.log('Deleting Google Calendar event:', appointment.googleCalendarEventId);
+          const googleCalendar = require('../services/googleCalendar');
+
+          // Use user-specific calendar delete method
+          await googleCalendar.deleteUserCalendarEvent(
+            appointment.googleCalendarEventId,
+            req.user._id // Pass the user ID for OAuth
+          );
+          console.log('Google Calendar event deleted successfully');
+        } catch (calendarError) {
+          console.error('Failed to delete Google Calendar event:', calendarError.message);
+          // Continue with database deletion even if calendar fails
+        }
+      }
+
+      // Delete the appointment record from database
+      await Appointment.findByIdAndDelete(req.params.id);
+      console.log('Appointment deleted from database');
+
+      return res.json({
+        message: 'Appointment cancelled and deleted successfully',
+        appointmentId: req.params.id,
+        oldStatus,
+        calendarUpdated: !!appointment.googleCalendarEventId
+      });
+    }
+
+    // For other status updates, just update the status
     appointment.status = status;
     await appointment.save();
-
-    // If appointment is being cancelled, update Google Calendar
-    if (status === 'cancelled' && appointment.googleCalendarEventId) {
-      try {
-        console.log('Cancelling Google Calendar event:', appointment.googleCalendarEventId);
-        const googleCalendar = require('../services/googleCalendar');
-
-        // Use user-specific calendar delete method
-        await googleCalendar.deleteUserCalendarEvent(
-          appointment.googleCalendarEventId,
-          req.user._id // Pass the user ID for OAuth
-        );
-        console.log('Google Calendar event cancelled successfully');
-      } catch (calendarError) {
-        console.error('Failed to cancel Google Calendar event:', calendarError.message);
-        // Don't fail the cancellation if calendar update fails
-      }
-    }
 
     res.json({
       message: 'Appointment status updated',
@@ -369,16 +384,10 @@ router.delete('/:id', authenticateToken, async (req, res) => {
       });
     }
 
-    if (appointment.status === 'cancelled') {
-      return res.status(400).json({
-        message: 'Appointment is already cancelled'
-      });
-    }
-
-    // Cancel in Google Calendar first
+    // Delete from Google Calendar first
     if (appointment.googleCalendarEventId) {
       try {
-        console.log('Cancelling Google Calendar event:', appointment.googleCalendarEventId);
+        console.log('Deleting Google Calendar event:', appointment.googleCalendarEventId);
         const googleCalendar = require('../services/googleCalendar');
 
         // Use user-specific calendar delete method
@@ -386,20 +395,20 @@ router.delete('/:id', authenticateToken, async (req, res) => {
           appointment.googleCalendarEventId,
           req.user._id // Pass the user ID for OAuth
         );
-        console.log('Google Calendar event cancelled successfully');
+        console.log('Google Calendar event deleted successfully');
       } catch (calendarError) {
-        console.error('Failed to cancel Google Calendar event:', calendarError.message);
-        // Continue with database cancellation even if calendar fails
+        console.error('Failed to delete Google Calendar event:', calendarError.message);
+        // Continue with database deletion even if calendar fails
       }
     }
 
-    // Update status to cancelled instead of deleting
-    appointment.status = 'cancelled';
-    await appointment.save();
+    // Delete the appointment record from database
+    await Appointment.findByIdAndDelete(req.params.id);
+    console.log('Appointment deleted from database');
 
     res.json({
-      message: 'Appointment cancelled successfully',
-      appointment,
+      message: 'Appointment cancelled and deleted successfully',
+      appointmentId: req.params.id,
       calendarUpdated: !!appointment.googleCalendarEventId
     });
 
@@ -578,9 +587,9 @@ router.patch('/:id/reschedule', authenticateToken, async (req, res) => {
     }
 
     // Check if appointment can be rescheduled
-    if (appointment.status === 'completed' || appointment.status === 'cancelled') {
+    if (appointment.status === 'completed') {
       return res.status(400).json({
-        message: `Cannot reschedule ${appointment.status} appointments`
+        message: 'Cannot reschedule completed appointments'
       });
     }
 

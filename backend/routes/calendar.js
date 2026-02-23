@@ -227,15 +227,28 @@ router.delete('/delete-event/:appointmentId', authenticateToken, async (req, res
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    // Cancel appointment
-    appointment.status = 'cancelled';
-    appointment.googleCalendarEventId = null;
-    await appointment.save();
+    // Delete from Google Calendar if event exists
+    if (appointment.googleCalendarEventId) {
+      try {
+        const googleCalendar = require('../services/googleCalendar');
+        await googleCalendar.deleteUserCalendarEvent(
+          appointment.googleCalendarEventId,
+          req.user._id
+        );
+        console.log('Google Calendar event deleted');
+      } catch (calendarError) {
+        console.error('Failed to delete calendar event:', calendarError.message);
+        // Continue with database deletion even if calendar fails
+      }
+    }
 
-    // In a real implementation, you would also delete the Google Calendar event
+    // Delete appointment from database
+    await Appointment.findByIdAndDelete(req.params.id);
+    console.log('Appointment deleted from database');
 
     res.json({
-      message: 'Calendar event deleted successfully'
+      message: 'Appointment cancelled and deleted successfully',
+      appointmentId: req.params.id
     });
 
   } catch (error) {

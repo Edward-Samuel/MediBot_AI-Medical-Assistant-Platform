@@ -174,10 +174,6 @@ Respond with ONLY the JSON object, no other text.`;
         return { success: false, error: 'Appointment not found' };
       }
 
-      if (appointment.status === 'cancelled') {
-        return { success: false, error: 'Appointment is already cancelled' };
-      }
-
       if (appointment.status === 'completed') {
         return { success: false, error: 'Cannot cancel completed appointments' };
       }
