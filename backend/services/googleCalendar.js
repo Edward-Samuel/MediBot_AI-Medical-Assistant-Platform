@@ -777,8 +777,9 @@ END:VCALENDAR`;
       const response = await calendar.events.patch({
         calendarId: "primary",
         eventId: eventId,
-        resource: patchData,
-        sendUpdates: "none" // Don't send email notifications
+        requestBody: patchData,
+        sendUpdates: "none", // Don't send email notifications
+        conferenceDataVersion: 1
       });
 
       console.log("Calendar event datetime updated successfully:", response.data.id);
