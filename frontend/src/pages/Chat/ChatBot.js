@@ -844,7 +844,7 @@ const ChatBot = () => {
           );
         } else {
           console.log(
-            "⚠️ ElevenLabs not configured, falling back to browser TTS",
+            "ElevenLabs not configured, falling back to browser TTS",
           );
           console.log(
             "💡 Add ELEVENLABS_API_KEY to backend/.env for better multilingual support",
@@ -852,7 +852,7 @@ const ChatBot = () => {
         }
       }
     } catch (error) {
-      console.log("\n❌ ElevenLabs API not available:", error.message);
+      console.log("\nElevenLabs API not available:", error.message);
     }
 
     // Browser TTS info
@@ -861,7 +861,7 @@ const ChatBot = () => {
       console.log(`\n🔊 Browser TTS: Available (${voices.length} voices)`);
 
       if (voices.length === 0) {
-        console.log("⚠️ No browser voices loaded yet. Try again in a moment.");
+        console.log("No browser voices loaded yet. Try again in a moment.");
         return;
       }
 
@@ -893,7 +893,7 @@ const ChatBot = () => {
       );
       langMatches.forEach((v) => console.log(`   ${v.name} (${v.lang})`));
     } else {
-      console.log("\n❌ Browser TTS: Not supported");
+      console.log("\nBrowser TTS: Not supported");
     }
   };
 
@@ -1245,7 +1245,7 @@ const ChatBot = () => {
       const cancelMessage = {
         id: Date.now() + 2,
         role: "bot",
-        content: `✅ **Appointment Cancelled Successfully!**\n\n**Doctor:** ${result.appointment.doctorId?.name || 'Doctor'}\n**Date & Time:** ${new Date(result.appointment.dateTime).toLocaleString()}\n\nYour Google Calendar has been updated. If you need to book a new appointment, just let me know!`,
+        content: `**Appointment Cancelled Successfully!**\n\n**Doctor:** ${result.appointment.doctorId?.name || 'Doctor'}\n**Date & Time:** ${new Date(result.appointment.dateTime).toLocaleString()}\n\nYour Google Calendar has been updated. If you need to book a new appointment, just let me know!`,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, cancelMessage]);
@@ -1275,7 +1275,7 @@ const ChatBot = () => {
     const rescheduleMessage = {
       id: Date.now() + 2,
       role: "bot",
-      content: `✅ **Appointment Rescheduled Successfully!**\n\n**Doctor:** ${result.appointment.doctorId?.name || 'Doctor'}\n**Old Date & Time:** ${oldDateTime}\n**New Date & Time:** ${newDateTime}\n\nYour Google Calendar has been updated. You will receive a confirmation email shortly.`,
+      content: `**Appointment Rescheduled Successfully!**\n\n**Doctor:** ${result.appointment.doctorId?.name || 'Doctor'}\n**Old Date & Time:** ${oldDateTime}\n**New Date & Time:** ${newDateTime}\n\nYour Google Calendar has been updated. You will receive a confirmation email shortly.`,
       timestamp: new Date(),
     };
     

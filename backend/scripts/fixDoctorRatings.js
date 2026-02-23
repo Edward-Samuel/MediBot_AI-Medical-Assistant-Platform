@@ -36,7 +36,7 @@ async function fixDoctorRatings() {
           process.stdout.write(`\rUpdated ${updated}/${doctors.length} doctors`);
         }
       } catch (error) {
-        console.error(`\n❌ Error updating doctor ${doctor.name}:`, error.message);
+        console.error(`\nError updating doctor ${doctor.name}:`, error.message);
       }
     }
 
@@ -50,7 +50,7 @@ async function fixDoctorRatings() {
     });
 
   } catch (error) {
-    console.error("❌ Error:", error.message);
+    console.error("Error:", error.message);
   } finally {
     await mongoose.disconnect();
     console.log("\nDisconnected from MongoDB");

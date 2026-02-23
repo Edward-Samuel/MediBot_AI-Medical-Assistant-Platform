@@ -216,12 +216,12 @@ router.post("/recommend-doctor", async (req, res) => {
         aiAnalysis = analysisResult.analysis;
         console.log("OpenRouter analysis successful");
       } else {
-        console.log("⚠️ OpenRouter analysis parsing failed, using fallback...");
+        console.log("OpenRouter analysis parsing failed, using fallback...");
         aiAnalysis = fallbackSpecializationMatch(symptoms);
       }
     } catch (openRouterError) {
       console.log(
-        "❌ OpenRouter failed, using fallback analysis:",
+        "OpenRouter failed, using fallback analysis:",
         openRouterError.message,
       );
       aiAnalysis = fallbackSpecializationMatch(symptoms);
@@ -528,7 +528,7 @@ router.post("/chat", async (req, res) => {
       console.log("Domain validation result:", domainValidation);
 
       if (!domainValidation.isValid) {
-        console.log("❌ Off-topic message rejected");
+        console.log("Off-topic message rejected");
         const rejectionMessage = domainValidator.generateRejectionMessage(language);
         
         return res.json({
@@ -544,7 +544,7 @@ router.post("/chat", async (req, res) => {
         });
       }
       
-      console.log("✅ Message validated as healthcare-related");
+      console.log("Message validated as healthcare-related");
     }
 
     let botResponse;
@@ -921,7 +921,7 @@ router.post("/chat", async (req, res) => {
           );
         } catch (aiError) {
           console.log(
-            `❌ OpenRouter failed: ${aiError.message}, using fallback response`,
+            `OpenRouter failed: ${aiError.message}, using fallback response`,
           );
           usingFallback = true;
 
@@ -935,7 +935,7 @@ router.post("/chat", async (req, res) => {
             console.log("Using simple text fallback response");
           } catch (fallbackError) {
             // If even simple fallback fails, provide a basic response
-            console.error("❌ All fallbacks failed:", fallbackError);
+            console.error("All fallbacks failed:", fallbackError);
             botResponse =
               language === "ta"
                 ? "மன்னிக்கவும், தற்போது நான் பதிலளிக்க முடியவில்லை. மருத்துவ நிபுணரை அணுகவும்."
@@ -1305,7 +1305,7 @@ router.post("/openrouter-chat", async (req, res) => {
     console.log("Domain validation result:", domainValidation);
 
     if (!domainValidation.isValid) {
-      console.log("❌ Off-topic message rejected");
+      console.log("Off-topic message rejected");
       const rejectionMessage = domainValidator.generateRejectionMessage(language);
       
       return res.json({
@@ -1321,7 +1321,7 @@ router.post("/openrouter-chat", async (req, res) => {
       });
     }
     
-    console.log("✅ Message validated as healthcare-related");
+    console.log("Message validated as healthcare-related");
     console.log("OpenRouter reasoning chat request");
 
     const response = await openRouterService.generateResponse(

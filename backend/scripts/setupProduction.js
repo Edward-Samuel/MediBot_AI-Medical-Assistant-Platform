@@ -14,7 +14,7 @@ async function setupProduction() {
   try {
     // Connect to MongoDB
     if (!process.env.MONGODB_URI) {
-      console.error("❌ MONGODB_URI is missing in environment variables.");
+      console.error("MONGODB_URI is missing in environment variables.");
       process.exit(1);
     }
 
@@ -157,7 +157,7 @@ async function setupProduction() {
           process.stdout.write(`\rCreated ${results.doctors}/${doctorsData.length} doctors`);
 
         } catch (error) {
-          console.error(`\n❌ Error creating doctor ${doctorData.firstName}:`, error.message);
+          console.error(`\nError creating doctor ${doctorData.firstName}:`, error.message);
         }
       }
 
@@ -193,7 +193,7 @@ async function setupProduction() {
     console.log("\n" + "=".repeat(60));
 
   } catch (error) {
-    console.error("❌ Error during setup:", error.message);
+    console.error("Error during setup:", error.message);
     console.error(error);
   } finally {
     await mongoose.disconnect();

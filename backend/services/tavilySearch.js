@@ -124,7 +124,7 @@ class TavilySearchService {
         totalResults: validResults.length,
       };
     } catch (error) {
-      console.error("❌ Tavily search error:", error.message);
+      console.error("Tavily search error:", error.message);
 
       if (error.response?.status === 401) {
         throw new Error("Invalid Tavily API key");
@@ -275,7 +275,7 @@ class TavilySearchService {
   async testSearch() {
     try {
       if (!this.initialized) {
-        console.log("❌ Tavily Search not configured");
+        console.log("Tavily Search not configured");
         return false;
       }
 
@@ -283,7 +283,7 @@ class TavilySearchService {
       console.log("Tavily Search configured and ready");
       return true;
     } catch (error) {
-      console.error("❌ Tavily Search test failed:", error.message);
+      console.error("Tavily Search test failed:", error.message);
       return false;
     }
   }

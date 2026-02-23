@@ -11,7 +11,7 @@ async function createProductionUsers() {
   try {
     // Connect to MongoDB
     if (!process.env.MONGODB_URI) {
-      console.error("❌ MONGODB_URI is missing in environment variables.");
+      console.error("MONGODB_URI is missing in environment variables.");
       process.exit(1);
     }
 
@@ -24,7 +24,7 @@ async function createProductionUsers() {
     const existingAdmin = await User.findOne({ email: "admin@medibot.com" });
     
     if (existingAdmin) {
-      console.log("⚠️  Admin user already exists");
+      console.log(" Admin user already exists");
     } else {
       const adminData = {
         email: "admin@medibot.com",
@@ -53,7 +53,7 @@ async function createProductionUsers() {
     const existingPatient = await User.findOne({ email: "patient@demo.com" });
     
     if (existingPatient) {
-      console.log("⚠️  Demo patient already exists");
+      console.log(" Demo patient already exists");
     } else {
       const patientData = {
         email: "patient@demo.com",
@@ -81,7 +81,7 @@ async function createProductionUsers() {
     const existingDoctor = await User.findOne({ email: "doctor@demo.com" });
     
     if (existingDoctor) {
-      console.log("⚠️  Demo doctor already exists");
+      console.log(" Demo doctor already exists");
     } else {
       const doctorUserData = {
         email: "doctor@demo.com",
@@ -144,7 +144,7 @@ async function createProductionUsers() {
     console.log("   Password: password123");
     console.log("   Dashboard: /doctor/dashboard");
     
-    console.log("\n⚠️  IMPORTANT SECURITY NOTES:");
+    console.log("\n IMPORTANT SECURITY NOTES:");
     console.log("   1. Change admin password immediately after first login");
     console.log("   2. Demo accounts are for testing only");
     console.log("   3. Delete or disable demo accounts in production");
@@ -152,7 +152,7 @@ async function createProductionUsers() {
     console.log("\n" + "=".repeat(60));
 
   } catch (error) {
-    console.error("❌ Error creating users:", error.message);
+    console.error("Error creating users:", error.message);
     console.error(error);
   } finally {
     await mongoose.disconnect();

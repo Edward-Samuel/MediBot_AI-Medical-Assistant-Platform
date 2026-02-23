@@ -57,8 +57,8 @@ async function checkMissingDoctors() {
       const count = specMap[spec] || 0;
       totalDoctors += count;
       
-      const status = count === 0 ? '❌ MISSING' : 
-                     count < 4 ? `⚠️  ${count} (need ${4 - count} more)` : 
+      const status = count === 0 ? 'MISSING' : 
+                     count < 4 ? ` ${count} (need ${4 - count} more)` : 
                      `${count}`;
       
       console.log(`${spec.padEnd(25)}${status}`);
@@ -74,13 +74,13 @@ async function checkMissingDoctors() {
     console.log(`Total Doctors: ${totalDoctors}\n`);
 
     if (missingSpecs.length > 0) {
-      console.log('❌ Missing Specializations:');
+      console.log('Missing Specializations:');
       missingSpecs.forEach(spec => console.log(`   - ${spec}`));
       console.log('');
     }
 
     if (lowCountSpecs.length > 0) {
-      console.log('⚠️  Specializations with Low Count:');
+      console.log(' Specializations with Low Count:');
       lowCountSpecs.forEach(({ spec, current, needed }) => {
         console.log(`   - ${spec}: has ${current}, needs ${needed} more`);
       });
@@ -94,7 +94,7 @@ async function checkMissingDoctors() {
     }
 
   } catch (error) {
-    console.error('❌ Error:', error);
+    console.error('Error:', error);
   } finally {
     await mongoose.disconnect();
     console.log('Disconnected from MongoDB');

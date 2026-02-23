@@ -38,7 +38,7 @@ class PineconeService {
       console.log("Pinecone service initialized successfully");
       return true;
     } catch (error) {
-      console.error("❌ Failed to initialize Pinecone service:", error.message);
+      console.error("Failed to initialize Pinecone service:", error.message);
       return false;
     }
   }
@@ -73,7 +73,7 @@ class PineconeService {
       this.index = this.pinecone.index(this.indexName);
       console.log(`Connected to Pinecone index: ${this.indexName}`);
     } catch (error) {
-      console.error("❌ Error ensuring Pinecone index:", error.message);
+      console.error("Error ensuring Pinecone index:", error.message);
       throw error;
     }
   }
@@ -106,7 +106,7 @@ class PineconeService {
     try {
       return await embeddingService.generateEmbedding(text);
     } catch (error) {
-      console.error("❌ Error generating embedding:", error.message);
+      console.error("Error generating embedding:", error.message);
       throw error;
     }
   }
@@ -173,7 +173,7 @@ class PineconeService {
           await new Promise((resolve) => setTimeout(resolve, 300));
         } catch (error) {
           console.error(
-            `❌ Error processing Q&A pair ${i + 1}:`,
+            `Error processing Q&A pair ${i + 1}:`,
             error.message,
           );
           continue;
@@ -221,7 +221,7 @@ class PineconeService {
           await new Promise((resolve) => setTimeout(resolve, 200));
         } catch (error) {
           console.error(
-            `❌ Error processing content chunk ${i + 1}:`,
+            `Error processing content chunk ${i + 1}:`,
             error.message,
           );
           continue;
@@ -239,7 +239,7 @@ class PineconeService {
       );
       return processedIds;
     } catch (error) {
-      console.error("❌ Error upserting chunks:", error.message);
+      console.error("Error upserting chunks:", error.message);
       throw error;
     }
   }
@@ -269,7 +269,7 @@ class PineconeService {
 
       return searchResponse.matches || [];
     } catch (error) {
-      console.error("❌ Error searching similar chunks:", error.message);
+      console.error("Error searching similar chunks:", error.message);
       throw error;
     }
   }
@@ -285,7 +285,7 @@ class PineconeService {
       await this.index.deleteMany(chunkIds);
       console.log(`Deleted ${chunkIds.length} chunks from Pinecone`);
     } catch (error) {
-      console.error("❌ Error deleting chunks:", error.message);
+      console.error("Error deleting chunks:", error.message);
       throw error;
     }
   }
@@ -304,7 +304,7 @@ class PineconeService {
 
       console.log(`Deactivated chunks for FAQ ${faqId}`);
     } catch (error) {
-      console.error("❌ Error deactivating chunks:", error.message);
+      console.error("Error deactivating chunks:", error.message);
       throw error;
     }
   }
@@ -318,7 +318,7 @@ class PineconeService {
       const stats = await this.index.describeIndexStats();
       return stats;
     } catch (error) {
-      console.error("❌ Error getting index stats:", error.message);
+      console.error("Error getting index stats:", error.message);
       return { error: error.message };
     }
   }

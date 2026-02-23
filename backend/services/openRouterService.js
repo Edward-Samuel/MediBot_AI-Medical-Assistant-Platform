@@ -432,7 +432,7 @@ FORBIDDEN:
       console.log("OpenRouter service is available");
       return true;
     } catch (error) {
-      console.log("❌ OpenRouter service unavailable:", error.message);
+      console.log("OpenRouter service unavailable:", error.message);
       return false;
     }
   }
@@ -584,7 +584,7 @@ JSON format:
         };
       } catch (parseError) {
         console.error(
-          "❌ Error parsing OpenRouter analysis:",
+          "Error parsing OpenRouter analysis:",
           parseError.message,
         );
         console.log(

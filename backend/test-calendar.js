@@ -16,10 +16,10 @@ async function testCalendarIntegration() {
     
     // 1. Check environment variables
     console.log('1️⃣ Checking Environment Variables:');
-    console.log('   GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? 'Set' : '❌ Missing');
-    console.log('   GOOGLE_CLIENT_SECRET:', process.env.GOOGLE_CLIENT_SECRET ? 'Set' : '❌ Missing');
-    console.log('   GOOGLE_REDIRECT_URI:', process.env.GOOGLE_REDIRECT_URI || '❌ Missing');
-    console.log('   FRONTEND_URL:', process.env.FRONTEND_URL || '❌ Missing');
+    console.log('   GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? 'Set' : 'Missing');
+    console.log('   GOOGLE_CLIENT_SECRET:', process.env.GOOGLE_CLIENT_SECRET ? 'Set' : 'Missing');
+    console.log('   GOOGLE_REDIRECT_URI:', process.env.GOOGLE_REDIRECT_URI || 'Missing');
+    console.log('   FRONTEND_URL:', process.env.FRONTEND_URL || 'Missing');
     console.log('');
 
     // 2. Connect to database
@@ -32,7 +32,7 @@ async function testCalendarIntegration() {
     const usersWithCalendar = await User.find({ 'googleCalendar.connected': true });
     
     if (usersWithCalendar.length === 0) {
-      console.log('   ⚠️  No users have connected their Google Calendar');
+      console.log('    No users have connected their Google Calendar');
       console.log('   📝 Users need to connect their calendar first via the UI\n');
     } else {
       console.log(`   Found ${usersWithCalendar.length} user(s) with connected calendar:\n`);
@@ -49,7 +49,7 @@ async function testCalendarIntegration() {
         // Check if token is expired
         const now = Date.now();
         const isExpired = user.googleCalendar.expiryDate && user.googleCalendar.expiryDate < now;
-        console.log(`      Token Status: ${isExpired ? '⚠️  Expired (will auto-refresh)' : 'Valid'}`);
+        console.log(`      Token Status: ${isExpired ? ' Expired (will auto-refresh)' : 'Valid'}`);
         console.log('');
 
         // 4. Test creating a calendar event
@@ -79,7 +79,7 @@ async function testCalendarIntegration() {
             console.log('   🎉 Calendar integration is working correctly!');
             console.log('   📝 Check your Google Calendar to see the test event');
           } else {
-            console.log('   ❌ FAILED to create calendar event');
+            console.log('   FAILED to create calendar event');
             console.log(`      Error: ${result.error}`);
             console.log('');
             console.log('   🔧 Troubleshooting steps:');
@@ -89,7 +89,7 @@ async function testCalendarIntegration() {
             console.log('      4. Check backend logs for detailed error messages');
           }
         } catch (testError) {
-          console.log('   ❌ ERROR during test:');
+          console.log('   ERROR during test:');
           console.log(`      ${testError.message}`);
           console.log('');
           console.log('   🔧 This error suggests:');
@@ -118,14 +118,14 @@ async function testCalendarIntegration() {
     console.log('Environment Configuration:');
     console.log(`  OAuth Client ID: ${process.env.GOOGLE_CLIENT_ID ? '✅' : '❌'}`);
     console.log(`  OAuth Client Secret: ${process.env.GOOGLE_CLIENT_SECRET ? '✅' : '❌'}`);
-    console.log(`  Redirect URI: ${process.env.GOOGLE_REDIRECT_URI || '❌ Not set'}`);
+    console.log(`  Redirect URI: ${process.env.GOOGLE_REDIRECT_URI || 'Not set'}`);
     console.log('');
     console.log('User Status:');
     console.log(`  Users with connected calendar: ${usersWithCalendar.length}`);
     console.log('');
     
     if (usersWithCalendar.length === 0) {
-      console.log('⚠️  NEXT STEPS:');
+      console.log(' NEXT STEPS:');
       console.log('   1. Have a user log in to the application');
       console.log('   2. Go to Profile or Calendar page');
       console.log('   3. Click "Connect Google Calendar"');
@@ -142,7 +142,7 @@ async function testCalendarIntegration() {
     console.log('');
 
   } catch (error) {
-    console.error('❌ Diagnostic script error:', error);
+    console.error('Diagnostic script error:', error);
     console.error('');
     console.error('This error suggests:');
     if (error.message.includes('MONGODB_URI')) {

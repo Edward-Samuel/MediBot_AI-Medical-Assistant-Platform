@@ -13,7 +13,7 @@ async function setupNewServiceAccount() {
   );
 
   if (!fs.existsSync(credentialsPath)) {
-    console.log("❌ google-credentials.json file not found");
+    console.log("google-credentials.json file not found");
     console.log("📁 Please place your downloaded JSON key file at:");
     console.log("   backend/config/google-credentials.json");
     console.log("\nTo get the JSON key file:");
@@ -34,7 +34,7 @@ async function setupNewServiceAccount() {
     console.log("Service Account Email:", credentials.client_email);
     console.log("🏗️  Project ID:", credentials.project_id);
   } catch (error) {
-    console.log("❌ Invalid credentials file:", error.message);
+    console.log("Invalid credentials file:", error.message);
     return;
   }
 
@@ -67,7 +67,7 @@ async function setupNewServiceAccount() {
       });
     }
   } catch (error) {
-    console.log("❌ Google Calendar API access failed:", error.message);
+    console.log("Google Calendar API access failed:", error.message);
     return;
   }
 
@@ -76,7 +76,7 @@ async function setupNewServiceAccount() {
   console.log("\nTarget Calendar ID:", targetCalendarId);
 
   if (!targetCalendarId) {
-    console.log("❌ GOOGLE_CALENDAR_ID not set in .env file");
+    console.log("GOOGLE_CALENDAR_ID not set in .env file");
     return;
   }
 
@@ -136,7 +136,7 @@ async function setupNewServiceAccount() {
         "\n🎉 Setup Complete! Calendar integration is working perfectly!",
       );
     } else {
-      console.log("❌ Target calendar is NOT accessible");
+      console.log("Target calendar is NOT accessible");
       console.log(
         "\n🔧 SOLUTION: Share the calendar with your service account",
       );
@@ -154,7 +154,7 @@ async function setupNewServiceAccount() {
       console.log("10. Run this script again to test");
     }
   } catch (error) {
-    console.log("❌ Target calendar test failed:", error.message);
+    console.log("Target calendar test failed:", error.message);
   }
 }
 

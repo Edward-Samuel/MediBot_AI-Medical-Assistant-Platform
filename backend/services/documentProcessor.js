@@ -79,7 +79,7 @@ class DocumentProcessor {
         qaCount: qaChunks.length,
       };
     } catch (error) {
-      console.error(`❌ Error processing file ${originalName}:`, error.message);
+      console.error(`Error processing file ${originalName}:`, error.message);
       throw error;
     }
   }
@@ -138,7 +138,7 @@ class DocumentProcessor {
         return alternativeText;
       }
     } catch (error) {
-      console.error("❌ All PDF processing methods failed:", error.message);
+      console.error("All PDF processing methods failed:", error.message);
       throw new Error(
         `Failed to process PDF: ${error.message}. The PDF might be corrupted, password-protected, or contain only images.`,
       );
@@ -264,7 +264,7 @@ class DocumentProcessor {
             pairIndex++;
           } else {
             console.log(
-              `❌ Skipped match ${pairIndex + 1} - insufficient content`,
+              `Skipped match ${pairIndex + 1} - insufficient content`,
             );
           }
         }

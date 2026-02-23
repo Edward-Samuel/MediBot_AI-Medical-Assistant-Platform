@@ -337,14 +337,14 @@ router.get('/google/callback', async (req, res) => {
       calendarId = userInfo.data.email;
       console.log('Connected Google Calendar Email:', calendarId);
     } catch (profileError) {
-      console.error('❌ Error fetching Google profile:', profileError.message);
+      console.error('Error fetching Google profile:', profileError.message);
       console.error('Full error:', profileError);
       // Don't use fallback - we need the actual Google account email
     }
 
     // Only save if we successfully got the calendar ID
     if (!calendarId) {
-      console.error('❌ Failed to retrieve Google account email');
+      console.error('Failed to retrieve Google account email');
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
       return res.redirect(`${frontendUrl}/calendar-connected?success=false&error=${encodeURIComponent('Failed to retrieve Google account information')}`);
     }
@@ -369,7 +369,7 @@ router.get('/google/callback', async (req, res) => {
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     res.redirect(`${frontendUrl}/calendar-connected?success=true`);
   } catch (error) {
-    console.error('❌ Google OAuth callback error:', error);
+    console.error('Google OAuth callback error:', error);
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     res.redirect(`${frontendUrl}/calendar-connected?success=false&error=${encodeURIComponent(error.message)}`);
   }
@@ -468,7 +468,7 @@ router.post('/google/test-connection', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Calendar test error:', error);
+    console.error('Calendar test error:', error);
     res.status(500).json({ 
       message: 'Calendar test failed',
       error: error.message 

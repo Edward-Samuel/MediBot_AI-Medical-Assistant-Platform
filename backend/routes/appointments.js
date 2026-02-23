@@ -144,10 +144,10 @@ router.post('/book', authenticateToken, async (req, res) => {
         await appointment.save();
         console.log('Calendar event saved to appointment');
       } else {
-        console.log('⚠️ Calendar event not created:', calendarResult.error);
+        console.log('Calendar event not created:', calendarResult.error);
       }
     } catch (calendarError) {
-      console.error('❌ Calendar sync error:', calendarError.message);
+      console.error('Calendar sync error:', calendarError.message);
       console.error('   Full error:', calendarError);
       // Don't fail the booking if calendar sync fails
     }
@@ -311,7 +311,7 @@ router.patch('/:id/status', authenticateToken, async (req, res) => {
         );
         console.log('Google Calendar event cancelled successfully');
       } catch (calendarError) {
-        console.error('⚠️ Failed to cancel Google Calendar event:', calendarError.message);
+        console.error('Failed to cancel Google Calendar event:', calendarError.message);
         // Don't fail the cancellation if calendar update fails
       }
     }
@@ -381,7 +381,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
         );
         console.log('Google Calendar event cancelled successfully');
       } catch (calendarError) {
-        console.error('⚠️ Failed to cancel Google Calendar event:', calendarError.message);
+        console.error('Failed to cancel Google Calendar event:', calendarError.message);
         // Continue with database cancellation even if calendar fails
       }
     }
@@ -619,7 +619,7 @@ router.patch('/:id/reschedule', authenticateToken, async (req, res) => {
     // Update Google Calendar event if integrated
     if (appointment.googleCalendarEventId) {
       try {
-        console.log('🔄 Starting Google Calendar update...');
+        console.log('Starting Google Calendar update...');
         console.log('   Event ID:', appointment.googleCalendarEventId);
         console.log('   Appointment ID:', appointment._id);
         
@@ -627,56 +627,37 @@ router.patch('/:id/reschedule', authenticateToken, async (req, res) => {
 
         // Prepare calendar data - need to populate userId if not already done
         let patient = appointment.patientId;
-        let doctor = appointment.doctorId;
         
         // If not populated, fetch them
         if (!patient.userId) {
           patient = await Patient.findById(appointment.patientId).populate('userId');
         }
-        if (!doctor.userId) {
-          doctor = await Doctor.findById(appointment.doctorId).populate('userId');
-        }
 
         console.log('   Patient User ID:', patient.userId._id);
-        console.log('   Patient Email:', patient.userId.email);
         console.log('   New DateTime:', newAppointmentDate.toISOString());
-
-        const calendarData = {
-          patientName: patient.userId.profile?.firstName && patient.userId.profile?.lastName
-            ? `${patient.userId.profile.firstName} ${patient.userId.profile.lastName}`
-            : patient.userId.email,
-          patientEmail: patient.userId.email,
-          doctorName: doctor.userId.profile?.firstName && doctor.userId.profile?.lastName
-            ? `Dr. ${doctor.userId.profile.firstName} ${doctor.userId.profile.lastName}`
-            : doctor.userId.email,
-          doctorEmail: doctor.userId.email,
-          dateTime: newAppointmentDate,
-          duration: appointment.duration || 30,
-          appointmentType: appointment.type,
-          chiefComplaint: appointment.chiefComplaint,
-          symptoms: appointment.symptoms || [],
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
-        };
 
         // Use the patient's user ID for OAuth
         const patientUserId = patient.userId._id;
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 
-        console.log('   Calling updateUserCalendarEvent...');
-        const calendarResult = await googleCalendar.updateUserCalendarEvent(
+        console.log('   Calling updateEventDateTime (datetime only)...');
+        const calendarResult = await googleCalendar.updateEventDateTime(
           appointment.googleCalendarEventId,
-          calendarData,
-          patientUserId
+          newAppointmentDate,
+          appointment.duration || 30,
+          patientUserId,
+          timezone
         );
 
-        console.log('✅ Google Calendar event updated successfully:', calendarResult.eventId);
+        console.log('Google Calendar event datetime updated successfully:', calendarResult.eventId);
       } catch (calendarError) {
-        console.error('❌ Failed to update Google Calendar event:', calendarError.message);
+        console.error('Failed to update Google Calendar event:', calendarError.message);
         console.error('   Full error:', calendarError);
         // Don't fail the reschedule if calendar update fails
         // The appointment is already updated in the database
       }
     } else {
-      console.log('ℹ️  No Google Calendar event ID found for this appointment');
+      console.log('No Google Calendar event ID found for this appointment');
     }
 
     res.json({

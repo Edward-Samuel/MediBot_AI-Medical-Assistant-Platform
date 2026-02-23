@@ -191,7 +191,7 @@ Respond with ONLY the JSON object, no other text.`;
           console.log('Google Calendar event deleted:', appointment.googleCalendarEventId);
           calendarDeleted = true;
         } catch (calendarError) {
-          console.error('⚠️ Calendar deletion failed:', calendarError.message);
+          console.error('Calendar deletion failed:', calendarError.message);
           // Continue with MongoDB deletion even if calendar fails
         }
       }

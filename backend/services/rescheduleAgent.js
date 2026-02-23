@@ -190,7 +190,7 @@ Respond with ONLY the JSON object, no other text.`;
         confirmReschedule: "I found your appointment:\n\n**Doctor:** {doctorName}\n**Current Date:** {currentDate}\n**Current Time:** {currentTime}\n\nWould you like to reschedule to:\n**New Date:** {newDate}\n**New Time:** {newTime}\n\nPlease confirm by saying 'yes' or provide a different date/time.",
         missingDateTime: "I found your appointment with **{doctorName}** on {currentDate}.\n\nPlease provide the new date and time you'd like to reschedule to.",
         success: "**Appointment Rescheduled Successfully!**\n\n**Doctor:** {doctorName}\n**Old Date & Time:** {oldDateTime}\n**New Date & Time:** {newDateTime}\n\nYou will receive a confirmation email shortly.",
-        slotUnavailable: "⚠️ The requested time slot is not available. Please choose a different time.",
+        slotUnavailable: "The requested time slot is not available. Please choose a different time.",
         error: "I encountered an error while trying to reschedule your appointment. Please try again or contact support."
       }
     };

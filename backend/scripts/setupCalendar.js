@@ -42,11 +42,11 @@ async function setupCalendarIntegration() {
         }
       }
     } else {
-      console.log("❌ Calendar integration is not configured");
+      console.log("Calendar integration is not configured");
       await guideSetup();
     }
   } catch (error) {
-    console.error("❌ Calendar integration error:", error.message);
+    console.error("Calendar integration error:", error.message);
     await guideSetup();
   }
 
@@ -132,11 +132,11 @@ async function runTestAppointment() {
         }
       }
     } else {
-      console.log("❌ Test appointment creation failed");
+      console.log("Test appointment creation failed");
       console.log(`   Error: ${result.error}`);
     }
   } catch (error) {
-    console.error("❌ Test appointment failed:", error.message);
+    console.error("Test appointment failed:", error.message);
   }
 }
 

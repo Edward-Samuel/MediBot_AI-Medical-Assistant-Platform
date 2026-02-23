@@ -6,7 +6,7 @@ function getServiceAccountEmail() {
     const credentialsPath = path.join(__dirname, '../config/google-credentials.json');
     
     if (!fs.existsSync(credentialsPath)) {
-      console.log('❌ google-credentials.json file not found');
+      console.log('google-credentials.json file not found');
       console.log('📁 Expected location: backend/config/google-credentials.json');
       return;
     }
@@ -29,7 +29,7 @@ function getServiceAccountEmail() {
     return credentials.client_email;
     
   } catch (error) {
-    console.error('❌ Error reading credentials:', error.message);
+    console.error('Error reading credentials:', error.message);
     
     if (error.message.includes('Unexpected token')) {
       console.log('🔧 The JSON file might be corrupted. Please re-download it.');

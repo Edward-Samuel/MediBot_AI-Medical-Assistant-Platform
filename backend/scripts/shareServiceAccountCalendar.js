@@ -39,7 +39,7 @@ async function shareServiceAccountCalendar() {
     const yourEmail = await askQuestion('Enter your Google email address (the one you use for Google Calendar): ');
     
     if (!yourEmail || !yourEmail.includes('@')) {
-      console.log('❌ Invalid email address');
+      console.log('Invalid email address');
       rl.close();
       return;
     }
@@ -81,7 +81,7 @@ async function shareServiceAccountCalendar() {
         console.log('Calendar is already shared with your account!');
         console.log('Shared with:', yourEmail);
       } else {
-        console.log('❌ Failed to share calendar:', aclError.message);
+        console.log('Failed to share calendar:', aclError.message);
         
         // Provide manual instructions
         console.log('\n🔧 Manual Solution:');
@@ -94,7 +94,7 @@ async function shareServiceAccountCalendar() {
     }
     
   } catch (error) {
-    console.error('❌ Error:', error.message);
+    console.error('Error:', error.message);
   }
   
   rl.close();

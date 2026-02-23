@@ -153,7 +153,7 @@ async function addMissingDoctors() {
             });
 
             if (existingUser) {
-              console.log(`   ⚠️  Skipping ${doctorData.firstName} ${doctorData.lastName} - email already exists`);
+              console.log(`    Skipping ${doctorData.firstName} ${doctorData.lastName} - email already exists`);
               continue;
             }
 
@@ -221,12 +221,12 @@ async function addMissingDoctors() {
             console.log(`   Added Dr. ${doctorData.firstName} ${doctorData.lastName}`);
 
           } catch (error) {
-            console.error(`   ❌ Error adding ${doctorData.firstName} ${doctorData.lastName}:`, error.message);
+            console.error(`   Error adding ${doctorData.firstName} ${doctorData.lastName}:`, error.message);
           }
         }
 
         if (doctorsAdded < needed) {
-          console.log(`   ⚠️  Only ${doctorsAdded} doctors available to add, still need ${needed - doctorsAdded} more`);
+          console.log(`    Only ${doctorsAdded} doctors available to add, still need ${needed - doctorsAdded} more`);
         }
       } else {
         console.log(`${specialization}: has ${currentCount} doctors (adequate)`);
@@ -248,7 +248,7 @@ async function addMissingDoctors() {
     let totalDoctors = 0;
     finalDoctorsBySpec.forEach(spec => {
       totalDoctors += spec.count;
-      const status = spec.count >= 4 ? '✅' : '⚠️ ';
+      const status = spec.count >= 4 ? '✅' : '';
       console.log(`${spec._id.padEnd(25)}${status} ${spec.count}`);
     });
 
@@ -256,7 +256,7 @@ async function addMissingDoctors() {
     console.log(`Total Doctors: ${totalDoctors}\n`);
 
   } catch (error) {
-    console.error('❌ Error:', error);
+    console.error('Error:', error);
   } finally {
     await mongoose.disconnect();
     console.log('Disconnected from MongoDB');

@@ -116,12 +116,12 @@ class ResponseTemplates {
       urgentWarning: {
         en: [
           "**MEDICAL EMERGENCY** - Seek immediate medical attention!",
-          "⚠️ **URGENT** - This requires immediate professional medical care!",
+          "**URGENT** - This requires immediate professional medical care!",
           "🆘 **EMERGENCY** - Contact emergency services immediately!"
         ],
         ta: [
           "**மருத்துவ அவசரநிலை** - உடனடியாக மருத்துவ உதவி பெறுங்கள்!",
-          "⚠️ **அவசரம்** - இதற்கு உடனடி தொழில்முறை மருத்துவ பராமரிப்பு தேவை!",
+          "**அவசரம்** - இதற்கு உடனடி தொழில்முறை மருத்துவ பராமரிப்பு தேவை!",
           "🆘 **அவசரநிலை** - உடனடியாக அவசர சேவைகளை தொடர்பு கொள்ளுங்கள்!"
         ]
       },

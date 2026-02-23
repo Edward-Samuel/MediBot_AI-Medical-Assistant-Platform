@@ -41,7 +41,7 @@ class EmbeddingService {
       return true;
     } catch (error) {
       console.error(
-        "❌ Failed to initialize embedding service:",
+        "Failed to initialize embedding service:",
         error.message,
       );
       console.error(
@@ -133,7 +133,7 @@ class EmbeddingService {
 
       return embedding;
     } catch (error) {
-      console.error("❌ Error generating embedding:", error.message);
+      console.error("Error generating embedding:", error.message);
       console.error("Text length:", text.length);
       console.error("💾 Memory usage:", process.memoryUsage());
 
@@ -181,7 +181,7 @@ class EmbeddingService {
 
       return pooled.slice(0, this.dimension);
     } catch (error) {
-      console.error("❌ Error in mean pooling:", error.message);
+      console.error("Error in mean pooling:", error.message);
       return new Array(this.dimension).fill(0);
     }
   }
@@ -232,7 +232,7 @@ class EmbeddingService {
           }
         } catch (embeddingError) {
           console.error(
-            `❌ Error processing embedding ${i + 1}:`,
+            `Error processing embedding ${i + 1}:`,
             embeddingError.message,
           );
           // Use a zero vector as fallback
@@ -249,7 +249,7 @@ class EmbeddingService {
 
       return embeddings;
     } catch (error) {
-      console.error("❌ Error generating batch embeddings:", error.message);
+      console.error("Error generating batch embeddings:", error.message);
       throw error;
     }
   }

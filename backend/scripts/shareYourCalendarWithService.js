@@ -9,7 +9,7 @@ function shareYourCalendarWithService() {
   const credentialsPath = path.join(__dirname, '../config/google-credentials.json');
   
   if (!fs.existsSync(credentialsPath)) {
-    console.log('❌ google-credentials.json file not found');
+    console.log('google-credentials.json file not found');
     return;
   }
 
@@ -36,7 +36,7 @@ function shareYourCalendarWithService() {
     console.log('🧪 Then test with: node testActualIntegration.js');
     
   } catch (error) {
-    console.error('❌ Error reading credentials:', error.message);
+    console.error('Error reading credentials:', error.message);
   }
 }
 

@@ -102,7 +102,7 @@ class IntentClassifier {
         }
 
         // If AI completely fails, return general chat as safe default
-        console.error('❌ AI classification failed completely');
+        console.error('AI classification failed completely');
         return {
           intent: this.intents.GENERAL_CHAT,
           confidence: 0.3,
@@ -123,7 +123,7 @@ class IntentClassifier {
 
         // Fallback to rule-based if enabled
         if (this.config.classification?.fallbackToRules) {
-          console.log('⚠️ AI confidence low, using rule-based fallback');
+          console.log('AI confidence low, using rule-based fallback');
           return this.getRuleBasedClassification(message, conversationHistory);
         }
 

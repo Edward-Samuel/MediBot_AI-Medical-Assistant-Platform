@@ -29,7 +29,7 @@ class FAQService {
 
       return this.initialized;
     } catch (error) {
-      console.error("❌ Failed to initialize FAQ service:", error.message);
+      console.error("Failed to initialize FAQ service:", error.message);
       return false;
     }
   }
@@ -262,7 +262,7 @@ class FAQService {
 
       return result;
     } catch (error) {
-      console.error("❌ Error searching FAQ:", error.message);
+      console.error("Error searching FAQ:", error.message);
       // Fallback to database search
       return this.searchFAQDatabase(query, options);
     }
@@ -300,7 +300,7 @@ class FAQService {
         source: "database",
       };
     } catch (error) {
-      console.error("❌ Error in database search:", error.message);
+      console.error("Error in database search:", error.message);
       return {
         results: [],
         query,
@@ -389,7 +389,7 @@ Instructions:
 
       return response.content;
     } catch (error) {
-      console.error("❌ Error generating answer:", error.message);
+      console.error("Error generating answer:", error.message);
       return "I don't have specific information about that topic yet.";
     }
   }
@@ -399,7 +399,7 @@ Instructions:
       const faq = await FAQ.findById(faqId).populate("uploadedBy", "username");
       return faq;
     } catch (error) {
-      console.error("❌ Error getting FAQ by ID:", error.message);
+      console.error("Error getting FAQ by ID:", error.message);
       throw error;
     }
   }
@@ -437,7 +437,7 @@ Instructions:
         totalFAQs: total,
       };
     } catch (error) {
-      console.error("❌ Error getting all FAQs:", error.message);
+      console.error("Error getting all FAQs:", error.message);
       throw error;
     }
   }
@@ -471,7 +471,7 @@ Instructions:
       );
       return faq;
     } catch (error) {
-      console.error("❌ Error updating FAQ status:", error.message);
+      console.error("Error updating FAQ status:", error.message);
       throw error;
     }
   }
@@ -494,7 +494,7 @@ Instructions:
       console.log(`FAQ ${faqId} deleted successfully`);
       return true;
     } catch (error) {
-      console.error("❌ Error deleting FAQ:", error.message);
+      console.error("Error deleting FAQ:", error.message);
       throw error;
     }
   }
@@ -504,7 +504,7 @@ Instructions:
       const categories = await FAQ.distinct("category", { isActive: true });
       return categories.filter((cat) => cat && cat.trim().length > 0);
     } catch (error) {
-      console.error("❌ Error getting categories:", error.message);
+      console.error("Error getting categories:", error.message);
       return [];
     }
   }
@@ -556,7 +556,7 @@ Instructions:
         },
       };
     } catch (error) {
-      console.error("❌ Error getting stats:", error.message);
+      console.error("Error getting stats:", error.message);
       return {
         database: {
           totalFAQs: 0,

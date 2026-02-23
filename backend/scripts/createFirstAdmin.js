@@ -11,7 +11,7 @@ async function createFirstAdmin() {
     // Connect to MongoDB
     if (!process.env.MONGODB_URI) {
       console.error(
-        "❌ MONGODB_URI is missing. Create backend/.env from backend/.env.example.",
+        "MONGODB_URI is missing. Create backend/.env from backend/.env.example.",
       );
       process.exit(1);
     }
@@ -23,7 +23,7 @@ async function createFirstAdmin() {
     const existingAdmin = await User.findOne({ role: "admin" });
     if (existingAdmin) {
       console.log(
-        "❌ Admin user already exists. Use the registration form to create additional admins.",
+        "Admin user already exists. Use the registration form to create additional admins.",
       );
       process.exit(1);
     }
@@ -58,7 +58,7 @@ async function createFirstAdmin() {
       "   After login, you can access the admin dashboard at: http://localhost:3000/admin/dashboard",
     );
   } catch (error) {
-    console.error("❌ Error creating first admin:", error.message);
+    console.error("Error creating first admin:", error.message);
   } finally {
     await mongoose.disconnect();
     process.exit(0);

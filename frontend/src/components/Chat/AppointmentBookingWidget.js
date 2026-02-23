@@ -390,7 +390,7 @@ const AppointmentBookingWidget = ({ appointmentData, onClose, onBookingComplete 
                 </p>
                 {aiAnalysis.urgencyLevel === 'high' && (
                   <p className="text-sm text-red-600 dark:text-red-400 mt-1">
-                    ⚠️ High urgency detected. Please seek immediate medical attention if symptoms worsen.
+                    High urgency detected. Please seek immediate medical attention if symptoms worsen.
                   </p>
                 )}
               </div>

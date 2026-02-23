@@ -645,7 +645,7 @@ END:VCALENDAR`;
 
       console.log(`Updating event: ${patientName} with ${doctorName}`);
       console.log(`New time: ${startTime.toISOString()}`);
-      console.log(`🌍 Using timezone: ${timezone}`);
+      console.log(`Using timezone: ${timezone}`);
       console.log(`Event ID: ${eventId}`);
 
       // Validate patient email
@@ -697,7 +697,7 @@ END:VCALENDAR`;
         sendUpdates: "none" // Don't send email notifications
       });
 
-      console.log("✅ User calendar event updated successfully:", response.data.id);
+      console.log("User calendar event updated successfully:", response.data.id);
       console.log("Event link:", response.data.htmlLink);
 
       return {
@@ -745,6 +745,129 @@ END:VCALENDAR`;
       }
 
       throw new Error(`Failed to delete calendar event: ${error.message}`);
+    }
+  }
+
+  // Update only the datetime of a calendar event (for rescheduling)
+  async updateEventDateTime(eventId, newDateTime, duration = 30, userId, timezone = 'UTC') {
+    try {
+      console.log(`Updating calendar event datetime ${eventId} for user ${userId}`);
+      const auth = await this.getUserOAuthClient(userId);
+      const calendar = google.calendar({ version: "v3", auth });
+
+      const startTime = new Date(newDateTime);
+      const endTime = new Date(startTime.getTime() + duration * 60000);
+
+      console.log(`New time: ${startTime.toISOString()}`);
+      console.log(`🌍 Using timezone: ${timezone}`);
+
+      // Fetch the existing event first
+      const existingEvent = await calendar.events.get({
+        calendarId: "primary",
+        eventId: eventId
+      });
+
+      // Update only the start and end times, keep everything else
+      const updatedEvent = {
+        ...existingEvent.data,
+        start: {
+          dateTime: startTime.toISOString(),
+          timeZone: timezone,
+        },
+        end: {
+          dateTime: endTime.toISOString(),
+          timeZone: timezone,
+        }
+      };
+
+      console.log('Sending datetime update to Google Calendar...');
+      const response = await calendar.events.update({
+        calendarId: "primary",
+        eventId: eventId,
+        resource: updatedEvent,
+        sendUpdates: "none" // Don't send email notifications
+      });
+
+      console.log("Calendar event datetime updated successfully:", response.data.id);
+
+      return {
+        eventId: response.data.id,
+        eventLink: response.data.htmlLink,
+        meetingLink: response.data.conferenceData?.entryPoints?.[0]?.uri || null
+      };
+    } catch (error) {
+      console.error("Error updating calendar event datetime:", error.message);
+
+      if (error.message.includes('User calendar not connected')) {
+        throw new Error('Please connect your Google Calendar first');
+      } else if (error.message.includes('invalid_grant')) {
+        throw new Error('Calendar access expired - please reconnect your Google Calendar');
+      } else if (error.message.includes('Not Found') || error.message.includes('404')) {
+        throw new Error('Calendar event not found - it may have been deleted');
+      } else {
+        throw new Error(`Calendar datetime update failed: ${error.message}`);
+      }
+    }
+  }
+  // Update only the datetime of a calendar event (for rescheduling)
+  async updateEventDateTime(eventId, newDateTime, duration = 30, userId, timezone = 'UTC') {
+    try {
+      console.log(`Updating calendar event datetime ${eventId} for user ${userId}`);
+      const auth = await this.getUserOAuthClient(userId);
+      const calendar = google.calendar({ version: "v3", auth });
+
+      const startTime = new Date(newDateTime);
+      const endTime = new Date(startTime.getTime() + duration * 60000);
+
+      console.log(`New time: ${startTime.toISOString()}`);
+      console.log(`🌍 Using timezone: ${timezone}`);
+
+      // Fetch the existing event first
+      const existingEvent = await calendar.events.get({
+        calendarId: "primary",
+        eventId: eventId
+      });
+
+      // Update only the start and end times, keep everything else
+      const updatedEvent = {
+        ...existingEvent.data,
+        start: {
+          dateTime: startTime.toISOString(),
+          timeZone: timezone,
+        },
+        end: {
+          dateTime: endTime.toISOString(),
+          timeZone: timezone,
+        }
+      };
+
+      console.log('Sending datetime update to Google Calendar...');
+      const response = await calendar.events.update({
+        calendarId: "primary",
+        eventId: eventId,
+        resource: updatedEvent,
+        sendUpdates: "none" // Don't send email notifications
+      });
+
+      console.log("Calendar event datetime updated successfully:", response.data.id);
+
+      return {
+        eventId: response.data.id,
+        eventLink: response.data.htmlLink,
+        meetingLink: response.data.conferenceData?.entryPoints?.[0]?.uri || null
+      };
+    } catch (error) {
+      console.error("Error updating calendar event datetime:", error.message);
+
+      if (error.message.includes('User calendar not connected')) {
+        throw new Error('Please connect your Google Calendar first');
+      } else if (error.message.includes('invalid_grant')) {
+        throw new Error('Calendar access expired - please reconnect your Google Calendar');
+      } else if (error.message.includes('Not Found') || error.message.includes('404')) {
+        throw new Error('Calendar event not found - it may have been deleted');
+      } else {
+        throw new Error(`Calendar datetime update failed: ${error.message}`);
+      }
     }
   }
 
