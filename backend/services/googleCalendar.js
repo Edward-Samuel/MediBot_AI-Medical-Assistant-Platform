@@ -258,7 +258,7 @@ class GoogleCalendarService {
       const response = await this.calendar.events.insert({
         calendarId: targetCalendarId,
         resource: event,
-        sendUpdates: "none", // Don't send notifications automatically
+        sendUpdates: "all", // Don't send notifications automatically
       });
 
       console.log("Calendar event created successfully:", response.data.id);
@@ -474,7 +474,7 @@ class GoogleCalendarService {
         calendarId: "primary",
         resource: event,
         conferenceDataVersion: 1,
-        sendUpdates: "none" // Don't send email notifications to attendees
+        sendUpdates: "all" // Don't send email notifications to attendees
       });
 
       console.log("User calendar event created successfully:", response.data.id);
@@ -694,7 +694,7 @@ END:VCALENDAR`;
         calendarId: "primary",
         eventId: eventId,
         resource: event,
-        sendUpdates: "none" // Don't send email notifications
+        sendUpdates: "all" // Don't send email notifications
       });
 
       console.log("User calendar event updated successfully:", response.data.id);
@@ -731,7 +731,7 @@ END:VCALENDAR`;
       await calendar.events.delete({
         calendarId: "primary",
         eventId: eventId,
-        sendUpdates: "none" // Don't send notifications
+        sendUpdates: "all" // Don't send notifications
       });
 
       console.log("User calendar event deleted successfully:", eventId);
@@ -761,15 +761,8 @@ END:VCALENDAR`;
       console.log(`New time: ${startTime.toISOString()}`);
       console.log(`Using timezone: ${timezone}`);
 
-      // Fetch the existing event first
-      const existingEvent = await calendar.events.get({
-        calendarId: "primary",
-        eventId: eventId
-      });
-
-      // Update only the start and end times, keep everything else
-      const updatedEvent = {
-        ...existingEvent.data,
+      // Use patch to update only the datetime fields (more efficient than update)
+      const patchData = {
         start: {
           dateTime: startTime.toISOString(),
           timeZone: timezone,
@@ -780,72 +773,11 @@ END:VCALENDAR`;
         }
       };
 
-      console.log('Sending datetime update to Google Calendar...');
-      const response = await calendar.events.update({
+      console.log('Sending datetime patch to Google Calendar...');
+      const response = await calendar.events.patch({
         calendarId: "primary",
         eventId: eventId,
-        resource: updatedEvent,
-        sendUpdates: "none" // Don't send email notifications
-      });
-
-      console.log("Calendar event datetime updated successfully:", response.data.id);
-
-      return {
-        eventId: response.data.id,
-        eventLink: response.data.htmlLink,
-        meetingLink: response.data.conferenceData?.entryPoints?.[0]?.uri || null
-      };
-    } catch (error) {
-      console.error("Error updating calendar event datetime:", error.message);
-
-      if (error.message.includes('User calendar not connected')) {
-        throw new Error('Please connect your Google Calendar first');
-      } else if (error.message.includes('invalid_grant')) {
-        throw new Error('Calendar access expired - please reconnect your Google Calendar');
-      } else if (error.message.includes('Not Found') || error.message.includes('404')) {
-        throw new Error('Calendar event not found - it may have been deleted');
-      } else {
-        throw new Error(`Calendar datetime update failed: ${error.message}`);
-      }
-    }
-  }
-  // Update only the datetime of a calendar event (for rescheduling)
-  async updateEventDateTime(eventId, newDateTime, duration = 30, userId, timezone = 'UTC') {
-    try {
-      console.log(`Updating calendar event datetime ${eventId} for user ${userId}`);
-      const auth = await this.getUserOAuthClient(userId);
-      const calendar = google.calendar({ version: "v3", auth });
-
-      const startTime = new Date(newDateTime);
-      const endTime = new Date(startTime.getTime() + duration * 60000);
-
-      console.log(`New time: ${startTime.toISOString()}`);
-      console.log(`Using timezone: ${timezone}`);
-
-      // Fetch the existing event first
-      const existingEvent = await calendar.events.get({
-        calendarId: "primary",
-        eventId: eventId
-      });
-
-      // Update only the start and end times, keep everything else
-      const updatedEvent = {
-        ...existingEvent.data,
-        start: {
-          dateTime: startTime.toISOString(),
-          timeZone: timezone,
-        },
-        end: {
-          dateTime: endTime.toISOString(),
-          timeZone: timezone,
-        }
-      };
-
-      console.log('Sending datetime update to Google Calendar...');
-      const response = await calendar.events.update({
-        calendarId: "primary",
-        eventId: eventId,
-        resource: updatedEvent,
+        resource: patchData,
         sendUpdates: "none" // Don't send email notifications
       });
 
@@ -926,7 +858,7 @@ END:VCALENDAR`;
         calendarId: this.calendarId,
         eventId: eventId,
         resource: event,
-        sendUpdates: "none", // Don't send email invitations
+        sendUpdates: "all", // Don't send email invitations
       });
 
       console.log("Calendar event updated:", response.data.id);
@@ -952,7 +884,7 @@ END:VCALENDAR`;
       await this.calendar.events.delete({
         calendarId: this.calendarId,
         eventId: eventId,
-        sendUpdates: "none", // Don't notify attendees (requires domain-wide delegation)
+        sendUpdates: "all", // Don't notify attendees (requires domain-wide delegation)
       });
 
       console.log("Calendar event cancelled:", eventId);
