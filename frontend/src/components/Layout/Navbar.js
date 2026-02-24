@@ -36,7 +36,11 @@ const Navbar = () => {
           {/* Logo */}
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-2">
-              <Stethoscope className="h-8 w-8 text-medical-600" />
+              <img 
+                src="/logo.png" 
+                alt="MediBot Logo" 
+                className="h-10 w-10 object-contain"
+              />
               <span className="text-2xl font-bold text-gradient">MEDIBOT</span>
             </Link>
           </div>

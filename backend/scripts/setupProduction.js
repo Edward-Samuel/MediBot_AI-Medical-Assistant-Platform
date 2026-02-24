@@ -174,7 +174,7 @@ async function setupProduction() {
     console.log("\n" + "=".repeat(60));
     console.log("🎉 Production setup completed!");
     console.log("=".repeat(60));
-    console.log("\n📝 Login Credentials:");
+    console.log("\nLogin Credentials:");
     console.log("\nAdmin:");
     console.log("  Email: admin@medibot.com");
     console.log("  Password: Admin@123456");

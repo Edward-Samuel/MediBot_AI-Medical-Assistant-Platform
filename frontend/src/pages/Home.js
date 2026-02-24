@@ -59,7 +59,11 @@ const Home = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <div className="flex justify-center mb-6">
-              <Stethoscope className="h-16 w-16 text-medical-600" />
+              <img 
+                src="/logo.png" 
+                alt="MediBot Logo" 
+                className="h-20 w-20 object-contain"
+              />
             </div>
             <h1 className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6 transition-colors duration-200">
               Welcome to <span className="text-gradient">MEDIBOT</span>

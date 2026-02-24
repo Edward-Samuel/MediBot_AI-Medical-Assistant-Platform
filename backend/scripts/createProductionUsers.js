@@ -128,7 +128,7 @@ async function createProductionUsers() {
     console.log("\n" + "=".repeat(60));
     console.log("🎉 Production users setup completed!");
     console.log("=".repeat(60));
-    console.log("\n📝 Login Credentials Summary:");
+    console.log("\nLogin Credentials Summary:");
     console.log("\n1. Admin User:");
     console.log("   Email: admin@medibot.com");
     console.log("   Password: Admin@123456");

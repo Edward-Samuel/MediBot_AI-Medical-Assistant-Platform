@@ -89,6 +89,7 @@ const ChatBot = () => {
   const [webSearchStatusChecked, setWebSearchStatusChecked] = useState(true); // Already checked
   const [quickQuestions, setQuickQuestions] = useState([]);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
+  const [followUpQuestions, setFollowUpQuestions] = useState([]); // Add follow-up questions state
   const messagesEndRef = useRef(null);
   const recognitionRef = useRef(null);
   const speechSynthesisRef = useRef(null);
@@ -1087,9 +1088,20 @@ const ChatBot = () => {
         timestamp: new Date(),
         webSearchData: response.data.webSearchData,
         searchResults: response.data.searchResults,
+        followUpQuestions: response.data.followUpQuestions || [], // Add follow-up questions
       };
 
       setMessages((prev) => [...prev, botMessage]);
+
+      // Update follow-up questions state (initially empty)
+      setFollowUpQuestions([]);
+
+      // Poll for follow-up questions after a short delay
+      if (response.data.sessionId && user) {
+        setTimeout(() => {
+          fetchFollowUpQuestions(response.data.sessionId, botMessage.id);
+        }, 2000); // Wait 2 seconds for async generation
+      }
 
       // Update session ID and save status
       if (response.data.sessionId) {
@@ -1210,6 +1222,47 @@ const ChatBot = () => {
 
   const handleQuickQuestion = (question) => {
     setInputMessage(question);
+  };
+
+  // Fetch follow-up questions asynchronously
+  const fetchFollowUpQuestions = async (sessionId, messageId) => {
+    try {
+      const token = getToken();
+      if (!token || !sessionId) return;
+
+      console.log('Fetching follow-up questions for session:', sessionId);
+
+      const response = await axios.get(
+        `/api/ai/follow-up-questions/${sessionId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (response.data.followUpQuestions && response.data.followUpQuestions.length > 0) {
+        console.log('✅ Received follow-up questions:', response.data.followUpQuestions);
+        
+        // Update the last bot message with follow-up questions
+        setMessages((prev) => {
+          const updated = [...prev];
+          const lastBotIndex = updated.map(m => m.role).lastIndexOf('bot');
+          
+          if (lastBotIndex !== -1) {
+            updated[lastBotIndex] = {
+              ...updated[lastBotIndex],
+              followUpQuestions: response.data.followUpQuestions
+            };
+          }
+          
+          return updated;
+        });
+
+        setFollowUpQuestions(response.data.followUpQuestions);
+      }
+    } catch (error) {
+      console.error('Error fetching follow-up questions:', error);
+      // Silently fail - follow-up questions are optional
+    }
   };
 
   const handleCloseAppointmentWidget = () => {
@@ -1534,6 +1587,33 @@ const ChatBot = () => {
                             <Volume2 className="h-3 w-3" />
                           )}
                         </button>
+                      </div>
+                    )}
+
+                    {/* Follow-up Questions */}
+                    {message.role === "bot" && 
+                     message.followUpQuestions && 
+                     message.followUpQuestions.length > 0 && 
+                     messages[messages.length - 1].id === message.id && (
+                      <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
+                          💡 You might also want to ask:
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {message.followUpQuestions.map((question, index) => (
+                            <button
+                              key={index}
+                              onClick={() => {
+                                setInputMessage(question);
+                                // Optionally auto-send
+                                // setTimeout(() => handleSendMessage({ preventDefault: () => {} }), 100);
+                              }}
+                              className="text-xs bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 text-gray-700 dark:text-gray-300 px-3 py-2 rounded-lg hover:from-green-100 hover:to-blue-100 dark:hover:from-green-900/30 dark:hover:to-blue-900/30 transition-all border border-green-200 dark:border-green-800 hover:border-green-300 dark:hover:border-green-700 hover:shadow-sm"
+                            >
+                              {question}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>

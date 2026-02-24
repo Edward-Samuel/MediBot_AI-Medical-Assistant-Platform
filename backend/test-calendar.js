@@ -33,7 +33,7 @@ async function testCalendarIntegration() {
     
     if (usersWithCalendar.length === 0) {
       console.log('    No users have connected their Google Calendar');
-      console.log('   📝 Users need to connect their calendar first via the UI\n');
+      console.log('   Users need to connect their calendar first via the UI\n');
     } else {
       console.log(`   Found ${usersWithCalendar.length} user(s) with connected calendar:\n`);
       
@@ -77,7 +77,7 @@ async function testCalendarIntegration() {
             console.log(`      Meeting Link: ${result.meetingLink || 'N/A'}`);
             console.log('');
             console.log('   🎉 Calendar integration is working correctly!');
-            console.log('   📝 Check your Google Calendar to see the test event');
+            console.log('   Check your Google Calendar to see the test event');
           } else {
             console.log('   FAILED to create calendar event');
             console.log(`      Error: ${result.error}`);

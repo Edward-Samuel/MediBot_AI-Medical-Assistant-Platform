@@ -18,6 +18,10 @@ const messageSchema = new mongoose.Schema({
     type: [mongoose.Schema.Types.Mixed], // More flexible schema
     default: []
   },
+  followUpQuestions: {
+    type: [String], // Array of follow-up question strings
+    default: []
+  },
   timestamp: {
     type: Date,
     default: Date.now

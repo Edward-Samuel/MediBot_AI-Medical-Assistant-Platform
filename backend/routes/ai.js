@@ -7,6 +7,7 @@ const { v4: uuidv4 } = require("uuid");
 const tavilySearch = require("../services/tavilySearch");
 const openRouterService = require("../services/openRouterService");
 const intentClassifier = require("../services/intentClassifier");
+const followUpQuestionsService = require("../services/followUpQuestionsService");
 // const appointmentAgent = require('../services/appointmentAgent');
 
 const router = express.Router();
@@ -1075,6 +1076,7 @@ router.post("/chat", async (req, res) => {
       console.log("No user ID, skipping chat history save");
     }
 
+    // Send response immediately to user
     res.json({
       response: botResponse,
       timestamp: new Date().toISOString(),
@@ -1086,6 +1088,7 @@ router.post("/chat", async (req, res) => {
       appointmentData: appointmentData, // Include appointment data if detected
       webSearchData: webSearchData, // Include web search data if used
       faqData: faqData, // Include FAQ data if used
+      followUpQuestions: [], // Will be populated asynchronously
       searchResults:
         webSearchData && searchResults
           ? {
@@ -1099,6 +1102,47 @@ router.post("/chat", async (req, res) => {
               })) || [],
           }
           : null,
+    });
+
+    // Generate follow-up questions asynchronously after response is sent
+    // This doesn't block the user's response
+    setImmediate(async () => {
+      try {
+        console.log('Generating follow-up questions asynchronously...');
+        const followUpQuestions = await followUpQuestionsService.generateFollowUpQuestions(
+          botResponse,
+          message,
+          conversationHistory,
+          language,
+          3 // Generate 3 follow-up questions
+        );
+        
+        // Store follow-up questions in chat history if user is logged in
+        if (userId && currentSessionId && followUpQuestions.length > 0) {
+          try {
+            const chatHistory = await ChatHistory.findOne({
+              userId,
+              sessionId: currentSessionId,
+            });
+            
+            if (chatHistory && chatHistory.messages.length > 0) {
+              // Add follow-up questions to the last bot message
+              const lastMessage = chatHistory.messages[chatHistory.messages.length - 1];
+              if (lastMessage.role === 'bot') {
+                lastMessage.followUpQuestions = followUpQuestions;
+                await chatHistory.save();
+                console.log(`Saved ${followUpQuestions.length} follow-up questions to chat history`);
+              }
+            }
+          } catch (saveError) {
+            console.error('Error saving follow-up questions to history:', saveError);
+          }
+        }
+        
+        console.log(`Generated ${followUpQuestions.length} follow-up questions:`, followUpQuestions);
+      } catch (followUpError) {
+        console.error('Error in async follow-up generation:', followUpError);
+      }
     });
   } catch (error) {
     console.error("Chat error:", error);
@@ -1187,6 +1231,44 @@ router.get("/intent-stats", (req, res) => {
       message: "Error getting intent statistics",
       error: error.message,
     });
+  }
+});
+
+// Get follow-up questions for a specific session
+router.get("/follow-up-questions/:sessionId", auth.optional, async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const userId = req.user?.userId;
+
+    if (!userId || !sessionId) {
+      return res.json({ followUpQuestions: [] });
+    }
+
+    const chatHistory = await ChatHistory.findOne({
+      userId,
+      sessionId,
+    });
+
+    if (!chatHistory || chatHistory.messages.length === 0) {
+      return res.json({ followUpQuestions: [] });
+    }
+
+    // Get the last bot message
+    const lastBotMessage = [...chatHistory.messages]
+      .reverse()
+      .find(msg => msg.role === 'bot');
+
+    if (lastBotMessage && lastBotMessage.followUpQuestions) {
+      return res.json({ 
+        followUpQuestions: lastBotMessage.followUpQuestions,
+        messageId: lastBotMessage.id
+      });
+    }
+
+    return res.json({ followUpQuestions: [] });
+  } catch (error) {
+    console.error("Error fetching follow-up questions:", error);
+    res.json({ followUpQuestions: [] });
   }
 });
 
