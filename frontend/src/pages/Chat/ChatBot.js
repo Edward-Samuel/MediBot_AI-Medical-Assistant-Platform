@@ -28,6 +28,7 @@ import ChatHistory from "../../components/Chat/ChatHistory";
 import AppointmentBookingWidget from "../../components/Chat/AppointmentBookingWidget";
 import AppointmentSelectionWidget from "../../components/Chat/AppointmentSelectionWidget";
 import RescheduleWidget from "../../components/Chat/RescheduleWidget";
+import TriageAlert from "../../components/Chat/TriageAlert";
 import { formatDateTime } from "../../utils/dateFormatter";
 
 const ChatBot = () => {
@@ -1089,6 +1090,7 @@ const ChatBot = () => {
         webSearchData: response.data.webSearchData,
         searchResults: response.data.searchResults,
         followUpQuestions: response.data.followUpQuestions || [], // Add follow-up questions
+        triageData: response.data.triageData || null, // Add triage data
       };
 
       setMessages((prev) => [...prev, botMessage]);
@@ -1237,7 +1239,7 @@ const ChatBot = () => {
       );
 
       if (response.data.followUpQuestions && response.data.followUpQuestions.length > 0) {
-        console.log('✅ Received follow-up questions:', response.data.followUpQuestions);
+        console.log('Received follow-up questions:', response.data.followUpQuestions);
         
         // Update the last bot message with follow-up questions
         setMessages((prev) => {
@@ -1547,6 +1549,11 @@ const ChatBot = () => {
                           </div>
                         </div>
                       )}
+
+                    {/* Triage Assessment */}
+                    {message.role === "bot" && message.triageData && (
+                      <TriageAlert triageData={message.triageData} />
+                    )}
 
                     {/* Action buttons for bot messages */}
                     {message.role === "bot" && (

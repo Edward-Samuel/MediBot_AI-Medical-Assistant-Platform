@@ -8,6 +8,7 @@ const tavilySearch = require("../services/tavilySearch");
 const openRouterService = require("../services/openRouterService");
 const intentClassifier = require("../services/intentClassifier");
 const followUpQuestionsService = require("../services/followUpQuestionsService");
+const triageService = require("../services/triageService");
 // const appointmentAgent = require('../services/appointmentAgent');
 
 const router = express.Router();
@@ -555,6 +556,7 @@ router.post("/chat", async (req, res) => {
     let faqData = null;
     let searchResults = null; // Declare at top level
     let intentData = null;
+    let triageData = null; // Add triage data
 
     // Classify user intent first
     console.log("Classifying user intent...");
@@ -571,6 +573,37 @@ router.post("/chat", async (req, res) => {
       method: intentResult.method,
       reasoning: intentResult.reasoning,
     };
+
+    // Perform triage assessment for general chat (symptoms)
+    if (intentResult.intent === 'general_chat' && message && message.trim().length > 10) {
+      try {
+        console.log('🏥 Performing triage assessment...');
+        const triageResult = await triageService.assessSymptoms(
+          message,
+          {
+            age: req.body.patientInfo?.age,
+            gender: req.body.patientInfo?.gender,
+            duration: req.body.patientInfo?.duration,
+            severity: req.body.patientInfo?.severity
+          },
+          language
+        );
+
+        triageData = triageService.formatTriageResult(triageResult, language);
+        console.log(`✅ Triage: ${triageData.level} (${triageData.confidence}% confidence)`);
+
+        // If emergency detected, prioritize emergency response
+        if (triageData.isEmergency) {
+          console.log('🚨 EMERGENCY TRIAGE - Sending emergency response');
+          botResponse = triageResult.emergencyWarning + '\n\n' + 
+                       triageResult.recommendedActions.join('\n\n') + '\n\n' +
+                       '**This is a medical emergency. Do not use this chat for emergencies. Call emergency services immediately.**';
+        }
+      } catch (triageError) {
+        console.error('Triage assessment failed:', triageError);
+        // Continue without triage data
+      }
+    }
 
     // Route based on intent
     switch (intentResult.intent) {
@@ -1088,6 +1121,7 @@ router.post("/chat", async (req, res) => {
       appointmentData: appointmentData, // Include appointment data if detected
       webSearchData: webSearchData, // Include web search data if used
       faqData: faqData, // Include FAQ data if used
+      triageData: triageData, // Include triage assessment if performed
       followUpQuestions: [], // Will be populated asynchronously
       searchResults:
         webSearchData && searchResults
@@ -1269,6 +1303,62 @@ router.get("/follow-up-questions/:sessionId", auth.optionalAuth, async (req, res
   } catch (error) {
     console.error("Error fetching follow-up questions:", error);
     res.json({ followUpQuestions: [] });
+  }
+});
+
+// Triage assessment endpoint
+router.post("/triage", async (req, res) => {
+  try {
+    const { symptoms, patientInfo, language = 'en' } = req.body;
+
+    if (!symptoms || symptoms.trim().length === 0) {
+      return res.status(400).json({
+        message: 'Symptoms are required for triage assessment'
+      });
+    }
+
+    console.log('🏥 Triage request:', { symptoms: symptoms.substring(0, 100), language });
+
+    // Perform triage assessment
+    const triageResult = await triageService.assessSymptoms(
+      symptoms,
+      patientInfo || {},
+      language
+    );
+
+    // Format result for frontend
+    const formattedResult = triageService.formatTriageResult(triageResult, language);
+
+    console.log(`Triage completed: ${formattedResult.level} (${formattedResult.confidence}% confidence)`);
+
+    res.json({
+      success: true,
+      triage: formattedResult,
+      raw: triageResult, // Include raw data for advanced use
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Triage endpoint error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Triage assessment failed',
+      error: error.message
+    });
+  }
+});
+
+// Get triage statistics
+router.get("/triage/stats", (req, res) => {
+  try {
+    const stats = triageService.getTriageStats();
+    res.json(stats);
+  } catch (error) {
+    console.error("Error getting triage stats:", error);
+    res.status(500).json({
+      message: "Error getting triage statistics",
+      error: error.message,
+    });
   }
 });
 
