@@ -10,7 +10,6 @@ import {
   Calendar, 
   MessageCircle, 
   LogOut,
-  Stethoscope,
   Users
 } from 'lucide-react';
 

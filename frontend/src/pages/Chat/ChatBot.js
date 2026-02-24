@@ -89,7 +89,7 @@ const ChatBot = () => {
   const [webSearchStatusChecked, setWebSearchStatusChecked] = useState(true); // Already checked
   const [quickQuestions, setQuickQuestions] = useState([]);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
-  const [followUpQuestions, setFollowUpQuestions] = useState([]); // Add follow-up questions state
+  // followUpQuestions state removed - questions are stored in messages
   const messagesEndRef = useRef(null);
   const recognitionRef = useRef(null);
   const speechSynthesisRef = useRef(null);
@@ -1093,9 +1093,6 @@ const ChatBot = () => {
 
       setMessages((prev) => [...prev, botMessage]);
 
-      // Update follow-up questions state (initially empty)
-      setFollowUpQuestions([]);
-
       // Poll for follow-up questions after a short delay
       if (response.data.sessionId && user) {
         setTimeout(() => {
@@ -1256,8 +1253,6 @@ const ChatBot = () => {
           
           return updated;
         });
-
-        setFollowUpQuestions(response.data.followUpQuestions);
       }
     } catch (error) {
       console.error('Error fetching follow-up questions:', error);
