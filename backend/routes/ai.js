@@ -1235,10 +1235,10 @@ router.get("/intent-stats", (req, res) => {
 });
 
 // Get follow-up questions for a specific session
-router.get("/follow-up-questions/:sessionId", auth.optional, async (req, res) => {
+router.get("/follow-up-questions/:sessionId", auth.optionalAuth, async (req, res) => {
   try {
     const { sessionId } = req.params;
-    const userId = req.user?.userId;
+    const userId = req.user?.userId || req.user?._id;
 
     if (!userId || !sessionId) {
       return res.json({ followUpQuestions: [] });
