@@ -112,7 +112,7 @@ async function testCalendarIntegration() {
 
     // 5. Summary
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('📊 DIAGNOSTIC SUMMARY');
+    console.log('DIAGNOSTIC SUMMARY');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('');
     console.log('Environment Configuration:');

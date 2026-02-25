@@ -23,6 +23,7 @@ const adminRoutes = require("./routes/admin");
 const faqRoutes = require("./routes/faq");
 const setupRoutes = require("./routes/setup");
 const quickQuestionsRoutes = require("./routes/quickQuestions");
+const ehrRoutes = require("./routes/ehr");
 
 // Initialize services
 const faqService = require("./services/faqService");
@@ -132,6 +133,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/faq", faqRoutes);
 app.use("/api/setup", setupRoutes);
 app.use("/api/quick-questions", quickQuestionsRoutes);
+app.use("/api/ehr", ehrRoutes);
 
 // Health check
 app.get("/health", (req, res) => {

@@ -45,7 +45,7 @@ async function checkMissingDoctors() {
       specMap[spec._id] = spec.count;
     });
 
-    console.log('📊 Current Doctor Distribution:\n');
+    console.log('Current Doctor Distribution:\n');
     console.log('Specialization'.padEnd(25) + 'Count');
     console.log('─'.repeat(35));
 

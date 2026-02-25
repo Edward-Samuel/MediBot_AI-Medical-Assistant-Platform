@@ -241,7 +241,7 @@ async function addMissingDoctors() {
       { $sort: { _id: 1 } }
     ]);
 
-    console.log('📊 Final Doctor Distribution:\n');
+    console.log('Final Doctor Distribution:\n');
     console.log('Specialization'.padEnd(25) + 'Count');
     console.log('─'.repeat(35));
 

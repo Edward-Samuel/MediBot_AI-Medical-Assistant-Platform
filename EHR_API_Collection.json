@@ -1,0 +1,330 @@
+{
+  "info": {
+    "name": "MEDIBOT EHR API",
+    "description": "Complete API collection for testing the EHR system",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login as Patient",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('token', jsonData.token);",
+                  "    console.log('Token saved:', jsonData.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"patient1@medibot.com\",\n  \"password\": \"your_password\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "EHR - Patient Endpoints",
+      "item": [
+        {
+          "name": "Get My EHR",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/ehr/my-ehr",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ehr", "my-ehr"]
+            }
+          }
+        },
+        {
+          "name": "Get Holistic Analysis",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/ehr/analysis",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ehr", "analysis"]
+            }
+          }
+        },
+        {
+          "name": "Update Demographics",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dateOfBirth\": \"1985-06-15\",\n  \"gender\": \"male\",\n  \"ethnicity\": \"Caucasian\",\n  \"maritalStatus\": \"married\",\n  \"occupation\": \"Software Engineer\",\n  \"address\": {\n    \"street\": \"123 Main Street\",\n    \"city\": \"San Francisco\",\n    \"state\": \"CA\",\n    \"zipCode\": \"94102\",\n    \"country\": \"USA\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/ehr/demographics",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ehr", "demographics"]
+            }
+          }
+        },
+        {
+          "name": "Add Vital Signs",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bloodPressure\": {\n    \"systolic\": 120,\n    \"diastolic\": 80\n  },\n  \"heartRate\": 72,\n  \"temperature\": 36.8,\n  \"respiratoryRate\": 16,\n  \"oxygenSaturation\": 98,\n  \"weight\": 75,\n  \"height\": 175,\n  \"recordedBy\": \"Self\",\n  \"notes\": \"Morning reading\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/ehr/vitals",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ehr", "vitals"]
+            }
+          }
+        },
+        {
+          "name": "Add Allergy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"allergen\": \"Shellfish\",\n  \"allergenType\": \"food\",\n  \"reaction\": \"Hives and difficulty breathing\",\n  \"severity\": \"severe\",\n  \"notes\": \"Avoid all shellfish\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/ehr/allergies",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ehr", "allergies"]
+            }
+          }
+        },
+        {
+          "name": "Update Social History",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"smokingStatus\": \"never\",\n  \"alcoholUse\": \"moderate\",\n  \"alcoholDetails\": {\n    \"drinksPerWeek\": 4\n  },\n  \"drugUse\": \"never\",\n  \"exerciseFrequency\": \"moderate\",\n  \"diet\": \"Mediterranean diet\",\n  \"stressLevel\": \"moderate\",\n  \"sleepHours\": 7\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/ehr/social-history",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ehr", "social-history"]
+            }
+          }
+        },
+        {
+          "name": "Add Family History",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"relationship\": \"father\",\n  \"condition\": \"Coronary Artery Disease\",\n  \"ageOfOnset\": 58,\n  \"status\": \"living\",\n  \"notes\": \"Had stent placement at age 58\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/ehr/family-history",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ehr", "family-history"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "EHR - Doctor/Admin Endpoints",
+      "item": [
+        {
+          "name": "Add Diagnosis",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patientEmail\": \"patient1@medibot.com\",\n  \"condition\": \"Hypertension\",\n  \"icdCode\": \"I10\",\n  \"severity\": \"moderate\",\n  \"status\": \"active\",\n  \"notes\": \"Stage 1 hypertension\",\n  \"treatmentPlan\": \"Lifestyle modifications and medication\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/ehr/diagnoses",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ehr", "diagnoses"]
+            }
+          }
+        },
+        {
+          "name": "Add Lab Result",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patientEmail\": \"patient1@medibot.com\",\n  \"testName\": \"Complete Blood Count\",\n  \"testType\": \"blood\",\n  \"results\": [\n    {\n      \"parameter\": \"WBC\",\n      \"value\": \"7.2\",\n      \"unit\": \"K/uL\",\n      \"referenceRange\": \"4.5-11.0\",\n      \"status\": \"normal\"\n    },\n    {\n      \"parameter\": \"RBC\",\n      \"value\": \"5.1\",\n      \"unit\": \"M/uL\",\n      \"referenceRange\": \"4.5-5.9\",\n      \"status\": \"normal\"\n    }\n  ],\n  \"performedAt\": \"LabCorp\",\n  \"notes\": \"Routine screening\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/ehr/lab-results",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ehr", "lab-results"]
+            }
+          }
+        },
+        {
+          "name": "Add Prescription",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patientEmail\": \"patient1@medibot.com\",\n  \"medicationName\": \"Lisinopril\",\n  \"genericName\": \"Lisinopril\",\n  \"dosage\": \"10 mg\",\n  \"route\": \"Oral\",\n  \"frequency\": \"Once daily\",\n  \"duration\": \"Ongoing\",\n  \"quantity\": 90,\n  \"refills\": 3,\n  \"pharmacy\": \"CVS Pharmacy\",\n  \"startDate\": \"2024-01-15\",\n  \"reason\": \"Hypertension\",\n  \"instructions\": \"Take in the morning with water\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/ehr/prescriptions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ehr", "prescriptions"]
+            }
+          }
+        },
+        {
+          "name": "Add Clinical Note",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patientEmail\": \"patient1@medibot.com\",\n  \"noteType\": \"progress\",\n  \"chiefComplaint\": \"Follow-up for hypertension\",\n  \"historyOfPresentIllness\": \"Patient reports good adherence to medications. No side effects noted. Blood pressure readings at home have been stable.\",\n  \"physicalExamination\": \"BP 128/82, HR 72. Heart: Regular rate and rhythm. Lungs: Clear bilaterally.\",\n  \"assessment\": \"Hypertension well controlled on current regimen.\",\n  \"plan\": \"Continue current medications. Follow up in 3 months. Encouraged to maintain exercise routine.\",\n  \"followUpDate\": \"2025-04-15\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/ehr/clinical-notes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ehr", "clinical-notes"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

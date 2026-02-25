@@ -577,7 +577,7 @@ router.post("/chat", async (req, res) => {
     // Perform triage assessment for general chat (symptoms)
     if (intentResult.intent === 'general_chat' && message && message.trim().length > 10) {
       try {
-        console.log('🏥 Performing triage assessment...');
+        console.log('Performing triage assessment...');
         const triageResult = await triageService.assessSymptoms(
           message,
           {
@@ -590,7 +590,7 @@ router.post("/chat", async (req, res) => {
         );
 
         triageData = triageService.formatTriageResult(triageResult, language);
-        console.log(`✅ Triage: ${triageData.level} (${triageData.confidence}% confidence)`);
+        console.log(`Triage: ${triageData.level} (${triageData.confidence}% confidence)`);
 
         // If emergency detected, prioritize emergency response
         if (triageData.isEmergency) {
@@ -1317,7 +1317,7 @@ router.post("/triage", async (req, res) => {
       });
     }
 
-    console.log('🏥 Triage request:', { symptoms: symptoms.substring(0, 100), language });
+    console.log('Triage request:', { symptoms: symptoms.substring(0, 100), language });
 
     // Perform triage assessment
     const triageResult = await triageService.assessSymptoms(
