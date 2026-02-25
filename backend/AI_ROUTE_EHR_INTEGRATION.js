@@ -22,11 +22,11 @@ let ehrContextData = null;
 
 if (userId) {
   try {
-    console.log('🏥 Retrieving patient EHR context for user:', userId);
+    console.log('Retrieving patient EHR context for user:', userId);
     patientContext = await ehrContextService.getPatientContext(userId);
     
     if (patientContext && patientContext.hasEHR) {
-      console.log('✅ Patient EHR context loaded successfully');
+      console.log('Patient EHR context loaded successfully');
       console.log('   - Active conditions:', patientContext.fullAnalysis.chronicConditions?.length || 0);
       console.log('   - Active medications:', patientContext.fullAnalysis.activeMedications?.length || 0);
       console.log('   - Critical alerts:', patientContext.fullAnalysis.criticalAlerts?.length || 0);
@@ -34,10 +34,10 @@ if (userId) {
       // Format context for UI display
       ehrContextData = ehrContextService.formatContextForUI(patientContext);
     } else {
-      console.log('ℹ️  No EHR data found for user (may not be a patient)');
+      console.log('No EHR data found for user (may not be a patient)');
     }
   } catch (ehrError) {
-    console.error('❌ Error loading EHR context:', ehrError);
+    console.error('Error loading EHR context:', ehrError);
     // Continue without EHR context - don't fail the request
   }
 }
@@ -59,7 +59,7 @@ if (patientContext && patientContext.hasEHR && intentResult.intent === 'general_
     conversationHistory
   );
   usedEHRContext = true;
-  console.log('📋 Enhanced AI prompt with patient medical context');
+  console.log('Enhanced AI prompt with patient medical context');
 }
 
 // Now use enhancedMessage instead of message when calling AI
@@ -89,7 +89,7 @@ if (patientContext && patientContext.hasEHR && botResponse) {
     const medicationMentions = extractMedicationMentions(botResponse);
     
     if (medicationMentions.length > 0) {
-      console.log('💊 Checking medications mentioned in response:', medicationMentions);
+      console.log('Checking medications mentioned in response:', medicationMentions);
       
       medicationMentions.forEach(medication => {
         const warnings = ehrContextService.generateSafetyWarnings(
@@ -98,7 +98,7 @@ if (patientContext && patientContext.hasEHR && botResponse) {
         );
         
         if (warnings.length > 0) {
-          console.log(`⚠️  Safety warnings for ${medication}:`, warnings.length);
+          console.log(`Safety warnings for ${medication}:`, warnings.length);
           safetyWarnings.push(...warnings);
         }
       });
@@ -108,11 +108,11 @@ if (patientContext && patientContext.hasEHR && botResponse) {
     if (safetyWarnings.some(w => w.type === 'allergy' || w.severity === 'critical')) {
       const criticalWarnings = safetyWarnings
         .filter(w => w.type === 'allergy' || w.severity === 'critical')
-        .map(w => `🚨 ${w.message}`)
+        .map(w => `${w.message}`)
         .join('\n\n');
       
       botResponse = `${criticalWarnings}\n\n${botResponse}`;
-      console.log('🚨 Critical warnings prepended to response');
+      console.log('Critical warnings prepended to response');
     }
   } catch (safetyError) {
     console.error('Error checking safety warnings:', safetyError);
@@ -229,15 +229,15 @@ router.post("/chat", async (req, res) => {
 
     if (userId) {
       try {
-        console.log('🏥 Retrieving patient EHR context for user:', userId);
+        console.log('Retrieving patient EHR context for user:', userId);
         patientContext = await ehrContextService.getPatientContext(userId);
         
         if (patientContext && patientContext.hasEHR) {
-          console.log('✅ Patient EHR context loaded successfully');
+          console.log('Patient EHR context loaded successfully');
           ehrContextData = ehrContextService.formatContextForUI(patientContext);
         }
       } catch (ehrError) {
-        console.error('❌ Error loading EHR context:', ehrError);
+        console.error('Error loading EHR context:', ehrError);
       }
     }
     
@@ -287,7 +287,7 @@ router.post("/chat", async (req, res) => {
         conversationHistory
       );
       usedEHRContext = true;
-      console.log('📋 Enhanced AI prompt with patient medical context');
+      console.log('Enhanced AI prompt with patient medical context');
     }
 
     // Generate AI response with enhanced context
@@ -319,7 +319,7 @@ router.post("/chat", async (req, res) => {
       if (safetyWarnings.some(w => w.type === 'allergy' || w.severity === 'critical')) {
         const criticalWarnings = safetyWarnings
           .filter(w => w.type === 'allergy' || w.severity === 'critical')
-          .map(w => `🚨 ${w.message}`)
+          .map(w => `${w.message}`)
           .join('\n\n');
         
         botResponse = `${criticalWarnings}\n\n${botResponse}`;

@@ -521,6 +521,35 @@ router.post("/chat", async (req, res) => {
       }
     }
 
+    // ========== EHR CONTEXT INTEGRATION START ==========
+    // Get patient EHR context if user is authenticated
+    let patientContext = null;
+    let ehrContextData = null;
+
+    if (userId) {
+      try {
+        console.log('Retrieving patient EHR context for user:', userId);
+        const ehrContextService = require('../services/ehrContextService');
+        patientContext = await ehrContextService.getPatientContext(userId);
+        
+        if (patientContext && patientContext.hasEHR) {
+          console.log('Patient EHR context loaded successfully');
+          console.log('   - Active conditions:', patientContext.fullAnalysis.chronicConditions?.length || 0);
+          console.log('   - Active medications:', patientContext.fullAnalysis.activeMedications?.length || 0);
+          console.log('   - Critical alerts:', patientContext.fullAnalysis.criticalAlerts?.length || 0);
+          
+          // Format context for UI display
+          ehrContextData = ehrContextService.formatContextForUI(patientContext);
+        } else {
+          console.log('No EHR data found for user (may not be a patient)');
+        }
+      } catch (ehrError) {
+        console.error('Error loading EHR context:', ehrError);
+        // Continue without EHR context - don't fail the request
+      }
+    }
+    // ========== EHR CONTEXT INTEGRATION END ==========
+
     // Validate domain relevance (only for text messages)
     if (message && message.trim()) {
       console.log("Validating domain relevance...");
@@ -594,7 +623,7 @@ router.post("/chat", async (req, res) => {
 
         // If emergency detected, prioritize emergency response
         if (triageData.isEmergency) {
-          console.log('🚨 EMERGENCY TRIAGE - Sending emergency response');
+          console.log('EMERGENCY TRIAGE - Sending emergency response');
           botResponse = triageResult.emergencyWarning + '\n\n' + 
                        triageResult.recommendedActions.join('\n\n') + '\n\n' +
                        '**This is a medical emergency. Do not use this chat for emergencies. Call emergency services immediately.**';
@@ -946,13 +975,76 @@ router.post("/chat", async (req, res) => {
       if (!botResponse) {
         try {
           console.log("Using general AI processing");
+          
+          // ========== EHR CONTEXT ENHANCEMENT START ==========
+          // Enhance message with patient context for personalized responses
+          let enhancedMessage = message;
+          let usedEHRContext = false;
+
+          if (patientContext && patientContext.hasEHR) {
+            const ehrContextService = require('../services/ehrContextService');
+            enhancedMessage = ehrContextService.enhancePromptWithContext(
+              message,
+              patientContext,
+              conversationHistory
+            );
+            usedEHRContext = true;
+            console.log('Enhanced AI prompt with patient medical context');
+          }
+          // ========== EHR CONTEXT ENHANCEMENT END ==========
+          
           botResponse = await generateAIResponse(
-            message,
+            enhancedMessage,  // Use enhanced message with EHR context
             conversationHistory,
             language,
             languageInfo,
             images,
           );
+          
+          // ========== SAFETY WARNINGS START ==========
+          // Check for safety warnings based on patient context
+          let safetyWarnings = [];
+
+          if (patientContext && patientContext.hasEHR && botResponse) {
+            try {
+              const ehrContextService = require('../services/ehrContextService');
+              
+              // Extract medication mentions from the AI response
+              const medicationMentions = extractMedicationMentions(botResponse);
+              
+              if (medicationMentions.length > 0) {
+                console.log('Checking medications mentioned in response:', medicationMentions);
+                
+                medicationMentions.forEach(medication => {
+                  const warnings = ehrContextService.generateSafetyWarnings(
+                    patientContext,
+                    medication
+                  );
+                  
+                  if (warnings.length > 0) {
+                    console.log(`Safety warnings for ${medication}:`, warnings.length);
+                    safetyWarnings.push(...warnings);
+                  }
+                });
+              }
+
+              // If critical warnings found, prepend them to the response
+              if (safetyWarnings.some(w => w.type === 'allergy' || w.severity === 'critical')) {
+                const criticalWarnings = safetyWarnings
+                  .filter(w => w.type === 'allergy' || w.severity === 'critical')
+                  .map(w => `**${w.type.toUpperCase()} ALERT**: ${w.message}`)
+                  .join('\n\n');
+                
+                botResponse = `${criticalWarnings}\n\n---\n\n${botResponse}`;
+                console.log('Critical warnings prepended to response');
+              }
+            } catch (safetyError) {
+              console.error('Error checking safety warnings:', safetyError);
+              // Continue without safety warnings
+            }
+          }
+          // ========== SAFETY WARNINGS END ==========
+          
         } catch (aiError) {
           console.log(
             `OpenRouter failed: ${aiError.message}, using fallback response`,
@@ -1122,6 +1214,9 @@ router.post("/chat", async (req, res) => {
       webSearchData: webSearchData, // Include web search data if used
       faqData: faqData, // Include FAQ data if used
       triageData: triageData, // Include triage assessment if performed
+      ehrContext: ehrContextData, // Include EHR context summary
+      usedEHRContext: patientContext && patientContext.hasEHR, // Flag if EHR was used
+      safetyWarnings: typeof safetyWarnings !== 'undefined' && safetyWarnings.length > 0 ? safetyWarnings : undefined, // Include safety warnings
       followUpQuestions: [], // Will be populated asynchronously
       searchResults:
         webSearchData && searchResults
@@ -2142,4 +2237,45 @@ router.put("/appointments/:appointmentId/cancel", async (req, res) => {
   }
 });
 
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+/**
+ * Extract medication names mentioned in text
+ * Used for checking drug interactions and allergy contraindications
+ */
+function extractMedicationMentions(text) {
+  if (!text || typeof text !== 'string') return [];
+  
+  const medications = [];
+  
+  // Common medications to check for
+  const commonMeds = [
+    'ibuprofen', 'acetaminophen', 'aspirin', 'paracetamol', 'tylenol', 'advil', 'motrin',
+    'amoxicillin', 'penicillin', 'azithromycin', 'ciprofloxacin', 'doxycycline',
+    'lisinopril', 'metformin', 'atorvastatin', 'simvastatin', 'rosuvastatin',
+    'omeprazole', 'pantoprazole', 'ranitidine', 'esomeprazole',
+    'cetirizine', 'loratadine', 'diphenhydramine', 'fexofenadine',
+    'albuterol', 'prednisone', 'dexamethasone', 'hydrocortisone',
+    'warfarin', 'clopidogrel', 'apixaban', 'rivaroxaban',
+    'levothyroxine', 'insulin', 'methotrexate', 'gabapentin',
+    'sertraline', 'fluoxetine', 'escitalopram', 'duloxetine',
+    'amlodipine', 'losartan', 'hydrochlorothiazide', 'furosemide'
+  ];
+  
+  const lowerText = text.toLowerCase();
+  
+  commonMeds.forEach(med => {
+    // Check for whole word matches to avoid false positives
+    const regex = new RegExp(`\\b${med}\\b`, 'i');
+    if (regex.test(lowerText)) {
+      medications.push(med);
+    }
+  });
+  
+  return [...new Set(medications)]; // Remove duplicates
+}
+
 module.exports = router;
+
