@@ -1349,7 +1349,7 @@ const ChatBot = () => {
 
   const contentContainerClass = sidebarOpen
     ? "max-w-3xl mx-auto px-4"
-    : "max-w-4xl px-4 md:px-6 lg:px-8 mr-auto ml-0";
+    : "max-w-5xl mx-auto px-4 md:px-6 lg:px-8";
 
   return (
     <div className="h-[calc(100vh-4rem)] flex bg-white dark:bg-gray-900">
