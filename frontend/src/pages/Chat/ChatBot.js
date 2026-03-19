@@ -15,6 +15,7 @@ import {
   Menu,
   Search,
   Globe,
+  Play,
   Image,
   X,
   Camera,
@@ -1089,6 +1090,7 @@ const ChatBot = () => {
         timestamp: new Date(),
         webSearchData: response.data.webSearchData,
         searchResults: response.data.searchResults,
+        videoData: response.data.videoData || null,
         followUpQuestions: response.data.followUpQuestions || [], // Add follow-up questions
         triageData: response.data.triageData || null, // Add triage data
       };
@@ -1554,6 +1556,67 @@ const ChatBot = () => {
                     {message.role === "bot" && message.triageData && (
                       <TriageAlert triageData={message.triageData} />
                     )}
+
+                    {message.role === "bot" &&
+                      message.videoData &&
+                      (message.videoData.videos?.length > 0 ||
+                        message.videoData.searchUrl) && (
+                        <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/10 rounded-lg border border-red-200 dark:border-red-800">
+                          <div className="flex items-center space-x-2 mb-3">
+                            <Play className="h-4 w-4 text-red-600 dark:text-red-400" />
+                            <span className="text-sm font-medium text-red-800 dark:text-red-200">
+                              Recommended Videos
+                            </span>
+                          </div>
+
+                          {message.videoData.videos?.length > 0 ? (
+                            <div className="space-y-4">
+                              {message.videoData.videos.map((video) => (
+                                <div
+                                  key={video.id}
+                                  className="bg-white dark:bg-gray-800 rounded-lg border border-red-100 dark:border-red-900 overflow-hidden"
+                                >
+                                  <div className="aspect-video bg-black">
+                                    <iframe
+                                      src={video.embedUrl}
+                                      title={video.title}
+                                      className="w-full h-full"
+                                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                      allowFullScreen
+                                    />
+                                  </div>
+                                  <div className="p-3">
+                                    <div className="text-sm font-medium text-gray-900 dark:text-white">
+                                      {video.title}
+                                    </div>
+                                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                      {video.channelTitle}
+                                      {video.duration ? ` • ${video.duration}` : ""}
+                                    </div>
+                                    <a
+                                      href={video.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center mt-2 text-xs text-red-700 dark:text-red-300 hover:underline"
+                                    >
+                                      Open on YouTube
+                                    </a>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <a
+                              href={message.videoData.searchUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-red-700 dark:text-red-300 hover:underline"
+                            >
+                              Open YouTube search results
+                            </a>
+                          )}
+                        </div>
+                      )}
 
                     {/* Action buttons for bot messages */}
                     {message.role === "bot" && (

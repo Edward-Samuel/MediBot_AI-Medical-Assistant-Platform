@@ -9,6 +9,7 @@ const openRouterService = require("../services/openRouterService");
 const intentClassifier = require("../services/intentClassifier");
 const followUpQuestionsService = require("../services/followUpQuestionsService");
 const triageService = require("../services/triageService");
+const youtubeService = require("../services/youtubeService");
 // const appointmentAgent = require('../services/appointmentAgent');
 
 const router = express.Router();
@@ -586,6 +587,7 @@ router.post("/chat", async (req, res) => {
     let searchResults = null; // Declare at top level
     let intentData = null;
     let triageData = null; // Add triage data
+    let videoData = null;
 
     // Classify user intent first
     console.log("Classifying user intent...");
@@ -1071,6 +1073,24 @@ router.post("/chat", async (req, res) => {
       }
     }
 
+    // Attach YouTube videos for healthcare video requests without replacing the text response.
+    if (message && youtubeService.shouldProvideVideos(message)) {
+      try {
+        console.log("Video request detected - fetching YouTube recommendations");
+        videoData = await youtubeService.searchVideos(message);
+
+        if (videoData.videos.length > 0) {
+          botResponse +=
+            "\n\nI've included a few YouTube videos below that may help you learn visually. Please prefer trusted medical organizations and use them as educational guidance, not a substitute for professional care.";
+        } else {
+          botResponse +=
+            `\n\nI couldn't embed matching videos right now, but you can try this YouTube search: ${videoData.searchUrl}`;
+        }
+      } catch (videoError) {
+        console.error("Video recommendation failed:", videoError.message);
+      }
+    }
+
     // Save chat history for logged-in users
     if (userId) {
       try {
@@ -1214,6 +1234,7 @@ router.post("/chat", async (req, res) => {
       webSearchData: webSearchData, // Include web search data if used
       faqData: faqData, // Include FAQ data if used
       triageData: triageData, // Include triage assessment if performed
+      videoData: videoData, // Include YouTube video recommendations when requested
       ehrContext: ehrContextData, // Include EHR context summary
       usedEHRContext: patientContext && patientContext.hasEHR, // Flag if EHR was used
       safetyWarnings: typeof safetyWarnings !== 'undefined' && safetyWarnings.length > 0 ? safetyWarnings : undefined, // Include safety warnings

@@ -13,7 +13,8 @@ class DomainValidator {
       'emergency', 'pain', 'fever', 'cough', 'cold', 'flu', 'injury', 'illness',
       'medibot', 'booking', 'schedule', 'reschedule', 'cancel', 'fee', 'rating',
       'cardiology', 'dermatology', 'pediatrics', 'orthopedics', 'neurology',
-      'psychiatry', 'gynecology', 'ophthalmology', 'ent', 'dentistry'
+      'psychiatry', 'gynecology', 'ophthalmology', 'ent', 'dentistry', 'cpr',
+      'first aid', 'resuscitation', 'heimlich', 'choking', 'bandage', 'wound care'
     ];
 
     // Tamil healthcare keywords
