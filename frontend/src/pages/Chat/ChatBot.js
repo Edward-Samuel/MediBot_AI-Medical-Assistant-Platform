@@ -55,11 +55,17 @@ const ChatBot = () => {
     return welcomeMessages[currentLanguage] || welcomeMessages.en;
   };
 
+  const getStarterQuestionsForLanguage = () => {
+    const translatedQuestions = t("sampleQuestions");
+    return Array.isArray(translatedQuestions) ? translatedQuestions.slice(0, 5) : [];
+  };
+
   const [messages, setMessages] = useState([
     {
       id: 1,
       role: "bot",
       content: getInitialMessage(),
+      language: currentLanguage,
       timestamp: new Date(),
     },
   ]);
@@ -189,17 +195,52 @@ const ChatBot = () => {
 
   // Update welcome message when language changes
   useEffect(() => {
-    if (!currentSessionId) {
-      setMessages([
+    setMessages((prev) => {
+      const isUntouchedChat =
+        prev.length === 1 && prev[0]?.role === "bot";
+
+      if (!isUntouchedChat) {
+        return prev;
+      }
+
+      const nextContent = getInitialMessage();
+      if (
+        prev[0].content === nextContent &&
+        prev[0].language === currentLanguage
+      ) {
+        return prev;
+      }
+
+      return [
         {
-          id: 1,
-          role: "bot",
-          content: getInitialMessage(),
-          timestamp: new Date(),
+          ...prev[0],
+          content: nextContent,
+          language: currentLanguage,
         },
-      ]);
-    }
+      ];
+    });
   }, [currentLanguage]);
+
+  useEffect(() => {
+    const syncSessionLanguage = async () => {
+      const token = getToken();
+      if (!user || !token || !currentSessionId) return;
+
+      try {
+        await axios.put(
+          `/api/chat-history/session/${currentSessionId}`,
+          { language: currentLanguage },
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+      } catch (error) {
+        console.error("Error syncing session language:", error);
+      }
+    };
+
+    syncSessionLanguage();
+  }, [currentLanguage, currentSessionId, user]);
 
   // Load chat history for logged-in users
   const resetTransientUi = () => {
@@ -301,6 +342,7 @@ const ChatBot = () => {
           id: 1,
           role: "bot",
           content: getInitialMessage(),
+          language: currentLanguage,
           timestamp: new Date(),
         },
       ]);
@@ -328,6 +370,7 @@ const ChatBot = () => {
           id: 1,
           role: "bot",
           content: getInitialMessage(),
+          language: currentLanguage,
           timestamp: new Date(),
         },
       ]);
@@ -344,6 +387,7 @@ const ChatBot = () => {
   const fetchQuickQuestions = async () => {
     setLoadingQuestions(true);
     setQuickQuestionsError("");
+
     try {
       const response = await axios.get('/api/quick-questions', {
         params: {
@@ -357,12 +401,22 @@ const ChatBot = () => {
         return;
       }
 
-      setQuickQuestions([]);
-      setQuickQuestionsError("Starter questions are unavailable right now.");
+      const fallbackQuestions = getStarterQuestionsForLanguage();
+      setQuickQuestions(fallbackQuestions);
+      setQuickQuestionsError(
+        fallbackQuestions.length === 0
+          ? "Starter questions are unavailable right now."
+          : ""
+      );
     } catch (error) {
       console.error('Error fetching quick questions:', error);
-      setQuickQuestions([]);
-      setQuickQuestionsError("Starter questions are unavailable right now.");
+      const fallbackQuestions = getStarterQuestionsForLanguage();
+      setQuickQuestions(fallbackQuestions);
+      setQuickQuestionsError(
+        fallbackQuestions.length === 0
+          ? "Starter questions are unavailable right now."
+          : ""
+      );
     } finally {
       setLoadingQuestions(false);
     }
@@ -1365,6 +1419,7 @@ const ChatBot = () => {
         id: 1,
         role: "bot",
         content: getInitialMessage(),
+        language: currentLanguage,
         timestamp: new Date(),
       },
     ]);
@@ -1383,6 +1438,7 @@ const ChatBot = () => {
       <ChatHistory
         onLoadSession={loadChatHistory}
         currentSessionId={currentSessionId}
+        currentLanguage={currentLanguage}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         onNewSession={createNewSession}

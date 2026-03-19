@@ -870,6 +870,10 @@ router.post("/chat", async (req, res) => {
           console.log("Created new session:", chatHistory.sessionId);
         } else {
           console.log("Using existing session:", chatHistory.sessionId);
+          if (chatHistory.language !== language) {
+            chatHistory.language = language;
+            await chatHistory.save();
+          }
         }
 
         // Add user message

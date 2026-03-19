@@ -42,6 +42,7 @@ const LoadingSpinner = ({ size = 'md' }) => {
 const ChatHistory = ({
   onLoadSession,
   currentSessionId,
+  currentLanguage,
   isOpen,
   onClose,
   onNewSession,
@@ -254,6 +255,24 @@ const ChatHistory = ({
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!currentSessionId || !currentLanguage) return;
+
+    setSessions((prev) =>
+      prev.map((session) =>
+        session.sessionId === currentSessionId
+          ? { ...session, language: currentLanguage }
+          : session,
+      ),
+    );
+
+    cacheRef.current.sessions = cacheRef.current.sessions.map((session) =>
+      session.sessionId === currentSessionId
+        ? { ...session, language: currentLanguage }
+        : session,
+    );
+  }, [currentSessionId, currentLanguage]);
 
   const formatDate = useCallback((dateString) => getRelativeTime(dateString), []);
   const getLanguageLabel = useCallback((langCode) => (langCode || 'en').toUpperCase(), []);

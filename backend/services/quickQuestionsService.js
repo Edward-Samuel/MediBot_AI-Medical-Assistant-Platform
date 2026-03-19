@@ -1,11 +1,28 @@
 const ChatHistory = require('../models/ChatHistory');
 const Appointment = require('../models/Appointment');
+const openRouterService = require('./openRouterService');
 
 /**
  * Generate dynamic quick questions based on user context
  */
 class QuickQuestionsService {
   constructor() {
+    this.languageNames = {
+      en: 'English',
+      es: 'Spanish',
+      fr: 'French',
+      de: 'German',
+      it: 'Italian',
+      pt: 'Portuguese',
+      zh: 'Chinese',
+      ja: 'Japanese',
+      ko: 'Korean',
+      ar: 'Arabic',
+      hi: 'Hindi',
+      ru: 'Russian',
+      ta: 'Tamil',
+    };
+
     // Base question pool organized by category
     this.questionPool = {
       symptoms: [
@@ -274,7 +291,82 @@ class QuickQuestionsService {
       }
     }
 
-    return questions.slice(0, count);
+    const candidateQuestions = questions.slice(0, count);
+
+    try {
+      return await this.generateLocalizedQuestions(
+        candidateQuestions,
+        {
+          userId,
+          language,
+          count,
+          timeOfDay,
+          season,
+        }
+      );
+    } catch (error) {
+      console.error('Error generating localized quick questions:', error);
+      return candidateQuestions;
+    }
+  }
+
+  async generateLocalizedQuestions(seedQuestions, context = {}) {
+    const { userId = null, language = 'en', count = 5, timeOfDay, season } = context;
+
+    if (!Array.isArray(seedQuestions) || seedQuestions.length === 0) {
+      return [];
+    }
+
+    const targetLanguage = this.languageNames[language] || language || 'English';
+    const personalizationHint = userId
+      ? 'The questions may reflect a returning patient with chat and appointment context.'
+      : 'The questions should feel useful for a first-time visitor.';
+
+    const prompt = `You are helping generate starter prompts for a medical AI chat interface.
+
+Create ${count} short, natural starter questions in ${targetLanguage}.
+
+Requirements:
+- Return the final questions only, one per line
+- No numbering, bullets, labels, or explanations
+- Each line must be a question
+- Keep each question concise and conversational
+- Focus on symptoms, appointments, specialists, or general health help
+- Avoid duplicate meaning
+- Keep the wording safe and non-diagnostic
+- Match the user's likely context: time of day is ${timeOfDay}, season is ${season}
+- ${personalizationHint}
+
+Use these candidate ideas as inspiration, but rewrite them naturally in ${targetLanguage}:
+${seedQuestions.map((question) => `- ${question}`).join('\n')}`;
+
+    const response = await openRouterService.generateResponse(prompt, [], {
+      maxTokens: 220,
+      temperature: 0.7,
+      language,
+    });
+
+    const localizedQuestions = response.content
+      .split('\n')
+      .map((line) => line.replace(/^[\d.\-*)]+\s*/, '').trim())
+      .filter((line) => line.length > 5)
+      .map((line) => (line.endsWith('?') ? line : `${line}?`))
+      .filter((line, index, array) => array.indexOf(line) === index)
+      .slice(0, count);
+
+    if (localizedQuestions.length === 0) {
+      throw new Error('AI did not return any valid quick questions');
+    }
+
+    if (localizedQuestions.length < count) {
+      const remaining = seedQuestions
+        .filter((question) => !localizedQuestions.includes(question))
+        .slice(0, count - localizedQuestions.length);
+
+      return [...localizedQuestions, ...remaining];
+    }
+
+    return localizedQuestions;
   }
 
   /**
