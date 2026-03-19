@@ -700,10 +700,17 @@ router.post("/chat", async (req, res) => {
       case "appointment":
         console.log("Appointment intent detected");
         try {
+          const appointmentUiIntent =
+            await openRouterService.classifyAppointmentUiIntent(message, {
+              isAuthenticated: !!userId,
+              language,
+              modeHint: "booking",
+            });
+
           // Check if user is authenticated for appointment booking
           if (!userId) {
             appointmentData = {
-              intent: "appointment_booking_login_required",
+              intent: appointmentUiIntent,
               message:
                 "To book an appointment, please log in to your account first.",
               requiresLogin: true,
@@ -717,7 +724,7 @@ router.post("/chat", async (req, res) => {
           } else {
             // User is authenticated, proceed with appointment booking
             appointmentData = {
-              intent: "appointment_booking",
+              intent: appointmentUiIntent,
               message:
                 "I can help you book an appointment! Please let me know what type of doctor you need.",
               simpleBooking: true,
@@ -738,10 +745,15 @@ router.post("/chat", async (req, res) => {
       case "appointmentManagement":
         console.log("Appointment management intent detected");
         try {
+          const appointmentUiIntent =
+            await openRouterService.classifyAppointmentUiIntent(message, {
+              isAuthenticated: !!userId,
+              language,
+              modeHint: "management",
+            });
+
           // Check if it's a reschedule request
-          if (message.toLowerCase().includes('reschedule') || 
-              message.toLowerCase().includes('change') ||
-              message.toLowerCase().includes('modify')) {
+          if (appointmentUiIntent === "appointment_reschedule") {
             
             if (!userId) {
               botResponse = "To reschedule an appointment, please log in to your account first.";
@@ -766,7 +778,7 @@ router.post("/chat", async (req, res) => {
               
               // Store reschedule data for frontend
               appointmentData = {
-                intent: "appointment_reschedule",
+                intent: appointmentUiIntent,
                 parsedRequest,
                 findResult,
                 needsConfirmation: !findResult.error && !findResult.needsClarification && 
@@ -775,9 +787,7 @@ router.post("/chat", async (req, res) => {
             }
           } 
           // Check if it's a cancellation request
-          else if (message.toLowerCase().includes('cancel') || 
-                   message.toLowerCase().includes('delete') ||
-                   message.toLowerCase().includes('remove')) {
+          else if (appointmentUiIntent === "appointment_cancel") {
             
             if (!userId) {
               botResponse = "To cancel an appointment, please log in to your account first.";
@@ -802,7 +812,7 @@ router.post("/chat", async (req, res) => {
               
               // Store cancellation data for frontend
               appointmentData = {
-                intent: "appointment_cancel",
+                intent: appointmentUiIntent,
                 parsedRequest,
                 findResult,
                 needsConfirmation: !findResult.error && !findResult.needsClarification

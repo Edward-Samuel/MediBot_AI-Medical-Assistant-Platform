@@ -6,6 +6,7 @@ import { SPECIALIZATIONS } from '../../constants/specializations';
 import { formatDateTime, formatDate } from '../../utils/dateFormatter';
 
 const AppointmentBookingWidget = ({ appointmentData, onClose, onBookingComplete }) => {
+  const requiresLogin = appointmentData?.requiresLogin;
   const [selectedDoctor, setSelectedDoctor] = useState(appointmentData?.doctors?.[0] || null);
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [isBooking, setIsBooking] = useState(false);
@@ -19,6 +20,49 @@ const AppointmentBookingWidget = ({ appointmentData, onClose, onBookingComplete 
   const [availableSlots, setAvailableSlots] = useState([]);
   const [isLoadingDoctors, setIsLoadingDoctors] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState(null);
+
+  if (requiresLogin) {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 max-w-md mx-auto">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Login Required
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-4">
+          <div className="text-sm text-gray-700 dark:text-gray-300">
+            {appointmentData?.message || 'Please log in to continue with appointment booking.'}
+          </div>
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 text-sm text-blue-800 dark:text-blue-300">
+            Booking needs your account so we can save appointment history, patient details, and reminders securely.
+          </div>
+          <div className="flex space-x-3">
+            <button
+              onClick={onClose}
+              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
+              Close
+            </button>
+            <button
+              onClick={() => {
+                window.location.href = '/login';
+              }}
+              className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors"
+            >
+              Go to Login
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleSpecializationSelect = async (specialization) => {
     setSelectedSpecialization(specialization);

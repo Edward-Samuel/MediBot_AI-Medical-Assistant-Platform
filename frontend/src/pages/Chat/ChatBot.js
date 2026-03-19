@@ -1154,7 +1154,9 @@ const ChatBot = () => {
       // Handle appointment booking data
       if (
         response.data.appointmentData &&
-        response.data.appointmentData.intent === "appointment_booking"
+        (response.data.appointmentData.intent === "appointment_booking" ||
+          response.data.appointmentData.intent ===
+            "appointment_booking_login_required")
       ) {
         setAppointmentData(response.data.appointmentData);
         setShowAppointmentWidget(true);
