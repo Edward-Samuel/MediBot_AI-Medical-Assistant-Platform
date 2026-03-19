@@ -1349,6 +1349,10 @@ const ChatBot = () => {
     setMessages((prev) => [...prev, rescheduleMessage]);
   };
 
+  const contentContainerClass = sidebarOpen
+    ? "max-w-3xl mx-auto px-4"
+    : "max-w-4xl px-4 md:px-6 lg:px-8 mr-auto ml-0";
+
   return (
     <div className="h-[calc(100vh-4rem)] flex bg-white dark:bg-gray-900">
       {/* Chat History Sidebar */}
@@ -1420,7 +1424,7 @@ const ChatBot = () => {
 
         {/* Chat Messages */}
         <div className="flex-1 overflow-y-auto custom-scrollbar">
-          <div className="max-w-3xl mx-auto px-4 py-6">
+          <div className={`${contentContainerClass} py-6`}>
             {messages.map((message) => (
               <div key={message.id} className="mb-6 group">
                 <div className="flex items-start space-x-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-lg p-3 -m-3 transition-colors">
@@ -1731,7 +1735,7 @@ const ChatBot = () => {
         {/* Quick Questions */}
         {messages.length === 1 && (
           <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-            <div className="max-w-3xl mx-auto px-4 py-6">
+            <div className={`${contentContainerClass} py-6`}>
               {loadingQuestions ? (
                 <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
                   <Loader className="h-4 w-4 animate-spin" />
@@ -1761,7 +1765,7 @@ const ChatBot = () => {
 
         {/* Input Form */}
         <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-          <div className="max-w-3xl mx-auto px-4 py-4">
+          <div className={`${contentContainerClass} py-4`}>
             {/* Web Search Toggle - Simplified */}
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center space-x-3">

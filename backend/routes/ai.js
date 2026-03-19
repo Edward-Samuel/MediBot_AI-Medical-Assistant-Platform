@@ -190,7 +190,7 @@ router.post("/recommend-doctor", async (req, res) => {
 
     const recommendations = doctors.map((doctor) => ({
       id: doctor._id,
-      name: `Dr. ${doctor.userId.profile.firstName} ${doctor.userId.profile.lastName}` ,
+      name: `Dr. ${doctor.userId.profile.firstName} ${doctor.userId.profile.lastName}`,
       specialization: doctor.specialization,
       experience: doctor.experience,
       rating: doctor.rating.average,
@@ -256,23 +256,32 @@ router.post("/chat", async (req, res) => {
 
     if (userId) {
       try {
-        console.log('Retrieving patient EHR context for user:', userId);
-        const ehrContextService = require('../services/ehrContextService');
+        console.log("Retrieving patient EHR context for user:", userId);
+        const ehrContextService = require("../services/ehrContextService");
         patientContext = await ehrContextService.getPatientContext(userId);
-        
+
         if (patientContext && patientContext.hasEHR) {
-          console.log('Patient EHR context loaded successfully');
-          console.log('   - Active conditions:', patientContext.fullAnalysis.chronicConditions?.length || 0);
-          console.log('   - Active medications:', patientContext.fullAnalysis.activeMedications?.length || 0);
-          console.log('   - Critical alerts:', patientContext.fullAnalysis.criticalAlerts?.length || 0);
-          
+          console.log("Patient EHR context loaded successfully");
+          console.log(
+            "   - Active conditions:",
+            patientContext.fullAnalysis.chronicConditions?.length || 0,
+          );
+          console.log(
+            "   - Active medications:",
+            patientContext.fullAnalysis.activeMedications?.length || 0,
+          );
+          console.log(
+            "   - Critical alerts:",
+            patientContext.fullAnalysis.criticalAlerts?.length || 0,
+          );
+
           // Format context for UI display
           ehrContextData = ehrContextService.formatContextForUI(patientContext);
         } else {
-          console.log('No EHR data found for user (may not be a patient)');
+          console.log("No EHR data found for user (may not be a patient)");
         }
       } catch (ehrError) {
-        console.error('Error loading EHR context:', ehrError);
+        console.error("Error loading EHR context:", ehrError);
         // Continue without EHR context - don't fail the request
       }
     }
@@ -282,14 +291,18 @@ router.post("/chat", async (req, res) => {
     if (message && message.trim()) {
       console.log("Validating domain relevance...");
       const domainValidator = require("../services/domainValidator");
-      const domainValidation = await domainValidator.validateDomain(message, language);
-      
+      const domainValidation = await domainValidator.validateDomain(
+        message,
+        language,
+      );
+
       console.log("Domain validation result:", domainValidation);
 
       if (!domainValidation.isValid) {
         console.log("Off-topic message rejected");
-        const rejectionMessage = domainValidator.generateRejectionMessage(language);
-        
+        const rejectionMessage =
+          domainValidator.generateRejectionMessage(language);
+
         return res.json({
           response: rejectionMessage,
           intent: "off_topic",
@@ -297,12 +310,12 @@ router.post("/chat", async (req, res) => {
             isValid: false,
             confidence: domainValidation.confidence,
             method: domainValidation.method,
-            reasoning: domainValidation.reasoning
+            reasoning: domainValidation.reasoning,
           },
-          sessionId: currentSessionId || uuidv4()
+          sessionId: currentSessionId || uuidv4(),
         });
       }
-      
+
       console.log("Message validated as healthcare-related");
     }
 
@@ -332,32 +345,41 @@ router.post("/chat", async (req, res) => {
     };
 
     // Perform triage assessment for general chat (symptoms)
-    if (intentResult.intent === 'general_chat' && message && message.trim().length > 10) {
+    if (
+      intentResult.intent === "general_chat" &&
+      message &&
+      message.trim().length > 10
+    ) {
       try {
-        console.log('Performing triage assessment...');
+        console.log("Performing triage assessment...");
         const triageResult = await triageService.assessSymptoms(
           message,
           {
             age: req.body.patientInfo?.age,
             gender: req.body.patientInfo?.gender,
             duration: req.body.patientInfo?.duration,
-            severity: req.body.patientInfo?.severity
+            severity: req.body.patientInfo?.severity,
           },
-          language
+          language,
         );
 
         triageData = triageService.formatTriageResult(triageResult, language);
-        console.log(`Triage: ${triageData.level} (${triageData.confidence}% confidence)`);
+        console.log(
+          `Triage: ${triageData.level} (${triageData.confidence}% confidence)`,
+        );
 
         // If emergency detected, prioritize emergency response
         if (triageData.isEmergency) {
-          console.log('EMERGENCY TRIAGE - Sending emergency response');
-          botResponse = triageResult.emergencyWarning + '\n\n' + 
-                       triageResult.recommendedActions.join('\n\n') + '\n\n' +
-                       '**This is a medical emergency. Do not use this chat for emergencies. Call emergency services immediately.**';
+          console.log("EMERGENCY TRIAGE - Sending emergency response");
+          botResponse =
+            triageResult.emergencyWarning +
+            "\n\n" +
+            triageResult.recommendedActions.join("\n\n") +
+            "\n\n" +
+            "**This is a medical emergency. Do not use this chat for emergencies. Call emergency services immediately.**";
         }
       } catch (triageError) {
-        console.error('Triage assessment failed:', triageError);
+        console.error("Triage assessment failed:", triageError);
         // Continue without triage data
       }
     }
@@ -479,72 +501,83 @@ router.post("/chat", async (req, res) => {
 
           // Check if it's a reschedule request
           if (appointmentUiIntent === "appointment_reschedule") {
-            
             if (!userId) {
-              botResponse = "To reschedule an appointment, please log in to your account first.";
+              botResponse =
+                "To reschedule an appointment, please log in to your account first.";
             } else {
               const rescheduleAgent = require("../services/rescheduleAgent");
-              
+
               // Parse the reschedule request
-              const parsedRequest = await rescheduleAgent.parseRescheduleRequest(message, userId);
-              
+              const parsedRequest =
+                await rescheduleAgent.parseRescheduleRequest(message, userId);
+
               // Find the appointment to reschedule
-              const findResult = await rescheduleAgent.findAppointmentToReschedule(
-                userId,
-                parsedRequest.appointmentIdentifier
-              );
-              
+              const findResult =
+                await rescheduleAgent.findAppointmentToReschedule(
+                  userId,
+                  parsedRequest.appointmentIdentifier,
+                );
+
               // Generate response
               botResponse = await rescheduleAgent.generateRescheduleResponse(
                 parsedRequest,
                 findResult,
-                language
+                language,
               );
-              
+
               // Store reschedule data for frontend
               appointmentData = {
                 intent: appointmentUiIntent,
                 parsedRequest,
                 findResult,
-                needsConfirmation: !findResult.error && !findResult.needsClarification && 
-                                   parsedRequest.newDate && parsedRequest.newTime
+                needsConfirmation:
+                  !findResult.error &&
+                  !findResult.needsClarification &&
+                  parsedRequest.newDate &&
+                  parsedRequest.newTime,
               };
             }
-          } 
+          }
           // Check if it's a cancellation request
           else if (appointmentUiIntent === "appointment_cancel") {
-            
             if (!userId) {
-              botResponse = "To cancel an appointment, please log in to your account first.";
+              botResponse =
+                "To cancel an appointment, please log in to your account first.";
             } else {
               const cancellationAgent = require("../services/cancellationAgent");
-              
+
               // Parse the cancellation request
-              const parsedRequest = await cancellationAgent.parseCancellationRequest(message, userId);
-              
+              const parsedRequest =
+                await cancellationAgent.parseCancellationRequest(
+                  message,
+                  userId,
+                );
+
               // Find the appointment to cancel
-              const findResult = await cancellationAgent.findAppointmentToCancel(
-                userId,
-                parsedRequest.appointmentIdentifier
-              );
-              
+              const findResult =
+                await cancellationAgent.findAppointmentToCancel(
+                  userId,
+                  parsedRequest.appointmentIdentifier,
+                );
+
               // Generate response
-              botResponse = await cancellationAgent.generateCancellationResponse(
-                parsedRequest,
-                findResult,
-                language
-              );
-              
+              botResponse =
+                await cancellationAgent.generateCancellationResponse(
+                  parsedRequest,
+                  findResult,
+                  language,
+                );
+
               // Store cancellation data for frontend
               appointmentData = {
                 intent: appointmentUiIntent,
                 parsedRequest,
                 findResult,
-                needsConfirmation: !findResult.error && !findResult.needsClarification
+                needsConfirmation:
+                  !findResult.error && !findResult.needsClarification,
               };
             }
-          }
-          else {
+          } else {
             // Handle other appointment management (status check, etc.)
             botResponse = await generateAIResponse(
               message,
@@ -556,12 +589,13 @@ router.post("/chat", async (req, res) => {
           }
         } catch (error) {
           console.error("Appointment management error:", error);
-          botResponse = "I encountered an error processing your request. Please try again.";
+          botResponse =
+            "I encountered an error processing your request. Please try again.";
         }
         break;
 
       case "faq":
-        console.log("❓ FAQ intent detected - searching knowledge base");
+        console.log("FAQ intent detected - searching knowledge base");
         // Check for FAQ query
         const faqService = require("../services/faqService");
         if (faqService.isInitialized()) {
@@ -693,76 +727,87 @@ router.post("/chat", async (req, res) => {
       if (!botResponse) {
         try {
           console.log("Using general AI processing");
-          
+
           // ========== EHR CONTEXT ENHANCEMENT START ==========
           // Enhance message with patient context for personalized responses
           let enhancedMessage = message;
           let usedEHRContext = false;
 
           if (patientContext && patientContext.hasEHR) {
-            const ehrContextService = require('../services/ehrContextService');
+            const ehrContextService = require("../services/ehrContextService");
             enhancedMessage = ehrContextService.enhancePromptWithContext(
               message,
               patientContext,
-              conversationHistory
+              conversationHistory,
             );
             usedEHRContext = true;
-            console.log('Enhanced AI prompt with patient medical context');
+            console.log("Enhanced AI prompt with patient medical context");
           }
           // ========== EHR CONTEXT ENHANCEMENT END ==========
-          
+
           botResponse = await generateAIResponse(
-            enhancedMessage,  // Use enhanced message with EHR context
+            enhancedMessage, // Use enhanced message with EHR context
             conversationHistory,
             language,
             languageInfo,
             images,
           );
-          
+
           // ========== SAFETY WARNINGS START ==========
           // Check for safety warnings based on patient context
           let safetyWarnings = [];
 
           if (patientContext && patientContext.hasEHR && botResponse) {
             try {
-              const ehrContextService = require('../services/ehrContextService');
-              
+              const ehrContextService = require("../services/ehrContextService");
+
               // Extract medication mentions from the AI response
               const medicationMentions = extractMedicationMentions(botResponse);
-              
+
               if (medicationMentions.length > 0) {
-                console.log('Checking medications mentioned in response:', medicationMentions);
-                
-                medicationMentions.forEach(medication => {
+                console.log(
+                  "Checking medications mentioned in response:",
+                  medicationMentions,
+                );
+
+                medicationMentions.forEach((medication) => {
                   const warnings = ehrContextService.generateSafetyWarnings(
                     patientContext,
-                    medication
+                    medication,
                   );
-                  
+
                   if (warnings.length > 0) {
-                    console.log(`Safety warnings for ${medication}:`, warnings.length);
+                    console.log(
+                      `Safety warnings for ${medication}:`,
+                      warnings.length,
+                    );
                     safetyWarnings.push(...warnings);
                   }
                 });
               }
 
               // If critical warnings found, prepend them to the response
-              if (safetyWarnings.some(w => w.type === 'allergy' || w.severity === 'critical')) {
+              if (
+                safetyWarnings.some(
+                  (w) => w.type === "allergy" || w.severity === "critical",
+                )
+              ) {
                 const criticalWarnings = safetyWarnings
-                  .filter(w => w.type === 'allergy' || w.severity === 'critical')
-                  .map(w => `**${w.type.toUpperCase()} ALERT**: ${w.message}`)
-                  .join('\n\n');
-                
+                  .filter(
+                    (w) => w.type === "allergy" || w.severity === "critical",
+                  )
+                  .map((w) => `**${w.type.toUpperCase()} ALERT**: ${w.message}`)
+                  .join("\n\n");
+
                 botResponse = `${criticalWarnings}\n\n---\n\n${botResponse}`;
-                console.log('Critical warnings prepended to response');
+                console.log("Critical warnings prepended to response");
               }
             } catch (safetyError) {
-              console.error('Error checking safety warnings:', safetyError);
+              console.error("Error checking safety warnings:", safetyError);
               // Continue without safety warnings
             }
           }
           // ========== SAFETY WARNINGS END ==========
-          
         } catch (aiError) {
           throw aiError;
         }
@@ -772,15 +817,16 @@ router.post("/chat", async (req, res) => {
     // Attach YouTube videos for healthcare video requests without replacing the text response.
     if (message && youtubeService.shouldProvideVideos(message)) {
       try {
-        console.log("Video request detected - fetching YouTube recommendations");
+        console.log(
+          "Video request detected - fetching YouTube recommendations",
+        );
         videoData = await youtubeService.searchVideos(message);
 
         if (videoData.videos.length > 0) {
           botResponse +=
             "\n\nI've included a few YouTube videos below that may help you learn visually. Please prefer trusted medical organizations and use them as educational guidance, not a substitute for professional care.";
         } else {
-          botResponse +=
-            `\n\nI couldn't embed matching videos right now, but you can try this YouTube search: ${videoData.searchUrl}`;
+          botResponse += `\n\nI couldn't embed matching videos right now, but you can try this YouTube search: ${videoData.searchUrl}`;
         }
       } catch (videoError) {
         console.error("Video recommendation failed:", videoError.message);
@@ -833,31 +879,31 @@ router.post("/chat", async (req, res) => {
           imagesType: typeof images,
           firstImageSample: images?.[0]
             ? {
-              name: images[0].name,
-              size: images[0].size,
-              type: images[0].type,
-              dataLength: images[0].data?.length,
-              dataPrefix: images[0].data?.substring(0, 50),
-            }
+                name: images[0].name,
+                size: images[0].size,
+                type: images[0].type,
+                dataLength: images[0].data?.length,
+                dataPrefix: images[0].data?.substring(0, 50),
+              }
             : null,
         });
 
         // Validate and clean images data
         const validImages = Array.isArray(images)
           ? images.filter((img) => {
-            const isValid =
-              img &&
-              typeof img.name === "string" &&
-              typeof img.size === "number" &&
-              typeof img.type === "string" &&
-              typeof img.data === "string" &&
-              img.data.startsWith("data:");
+              const isValid =
+                img &&
+                typeof img.name === "string" &&
+                typeof img.size === "number" &&
+                typeof img.type === "string" &&
+                typeof img.data === "string" &&
+                img.data.startsWith("data:");
 
-            if (!isValid) {
-              console.log("Invalid image data:", img);
-            }
-            return isValid;
-          })
+              if (!isValid) {
+                console.log("Invalid image data:", img);
+              }
+              return isValid;
+            })
           : [];
 
         console.log("Valid images after filtering:", validImages.length);
@@ -939,7 +985,8 @@ router.post("/chat", async (req, res) => {
       timestamp: new Date().toISOString(),
       language: language,
       sessionId: currentSessionId,
-      saved: !!userId, // Indicate if the chat was saved
+      saved: !!userId, // Indicate if the chat was saved
+
       intentData: intentData, // Include intent classification data
       appointmentData: appointmentData, // Include appointment data if detected
       webSearchData: webSearchData, // Include web search data if used
@@ -948,20 +995,23 @@ router.post("/chat", async (req, res) => {
       videoData: videoData, // Include YouTube video recommendations when requested
       ehrContext: ehrContextData, // Include EHR context summary
       usedEHRContext: patientContext && patientContext.hasEHR, // Flag if EHR was used
-      safetyWarnings: typeof safetyWarnings !== 'undefined' && safetyWarnings.length > 0 ? safetyWarnings : undefined, // Include safety warnings
+      safetyWarnings:
+        typeof safetyWarnings !== "undefined" && safetyWarnings.length > 0
+          ? safetyWarnings
+          : undefined, // Include safety warnings
       followUpQuestions: [], // Will be populated asynchronously
       searchResults:
         webSearchData && searchResults
           ? {
-            query: searchResults.query,
-            totalResults: searchResults.totalResults,
-            sources:
-              searchResults.results?.map((r) => ({
-                title: r.title,
-                url: r.url,
-                domain: new URL(r.url).hostname,
-              })) || [],
-          }
+              query: searchResults.query,
+              totalResults: searchResults.totalResults,
+              sources:
+                searchResults.results?.map((r) => ({
+                  title: r.title,
+                  url: r.url,
+                  domain: new URL(r.url).hostname,
+                })) || [],
+            }
           : null,
     });
 
@@ -969,15 +1019,16 @@ router.post("/chat", async (req, res) => {
     // This doesn't block the user's response
     setImmediate(async () => {
       try {
-        console.log('Generating follow-up questions asynchronously...');
-        const followUpQuestions = await followUpQuestionsService.generateFollowUpQuestions(
-          botResponse,
-          message,
-          conversationHistory,
-          language,
-          3 // Generate 3 follow-up questions
-        );
-        
+        console.log("Generating follow-up questions asynchronously...");
+        const followUpQuestions =
+          await followUpQuestionsService.generateFollowUpQuestions(
+            botResponse,
+            message,
+            conversationHistory,
+            language,
+            3, // Generate 3 follow-up questions
+          );
+
         // Store follow-up questions in chat history if user is logged in
         if (userId && currentSessionId && followUpQuestions.length > 0) {
           try {
@@ -985,24 +1036,33 @@ router.post("/chat", async (req, res) => {
               userId,
               sessionId: currentSessionId,
             });
-            
+
             if (chatHistory && chatHistory.messages.length > 0) {
               // Add follow-up questions to the last bot message
-              const lastMessage = chatHistory.messages[chatHistory.messages.length - 1];
-              if (lastMessage.role === 'bot') {
+              const lastMessage =
+                chatHistory.messages[chatHistory.messages.length - 1];
+              if (lastMessage.role === "bot") {
                 lastMessage.followUpQuestions = followUpQuestions;
                 await chatHistory.save();
-                console.log(`Saved ${followUpQuestions.length} follow-up questions to chat history`);
+                console.log(
+                  `Saved ${followUpQuestions.length} follow-up questions to chat history`,
+                );
               }
             }
           } catch (saveError) {
-            console.error('Error saving follow-up questions to history:', saveError);
+            console.error(
+              "Error saving follow-up questions to history:",
+              saveError,
+            );
           }
         }
-        
-        console.log(`Generated ${followUpQuestions.length} follow-up questions:`, followUpQuestions);
+
+        console.log(
+          `Generated ${followUpQuestions.length} follow-up questions:`,
+          followUpQuestions,
+        );
       } catch (followUpError) {
-        console.error('Error in async follow-up generation:', followUpError);
+        console.error("Error in async follow-up generation:", followUpError);
       }
     });
   } catch (error) {
@@ -1061,81 +1121,92 @@ router.get("/intent-stats", (req, res) => {
 });
 
 // Get follow-up questions for a specific session
-router.get("/follow-up-questions/:sessionId", auth.optionalAuth, async (req, res) => {
-  try {
-    const { sessionId } = req.params;
-    const userId = req.user?.userId || req.user?._id;
+router.get(
+  "/follow-up-questions/:sessionId",
+  auth.optionalAuth,
+  async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      const userId = req.user?.userId || req.user?._id;
 
-    if (!userId || !sessionId) {
-      return res.json({ followUpQuestions: [] });
-    }
+      if (!userId || !sessionId) {
+        return res.json({ followUpQuestions: [] });
+      }
 
-    const chatHistory = await ChatHistory.findOne({
-      userId,
-      sessionId,
-    });
-
-    if (!chatHistory || chatHistory.messages.length === 0) {
-      return res.json({ followUpQuestions: [] });
-    }
-
-    // Get the last bot message
-    const lastBotMessage = [...chatHistory.messages]
-      .reverse()
-      .find(msg => msg.role === 'bot');
-
-    if (lastBotMessage && lastBotMessage.followUpQuestions) {
-      return res.json({ 
-        followUpQuestions: lastBotMessage.followUpQuestions,
-        messageId: lastBotMessage.id
+      const chatHistory = await ChatHistory.findOne({
+        userId,
+        sessionId,
       });
-    }
 
-    return res.json({ followUpQuestions: [] });
-  } catch (error) {
-    console.error("Error fetching follow-up questions:", error);
-    res.json({ followUpQuestions: [] });
-  }
-});
+      if (!chatHistory || chatHistory.messages.length === 0) {
+        return res.json({ followUpQuestions: [] });
+      }
+
+      // Get the last bot message
+      const lastBotMessage = [...chatHistory.messages]
+        .reverse()
+        .find((msg) => msg.role === "bot");
+
+      if (lastBotMessage && lastBotMessage.followUpQuestions) {
+        return res.json({
+          followUpQuestions: lastBotMessage.followUpQuestions,
+          messageId: lastBotMessage.id,
+        });
+      }
+
+      return res.json({ followUpQuestions: [] });
+    } catch (error) {
+      console.error("Error fetching follow-up questions:", error);
+      res.json({ followUpQuestions: [] });
+    }
+  },
+);
 
 // Triage assessment endpoint
 router.post("/triage", async (req, res) => {
   try {
-    const { symptoms, patientInfo, language = 'en' } = req.body;
+    const { symptoms, patientInfo, language = "en" } = req.body;
 
     if (!symptoms || symptoms.trim().length === 0) {
       return res.status(400).json({
-        message: 'Symptoms are required for triage assessment'
+        message: "Symptoms are required for triage assessment",
       });
     }
 
-    console.log('Triage request:', { symptoms: symptoms.substring(0, 100), language });
+    console.log("Triage request:", {
+      symptoms: symptoms.substring(0, 100),
+      language,
+    });
 
     // Perform triage assessment
     const triageResult = await triageService.assessSymptoms(
       symptoms,
       patientInfo || {},
-      language
+      language,
     );
 
     // Format result for frontend
-    const formattedResult = triageService.formatTriageResult(triageResult, language);
+    const formattedResult = triageService.formatTriageResult(
+      triageResult,
+      language,
+    );
 
-    console.log(`Triage completed: ${formattedResult.level} (${formattedResult.confidence}% confidence)`);
+    console.log(
+      `Triage completed: ${formattedResult.level} (${formattedResult.confidence}% confidence)`,
+    );
 
     res.json({
       success: true,
       triage: formattedResult,
       raw: triageResult, // Include raw data for advanced use
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-
   } catch (error) {
-    console.error('Triage endpoint error:', error);
+    console.error("Triage endpoint error:", error);
     res.status(500).json({
       success: false,
-      message: 'Triage assessment failed',
-      error: error.message
+      message: "Triage assessment failed",
+      error: error.message,
     });
   }
 });
@@ -1262,14 +1333,18 @@ const handleGeminiChat = async (req, res) => {
     // Validate domain relevance
     console.log("Validating domain relevance...");
     const domainValidator = require("../services/domainValidator");
-    const domainValidation = await domainValidator.validateDomain(message, language);
-    
+    const domainValidation = await domainValidator.validateDomain(
+      message,
+      language,
+    );
+
     console.log("Domain validation result:", domainValidation);
 
     if (!domainValidation.isValid) {
       console.log("Off-topic message rejected");
-      const rejectionMessage = domainValidator.generateRejectionMessage(language);
-      
+      const rejectionMessage =
+        domainValidator.generateRejectionMessage(language);
+
       return res.json({
         response: rejectionMessage,
         intent: "off_topic",
@@ -1277,12 +1352,12 @@ const handleGeminiChat = async (req, res) => {
           isValid: false,
           confidence: domainValidation.confidence,
           method: domainValidation.method,
-          reasoning: domainValidation.reasoning
+          reasoning: domainValidation.reasoning,
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     }
-    
+
     console.log("Message validated as healthcare-related");
     console.log("Gemini chat request");
 
@@ -1429,7 +1504,8 @@ router.get("/status", async (req, res) => {
 // Confirm appointment booking from chat
 router.post("/book-appointment", async (req, res) => {
   try {
-    const { doctorId, dateTime, appointmentData, bookingId, timezone } = req.body;
+    const { doctorId, dateTime, appointmentData, bookingId, timezone } =
+      req.body;
 
     if (!doctorId || !dateTime) {
       return res
@@ -1438,7 +1514,8 @@ router.post("/book-appointment", async (req, res) => {
     }
 
     // Store user's timezone for calendar events
-    const userTimezone = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+    const userTimezone =
+      timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 
     // Get user from token
     const token = req.headers.authorization?.replace("Bearer ", "");
@@ -1534,20 +1611,24 @@ router.post("/book-appointment", async (req, res) => {
         hasUserId: !!doctor.userId,
         userIdEmail: doctor.userId?.email,
         hasGoogleCalendar: !!doctor.userId?.googleCalendar,
-        googleCalendarId: doctor.userId?.googleCalendar?.calendarId
+        googleCalendarId: doctor.userId?.googleCalendar?.calendarId,
       });
-      
+
       console.log("DEBUG - Patient object:", {
         hasGoogleCalendar: !!patientUser.googleCalendar,
         googleCalendarId: patientUser.googleCalendar?.calendarId,
-        email: patientUser.email
+        email: patientUser.email,
       });
 
       // Get the connected Google Calendar email for the patient
-      const connectedPatientEmail = patientUser.googleCalendar?.calendarId || patientUser.email;
-      
+      const connectedPatientEmail =
+        patientUser.googleCalendar?.calendarId || patientUser.email;
+
       // Get the connected Google Calendar email for the doctor (if they have one connected)
-      const connectedDoctorEmail = doctor.userId.googleCalendar?.calendarId || doctor.userId.email || 'noreply@medibot.com';
+      const connectedDoctorEmail =
+        doctor.userId.googleCalendar?.calendarId ||
+        doctor.userId.email ||
+        "noreply@medibot.com";
 
       const calendarData = {
         patientName: `${patientUser.profile.firstName} ${patientUser.profile.lastName}`,
@@ -1559,15 +1640,21 @@ router.post("/book-appointment", async (req, res) => {
         appointmentType: savedAppointment.type,
         chiefComplaint: savedAppointment.chiefComplaint,
         symptoms: savedAppointment.symptoms,
-        timezone: userTimezone // Pass user's timezone
+        timezone: userTimezone, // Pass user's timezone
       };
 
       console.log("Attempting to create calendar event...");
       console.log("   Patient email:", calendarData.patientEmail);
       console.log("   Doctor email:", calendarData.doctorEmail);
-      console.log("   Full calendar data:", JSON.stringify(calendarData, null, 2));
-      
-      const calendarResult = await googleCalendar.safeCreateEvent(calendarData, userId);
+      console.log(
+        "   Full calendar data:",
+        JSON.stringify(calendarData, null, 2),
+      );
+
+      const calendarResult = await googleCalendar.safeCreateEvent(
+        calendarData,
+        userId,
+      );
 
       if (calendarResult.eventId) {
         // Calendar integration successful
@@ -1576,7 +1663,7 @@ router.post("/book-appointment", async (req, res) => {
         meetingLink = calendarResult.meetingLink;
         calendarIntegrationStatus = "success";
         console.log("Calendar event created successfully:", calendarEventId);
-        
+
         // Save the calendar event ID to the appointment
         savedAppointment.googleCalendarEventId = calendarEventId;
         if (meetingLink) {
@@ -1719,18 +1806,18 @@ router.post("/book-appointment", async (req, res) => {
       manualCalendarDetails:
         calendarIntegrationStatus !== "success"
           ? {
-            title: `Medical Appointment with Dr. ${populatedAppointment.doctorId.userId.profile.firstName} ${populatedAppointment.doctorId.userId.profile.lastName}`,
-            dateTime: populatedAppointment.dateTime,
-            duration: `${populatedAppointment.duration || 30} minutes`,
-            location: "Contact doctor for location/meeting details",
-            description: `Appointment Type: ${populatedAppointment.type}\nSymptoms: ${populatedAppointment.symptoms.join(", ")}\nChief Complaint: ${populatedAppointment.chiefComplaint}`,
-            doctorContact: doctor.userId.email,
-            patientContact: patientUser.email,
-            // Include manual calendar links if available
-            calendarLinks:
-              savedAppointment.manualCalendarInstructions?.instructions ||
-              null,
-          }
+              title: `Medical Appointment with Dr. ${populatedAppointment.doctorId.userId.profile.firstName} ${populatedAppointment.doctorId.userId.profile.lastName}`,
+              dateTime: populatedAppointment.dateTime,
+              duration: `${populatedAppointment.duration || 30} minutes`,
+              location: "Contact doctor for location/meeting details",
+              description: `Appointment Type: ${populatedAppointment.type}\nSymptoms: ${populatedAppointment.symptoms.join(", ")}\nChief Complaint: ${populatedAppointment.chiefComplaint}`,
+              doctorContact: doctor.userId.email,
+              patientContact: patientUser.email,
+              // Include manual calendar links if available
+              calendarLinks:
+                savedAppointment.manualCalendarInstructions?.instructions ||
+                null,
+            }
           : null,
     });
   } catch (error) {
@@ -1866,7 +1953,7 @@ router.put("/appointments/:appointmentId/cancel", async (req, res) => {
         // Use user-specific calendar delete method
         await googleCalendar.deleteUserCalendarEvent(
           appointment.googleCalendarEventId,
-          userId // Pass the user ID for OAuth
+          userId, // Pass the user ID for OAuth
         );
         calendarDeletionStatus = "success";
         calendarDeletionMessage = "Calendar event deleted successfully";
@@ -1907,7 +1994,7 @@ router.put("/appointments/:appointmentId/cancel", async (req, res) => {
       id: appointment._id,
       doctorId: appointment.doctorId,
       dateTime: appointment.dateTime,
-      type: appointment.type
+      type: appointment.type,
     };
 
     // Delete from MongoDB
@@ -1945,37 +2032,70 @@ router.put("/appointments/:appointmentId/cancel", async (req, res) => {
  * Used for checking drug interactions and allergy contraindications
  */
 function extractMedicationMentions(text) {
-  if (!text || typeof text !== 'string') return [];
-  
+  if (!text || typeof text !== "string") return [];
+
   const medications = [];
-  
+
   // Common medications to check for
   const commonMeds = [
-    'ibuprofen', 'acetaminophen', 'aspirin', 'paracetamol', 'tylenol', 'advil', 'motrin',
-    'amoxicillin', 'penicillin', 'azithromycin', 'ciprofloxacin', 'doxycycline',
-    'lisinopril', 'metformin', 'atorvastatin', 'simvastatin', 'rosuvastatin',
-    'omeprazole', 'pantoprazole', 'ranitidine', 'esomeprazole',
-    'cetirizine', 'loratadine', 'diphenhydramine', 'fexofenadine',
-    'albuterol', 'prednisone', 'dexamethasone', 'hydrocortisone',
-    'warfarin', 'clopidogrel', 'apixaban', 'rivaroxaban',
-    'levothyroxine', 'insulin', 'methotrexate', 'gabapentin',
-    'sertraline', 'fluoxetine', 'escitalopram', 'duloxetine',
-    'amlodipine', 'losartan', 'hydrochlorothiazide', 'furosemide'
+    "ibuprofen",
+    "acetaminophen",
+    "aspirin",
+    "paracetamol",
+    "tylenol",
+    "advil",
+    "motrin",
+    "amoxicillin",
+    "penicillin",
+    "azithromycin",
+    "ciprofloxacin",
+    "doxycycline",
+    "lisinopril",
+    "metformin",
+    "atorvastatin",
+    "simvastatin",
+    "rosuvastatin",
+    "omeprazole",
+    "pantoprazole",
+    "ranitidine",
+    "esomeprazole",
+    "cetirizine",
+    "loratadine",
+    "diphenhydramine",
+    "fexofenadine",
+    "albuterol",
+    "prednisone",
+    "dexamethasone",
+    "hydrocortisone",
+    "warfarin",
+    "clopidogrel",
+    "apixaban",
+    "rivaroxaban",
+    "levothyroxine",
+    "insulin",
+    "methotrexate",
+    "gabapentin",
+    "sertraline",
+    "fluoxetine",
+    "escitalopram",
+    "duloxetine",
+    "amlodipine",
+    "losartan",
+    "hydrochlorothiazide",
+    "furosemide",
   ];
-  
+
   const lowerText = text.toLowerCase();
-  
-  commonMeds.forEach(med => {
+
+  commonMeds.forEach((med) => {
     // Check for whole word matches to avoid false positives
-    const regex = new RegExp(`\\b${med}\\b`, 'i');
+    const regex = new RegExp(`\\b${med}\\b`, "i");
     if (regex.test(lowerText)) {
       medications.push(med);
     }
   });
-  
+
   return [...new Set(medications)]; // Remove duplicates
 }
 
 module.exports = router;
-
-
