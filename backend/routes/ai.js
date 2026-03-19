@@ -1201,6 +1201,22 @@ router.post("/chat", async (req, res) => {
             id: uuidv4(),
             role: "bot",
             content: contentToSave,
+            webSearchData,
+            searchResults:
+              webSearchData && searchResults
+                ? {
+                    query: searchResults.query,
+                    totalResults: searchResults.totalResults,
+                    sources:
+                      searchResults.results?.map((r) => ({
+                        title: r.title,
+                        url: r.url,
+                        domain: new URL(r.url).hostname,
+                      })) || [],
+                  }
+                : null,
+            triageData,
+            videoData,
             language,
             timestamp: new Date(),
           });

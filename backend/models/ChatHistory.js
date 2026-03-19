@@ -22,6 +22,22 @@ const messageSchema = new mongoose.Schema({
     type: [String], // Array of follow-up question strings
     default: []
   },
+  webSearchData: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null
+  },
+  searchResults: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null
+  },
+  triageData: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null
+  },
+  videoData: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null
+  },
   timestamp: {
     type: Date,
     default: Date.now

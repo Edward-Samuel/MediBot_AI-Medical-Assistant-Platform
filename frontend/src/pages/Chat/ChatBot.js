@@ -245,9 +245,21 @@ const ChatBot = () => {
               return {
                 ...message,
                 images: processedImages,
+                videoData: message.videoData || null,
+                webSearchData: message.webSearchData || null,
+                searchResults: message.searchResults || null,
+                triageData: message.triageData || null,
+                followUpQuestions: message.followUpQuestions || [],
               };
             }
-            return message;
+            return {
+              ...message,
+              videoData: message.videoData || null,
+              webSearchData: message.webSearchData || null,
+              searchResults: message.searchResults || null,
+              triageData: message.triageData || null,
+              followUpQuestions: message.followUpQuestions || [],
+            };
           },
         );
 
