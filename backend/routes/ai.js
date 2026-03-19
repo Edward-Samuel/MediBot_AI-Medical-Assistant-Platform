@@ -14,7 +14,7 @@ const youtubeService = require("../services/youtubeService");
 
 const router = express.Router();
 
-// Generate response using OpenRouter with structured templates
+// Generate response using Gemini with structured templates
 async function generateAIResponse(
   message,
   conversationHistory,
@@ -23,7 +23,7 @@ async function generateAIResponse(
   images = [],
 ) {
   try {
-    console.log("Using OpenRouter for AI response...");
+    console.log("Using Gemini for AI response...");
 
     const response = await openRouterService.generateResponse(
       message,
@@ -39,7 +39,7 @@ async function generateAIResponse(
     );
 
     console.log(
-      `Successfully used OpenRouter model: ${response.model}${images?.length ? " (with images)" : ""}`,
+      `Successfully used Gemini model: ${response.model}${images?.length ? " (with images)" : ""}`,
     );
 
     // Log if template was used
@@ -49,7 +49,7 @@ async function generateAIResponse(
 
     return response.content;
   } catch (error) {
-    console.error("OpenRouter error:", error);
+    console.error("Gemini error:", error);
     throw error;
   }
 }
@@ -205,9 +205,9 @@ router.post("/recommend-doctor", async (req, res) => {
 
     let aiAnalysis = null;
 
-    // Use OpenRouter for doctor recommendation
+    // Use Gemini for doctor recommendation
     try {
-      console.log("Using OpenRouter for doctor recommendation...");
+      console.log("Using Gemini for doctor recommendation...");
 
       const analysisResult = await openRouterService.analyzeSymptoms(symptoms, {
         age,
@@ -217,14 +217,14 @@ router.post("/recommend-doctor", async (req, res) => {
 
       if (analysisResult.analysis) {
         aiAnalysis = analysisResult.analysis;
-        console.log("OpenRouter analysis successful");
+        console.log("Gemini analysis successful");
       } else {
-        console.log("OpenRouter analysis parsing failed, using fallback...");
+        console.log("Gemini analysis parsing failed, using fallback...");
         aiAnalysis = fallbackSpecializationMatch(symptoms);
       }
     } catch (openRouterError) {
       console.log(
-        "OpenRouter failed, using fallback analysis:",
+        "Gemini failed, using fallback analysis:",
         openRouterError.message,
       );
       aiAnalysis = fallbackSpecializationMatch(symptoms);
@@ -1059,7 +1059,7 @@ router.post("/chat", async (req, res) => {
           
         } catch (aiError) {
           console.log(
-            `OpenRouter failed: ${aiError.message}, using fallback response`,
+            `Gemini failed: ${aiError.message}, using fallback response`,
           );
           usingFallback = true;
 
@@ -1590,8 +1590,8 @@ router.post("/web-search", async (req, res) => {
   }
 });
 
-// OpenRouter chat with reasoning capabilities
-router.post("/openrouter-chat", async (req, res) => {
+// Gemini chat endpoint
+const handleGeminiChat = async (req, res) => {
   try {
     const {
       message,
@@ -1605,10 +1605,8 @@ router.post("/openrouter-chat", async (req, res) => {
       return res.status(400).json({ message: "Message is required" });
     }
 
-    if (!process.env.OPENROUTER_API_KEY) {
-      return res
-        .status(503)
-        .json({ message: "OpenRouter service not configured" });
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(503).json({ message: "Gemini service not configured" });
     }
 
     // Validate domain relevance
@@ -1636,7 +1634,7 @@ router.post("/openrouter-chat", async (req, res) => {
     }
     
     console.log("Message validated as healthcare-related");
-    console.log("OpenRouter reasoning chat request");
+    console.log("Gemini chat request");
 
     const response = await openRouterService.generateResponse(
       message,
@@ -1659,16 +1657,19 @@ router.post("/openrouter-chat", async (req, res) => {
       language: language,
     });
   } catch (error) {
-    console.error("OpenRouter chat error:", error);
+    console.error("Gemini chat error:", error);
     res.status(500).json({
-      message: "OpenRouter service error",
+      message: "Gemini service error",
       error: error.message,
     });
   }
-});
+};
 
-// Continue OpenRouter conversation with reasoning
-router.post("/openrouter-continue", async (req, res) => {
+router.post("/gemini-chat", handleGeminiChat);
+router.post("/openrouter-chat", handleGeminiChat);
+
+// Continue Gemini conversation
+const handleGeminiContinue = async (req, res) => {
   try {
     const { messages, newMessage, language = "en" } = req.body;
 
@@ -1678,13 +1679,11 @@ router.post("/openrouter-continue", async (req, res) => {
         .json({ message: "Messages and new message are required" });
     }
 
-    if (!process.env.OPENROUTER_API_KEY) {
-      return res
-        .status(503)
-        .json({ message: "OpenRouter service not configured" });
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(503).json({ message: "Gemini service not configured" });
     }
 
-    console.log("OpenRouter continue conversation with reasoning");
+    console.log("Gemini continue conversation");
 
     const response = await openRouterService.continueConversation(
       messages,
@@ -1705,21 +1704,22 @@ router.post("/openrouter-continue", async (req, res) => {
       language: language,
     });
   } catch (error) {
-    console.error("OpenRouter continue conversation error:", error);
+    console.error("Gemini continue conversation error:", error);
     res.status(500).json({
-      message: "OpenRouter service error",
+      message: "Gemini service error",
       error: error.message,
     });
   }
-});
+};
 
-// Get OpenRouter models
-router.get("/openrouter-models", async (req, res) => {
+router.post("/gemini-continue", handleGeminiContinue);
+router.post("/openrouter-continue", handleGeminiContinue);
+
+// Get Gemini models
+const handleGeminiModels = async (req, res) => {
   try {
-    if (!process.env.OPENROUTER_API_KEY) {
-      return res
-        .status(503)
-        .json({ message: "OpenRouter service not configured" });
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(503).json({ message: "Gemini service not configured" });
     }
 
     const models = await openRouterService.getAvailableModels();
@@ -1730,41 +1730,43 @@ router.get("/openrouter-models", async (req, res) => {
       configured: true,
     });
   } catch (error) {
-    console.error("OpenRouter models error:", error);
+    console.error("Gemini models error:", error);
     res.status(500).json({
-      message: "Error fetching OpenRouter models",
+      message: "Error fetching Gemini models",
       error: error.message,
     });
   }
-});
+};
+
+router.get("/gemini-models", handleGeminiModels);
+router.get("/openrouter-models", handleGeminiModels);
 
 // Check AI services status
 router.get("/status", async (req, res) => {
   console.log(" Status endpoint called");
 
   const services = {
-    openrouter: { available: false, priority: "primary" },
+    gemini: { available: false, priority: "primary" },
     calendar: { available: true },
     tavilySearch: { available: true, configured: true }, // Always true
   };
 
-  // Check OpenRouter availability
+  // Check Gemini availability
   try {
-    if (process.env.OPENROUTER_API_KEY) {
-      services.openrouter.available =
-        await openRouterService.checkAvailability();
+    if (process.env.GEMINI_API_KEY) {
+      services.gemini.available = await openRouterService.checkAvailability();
     }
   } catch (error) {
-    console.log("OpenRouter status check failed:", error.message);
+    console.log("Gemini status check failed:", error.message);
   }
 
   console.log("Tavily Search hardcoded as configured and available");
 
-  let message = "OpenRouter AI service";
-  if (services.openrouter.available) {
-    message = "OpenRouter AI service available";
+  let message = "Gemini AI service";
+  if (services.gemini.available) {
+    message = "Gemini AI service available";
   } else {
-    message = "OpenRouter AI service unavailable - check API key configuration";
+    message = "Gemini AI service unavailable - check API key configuration";
   }
 
   res.json({

@@ -299,7 +299,7 @@ module.exports = {
   // AI classification settings
   aiClassification: {
     enabled: true,
-    model: 'openai/gpt-oss-120b', // Default model for classification
+    model: 'gemini-3.1-flash-lite-preview', // Default model for classification
     maxTokens: 15,
     temperature: 0.1, // Low temperature for consistent classification
     prompt: `Classify the following user message into one of these intents:

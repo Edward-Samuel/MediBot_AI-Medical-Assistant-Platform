@@ -39,9 +39,8 @@ How long does recovery typically take?`;
       // Use OpenRouter with optimized settings for question generation
       const response = await openRouterService.generateResponse(prompt, [], {
         maxTokens: 200,
-        temperature: 0.8, // Higher temperature for creative variety
+        temperature: 0.8,
         language,
-        model: 'openai/gpt-3.5-turbo' // Fast model for quick generation
       });
 
       console.log('OpenRouter raw response:', response.content.substring(0, 200));
