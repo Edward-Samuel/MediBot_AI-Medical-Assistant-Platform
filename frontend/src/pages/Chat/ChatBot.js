@@ -1366,12 +1366,15 @@ const ChatBot = () => {
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
           <div className="flex items-center space-x-3">
             <button
-              onClick={() => setSidebarOpen(true)}
-              className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
-              title="Open chat history"
+              onClick={() => setSidebarOpen((prev) => !prev)}
+              className="flex items-center space-x-2 p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+              title={sidebarOpen ? "Close chat history" : "Open chat history"}
             >
               <Menu className="h-5 w-5 lg:hidden" />
               <History className="h-5 w-5 hidden lg:block" />
+              <span className="hidden sm:inline text-sm font-medium">
+                {sidebarOpen ? "Hide History" : "Chat History"}
+              </span>
             </button>
 
             <div className="flex items-center space-x-2">

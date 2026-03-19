@@ -438,13 +438,24 @@ const ChatHistory = ({ onLoadSession, currentSessionId, isOpen, onClose, onNewSe
       </div>
 
       {/* Desktop Sidebar */}
-      <div className="hidden lg:block w-64 bg-white dark:bg-gray-900 text-gray-900 dark:text-white flex-shrink-0 border-r border-gray-200 dark:border-gray-700">
+      <div
+        className={`hidden overflow-hidden lg:flex lg:w-64 lg:flex-col bg-white dark:bg-gray-900 text-gray-900 dark:text-white flex-shrink-0 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 ease-in-out ${
+          isOpen ? "translate-x-0 opacity-100" : "pointer-events-none -translate-x-full opacity-0 w-0 border-r-0"
+        }`}
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
           <div className="flex items-center space-x-2">
             <History className="h-5 w-5" />
             <span className="font-semibold">Chat History</span>
           </div>
+          <button
+            onClick={onClose}
+            className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white transition-colors"
+            title="Close chat history"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
         {/* Desktop Content */}

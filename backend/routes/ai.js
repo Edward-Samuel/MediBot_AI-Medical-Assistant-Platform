@@ -54,42 +54,6 @@ async function generateAIResponse(
   }
 }
 
-// Fallback response generator using structured templates
-function generateFallbackResponse(message, language = "en", languageInfo) {
-  try {
-    const responseTemplates = require("../services/responseTemplates");
-
-    // Emergency detection removed - proceed directly to symptom extraction
-
-    // Extract symptom and generate structured response
-    const symptom = responseTemplates.extractSymptom(message, language);
-
-    // If specific symptom detected, use medical response template
-    if (symptom !== (language === "ta" ? "உங்கள் அறிகுறி" : "your symptom")) {
-      const medicalResponse = responseTemplates.generateMedicalResponse(
-        message,
-        symptom,
-        language,
-      );
-      return medicalResponse.formatted; // Use formatted version for backward compatibility
-    }
-
-    // Otherwise use general health response
-    const generalResponse = responseTemplates.generateGeneralResponse(
-      message,
-      language,
-    );
-    return generalResponse.formatted; // Use formatted version for backward compatibility
-  } catch (error) {
-    console.error("Fallback response generation error:", error);
-
-    // Emergency fallback - should never fail
-    return language === "ta"
-      ? "மன்னிக்கவும், தற்போது தொழில்நுட்ப சிக்கல் உள்ளது. மருத்துவ நிபுணரை அணுகவும்."
-      : "I apologize for the technical difficulty. Please consult a healthcare professional for your medical concerns.";
-  }
-}
-
 // Medical specialization mapping based on symptoms/conditions
 const symptomSpecializationMap = {
   // Cardiology
@@ -203,38 +167,14 @@ router.post("/recommend-doctor", async (req, res) => {
       return res.status(400).json({ message: "Symptoms are required" });
     }
 
-    let aiAnalysis = null;
+    console.log("Using Gemini for doctor recommendation...");
+    const analysisResult = await openRouterService.analyzeSymptoms(symptoms, {
+      age,
+      gender,
+      urgency,
+    });
 
-    // Use Gemini for doctor recommendation
-    try {
-      console.log("Using Gemini for doctor recommendation...");
-
-      const analysisResult = await openRouterService.analyzeSymptoms(symptoms, {
-        age,
-        gender,
-        urgency,
-      });
-
-      if (analysisResult.analysis) {
-        aiAnalysis = analysisResult.analysis;
-        console.log("Gemini analysis successful");
-      } else {
-        console.log("Gemini analysis parsing failed, using fallback...");
-        aiAnalysis = fallbackSpecializationMatch(symptoms);
-      }
-    } catch (openRouterError) {
-      console.log(
-        "Gemini failed, using fallback analysis:",
-        openRouterError.message,
-      );
-      aiAnalysis = fallbackSpecializationMatch(symptoms);
-    }
-
-    if (!aiAnalysis) {
-      return res.status(500).json({ message: "Unable to analyze symptoms" });
-    }
-
-    // Find doctors based on analysis
+    const aiAnalysis = analysisResult.analysis;
     const specializations = [
       aiAnalysis.primarySpecialization,
       ...(aiAnalysis.alternativeSpecializations || []),
@@ -248,10 +188,9 @@ router.post("/recommend-doctor", async (req, res) => {
       .sort({ "rating.average": -1, experience: -1 })
       .limit(10);
 
-    // Format doctor recommendations
     const recommendations = doctors.map((doctor) => ({
       id: doctor._id,
-      name: `Dr. ${doctor.userId.profile.firstName} ${doctor.userId.profile.lastName}`,
+      name: `Dr. ${doctor.userId.profile.firstName} ${doctor.userId.profile.lastName}` ,
       specialization: doctor.specialization,
       experience: doctor.experience,
       rating: doctor.rating.average,
@@ -264,226 +203,14 @@ router.post("/recommend-doctor", async (req, res) => {
       analysis: aiAnalysis,
       recommendations,
       totalDoctors: recommendations.length,
-      fallbackUsed:
-        !aiAnalysis.reasoning ||
-        aiAnalysis.reasoning === "Based on symptom keyword matching",
     });
   } catch (error) {
     console.error("AI recommendation error:", error);
-
-    // Emergency fallback - just use General Medicine
-    try {
-      console.log("🆘 Using emergency fallback for doctor recommendations");
-      const { symptoms } = req.body;
-
-      const emergencyAnalysis = {
-        primarySpecialization: "General Medicine",
-        alternativeSpecializations: [],
-        urgencyLevel: "medium",
-        reasoning: "Emergency fallback - please consult a general practitioner",
-        redFlags: [],
-      };
-
-      const doctors = await Doctor.find({
-        specialization: "General Medicine",
-        isVerified: true,
-      })
-        .populate("userId", "profile")
-        .sort({ "rating.average": -1, experience: -1 })
-        .limit(5);
-
-      const recommendations = doctors.map((doctor) => ({
-        id: doctor._id,
-        name: `Dr. ${doctor.userId.profile.firstName} ${doctor.userId.profile.lastName}`,
-        specialization: doctor.specialization,
-        experience: doctor.experience,
-        rating: doctor.rating.average,
-        availability: doctor.availability,
-        bio: doctor.bio,
-        languages: doctor.languages,
-      }));
-
-      res.json({
-        analysis: emergencyAnalysis,
-        recommendations,
-        totalDoctors: recommendations.length,
-        fallbackUsed: true,
-        emergencyFallback: true,
-      });
-    } catch (emergencyError) {
-      console.error("Emergency fallback also failed:", emergencyError);
-      res.status(500).json({
-        message:
-          "Error generating doctor recommendations. Please try again later.",
-        fallbackUsed: true,
-      });
-    }
+    res.status(500).json({
+      message: error.message || "Error generating doctor recommendations",
+    });
   }
 });
-
-// Fallback function for specialization matching
-function fallbackSpecializationMatch(symptoms) {
-  const lowerSymptoms = symptoms.map((s) => s.toLowerCase());
-  const matches = {};
-
-  // Enhanced symptom mapping with more comprehensive coverage
-  const enhancedSymptomMap = {
-    // Cardiology
-    "chest pain": "Cardiology",
-    heart: "Cardiology",
-    cardiac: "Cardiology",
-    palpitations: "Cardiology",
-    "shortness of breath": "Cardiology",
-    "high blood pressure": "Cardiology",
-    hypertension: "Cardiology",
-    "irregular heartbeat": "Cardiology",
-    "chest tightness": "Cardiology",
-
-    // Dermatology
-    skin: "Dermatology",
-    rash: "Dermatology",
-    acne: "Dermatology",
-    moles: "Dermatology",
-    eczema: "Dermatology",
-    psoriasis: "Dermatology",
-    itching: "Dermatology",
-    dermatitis: "Dermatology",
-
-    // Neurology
-    headache: "Neurology",
-    migraine: "Neurology",
-    seizure: "Neurology",
-    memory: "Neurology",
-    dizziness: "Neurology",
-    vertigo: "Neurology",
-    numbness: "Neurology",
-    tingling: "Neurology",
-    neurological: "Neurology",
-
-    // Orthopedics
-    joint: "Orthopedics",
-    bone: "Orthopedics",
-    "back pain": "Orthopedics",
-    fracture: "Orthopedics",
-    arthritis: "Orthopedics",
-    "sports injury": "Orthopedics",
-    "muscle pain": "Orthopedics",
-    spine: "Orthopedics",
-    knee: "Orthopedics",
-
-    // Gastroenterology
-    stomach: "Gastroenterology",
-    abdominal: "Gastroenterology",
-    nausea: "Gastroenterology",
-    diarrhea: "Gastroenterology",
-    constipation: "Gastroenterology",
-    "acid reflux": "Gastroenterology",
-    digestive: "Gastroenterology",
-    bowel: "Gastroenterology",
-    intestinal: "Gastroenterology",
-
-    // ENT
-    ear: "ENT",
-    nose: "ENT",
-    throat: "ENT",
-    hearing: "ENT",
-    sinus: "ENT",
-    tinnitus: "ENT",
-    "sore throat": "ENT",
-
-    // Ophthalmology
-    eye: "Ophthalmology",
-    vision: "Ophthalmology",
-    sight: "Ophthalmology",
-    "blurred vision": "Ophthalmology",
-    "eye pain": "Ophthalmology",
-
-    // Psychiatry
-    depression: "Psychiatry",
-    anxiety: "Psychiatry",
-    panic: "Psychiatry",
-    insomnia: "Psychiatry",
-    mood: "Psychiatry",
-    mental: "Psychiatry",
-    stress: "Psychiatry",
-    psychological: "Psychiatry",
-
-    // Pulmonology
-    lung: "Pulmonology",
-    breathing: "Pulmonology",
-    cough: "Pulmonology",
-    asthma: "Pulmonology",
-    respiratory: "Pulmonology",
-    copd: "Pulmonology",
-
-    // Endocrinology
-    diabetes: "Endocrinology",
-    thyroid: "Endocrinology",
-    hormone: "Endocrinology",
-    metabolism: "Endocrinology",
-    insulin: "Endocrinology",
-
-    // Urology
-    kidney: "Urology",
-    bladder: "Urology",
-    urinary: "Urology",
-    prostate: "Urology",
-    urine: "Urology",
-
-    // Gynecology
-    menstrual: "Gynecology",
-    pregnancy: "Gynecology",
-    reproductive: "Gynecology",
-    pelvic: "Gynecology",
-    gynecological: "Gynecology",
-
-    // Emergency Medicine
-    emergency: "Emergency Medicine",
-    urgent: "Emergency Medicine",
-    severe: "Emergency Medicine",
-    acute: "Emergency Medicine",
-
-    // General Medicine (catch-all)
-    fever: "General Medicine",
-    fatigue: "General Medicine",
-    weakness: "General Medicine",
-    general: "General Medicine",
-    checkup: "General Medicine",
-    physical: "General Medicine",
-  };
-
-  // Count matches for each specialization
-  lowerSymptoms.forEach((symptom) => {
-    Object.entries(enhancedSymptomMap).forEach(([key, specialization]) => {
-      if (symptom.includes(key) || key.includes(symptom)) {
-        matches[specialization] = (matches[specialization] || 0) + 1;
-      }
-    });
-  });
-
-  // Sort by match count
-  const sortedMatches = Object.entries(matches).sort((a, b) => b[1] - a[1]);
-
-  // If no matches found, default to General Medicine
-  if (sortedMatches.length === 0) {
-    return {
-      primarySpecialization: "General Medicine",
-      alternativeSpecializations: [],
-      urgencyLevel: "medium",
-      reasoning:
-        "Based on symptom keyword matching - General Medicine recommended for comprehensive evaluation",
-      redFlags: [],
-    };
-  }
-
-  return {
-    primarySpecialization: sortedMatches[0]?.[0] || "General Medicine",
-    alternativeSpecializations: sortedMatches.slice(1, 3).map((m) => m[0]),
-    urgencyLevel: "medium",
-    reasoning: "Based on symptom keyword matching",
-    redFlags: [],
-  };
-}
 
 // Medical consultation chat
 router.post("/chat", async (req, res) => {
@@ -580,7 +307,6 @@ router.post("/chat", async (req, res) => {
     }
 
     let botResponse;
-    let usingFallback = false;
     let appointmentData = null;
     let webSearchData = null;
     let faqData = null;
@@ -688,7 +414,6 @@ router.post("/chat", async (req, res) => {
           webSearchData = {
             query: message,
             error: searchError.message,
-            fallback: true,
           };
           botResponse =
             language === "ta"
@@ -873,21 +598,7 @@ router.post("/chat", async (req, res) => {
                 faqAnswer?.substring(0, 100) + "...",
               );
 
-              // If we got a meaningful FAQ answer (check for various fallback phrases)
-              const fallbackPhrases = [
-                "I don't have this information yet",
-                "I don't have specific information about that topic yet",
-                "I don't have information about that topic",
-                "I don't have specific information",
-                "I don't have that information",
-                "I cannot find information about that topic",
-              ];
-
-              const isFallbackResponse = fallbackPhrases.some(
-                (phrase) => faqAnswer && faqAnswer.includes(phrase),
-              );
-
-              if (faqAnswer && !isFallbackResponse) {
+              if (faqAnswer) {
                 botResponse = faqAnswer;
                 faqData = {
                   query: message,
@@ -904,11 +615,6 @@ router.post("/chat", async (req, res) => {
                   })),
                 };
                 console.log("Using FAQ answer for query");
-              } else {
-                console.log(
-                  "FAQ answer was fallback response, switching to AI chat",
-                );
-                // Fall through to general chat - this will be handled by the general AI processing below
               }
             }
           } catch (faqError) {
@@ -1058,27 +764,7 @@ router.post("/chat", async (req, res) => {
           // ========== SAFETY WARNINGS END ==========
           
         } catch (aiError) {
-          console.log(
-            `Gemini failed: ${aiError.message}, using fallback response`,
-          );
-          usingFallback = true;
-
-          // Final fallback to simple text responses
-          try {
-            botResponse = generateFallbackResponse(
-              message,
-              language,
-              languageInfo,
-            );
-            console.log("Using simple text fallback response");
-          } catch (fallbackError) {
-            // If even simple fallback fails, provide a basic response
-            console.error("All fallbacks failed:", fallbackError);
-            botResponse =
-              language === "ta"
-                ? "மன்னிக்கவும், தற்போது நான் பதிலளிக்க முடியவில்லை. மருத்துவ நிபுணரை அணுகவும்."
-                : "I apologize for the technical difficulty. Please consult a healthcare professional for your medical concerns.";
-          }
+          throw aiError;
         }
       }
     }
@@ -1253,8 +939,7 @@ router.post("/chat", async (req, res) => {
       timestamp: new Date().toISOString(),
       language: language,
       sessionId: currentSessionId,
-      saved: !!userId, // Indicate if the chat was saved
-      usingFallback: usingFallback, // Indicate if fallback was used
+      saved: !!userId, // Indicate if the chat was saved
       intentData: intentData, // Include intent classification data
       appointmentData: appointmentData, // Include appointment data if detected
       webSearchData: webSearchData, // Include web search data if used
@@ -1323,44 +1008,9 @@ router.post("/chat", async (req, res) => {
   } catch (error) {
     console.error("Chat error:", error);
 
-    // Even if there's an error, try to provide a fallback response instead of failing
-    try {
-      const fallbackResponse = generateFallbackResponse(
-        req.body.message || "help",
-        req.body.language || "en",
-        req.body.languageInfo,
-      );
-
-      console.log("Using emergency fallback due to system error");
-
-      return res.json({
-        response: fallbackResponse,
-        timestamp: new Date().toISOString(),
-        language: req.body.language || "en",
-        sessionId: req.body.sessionId,
-        saved: false,
-        usingFallback: true,
-        fallbackReason: "System error - using emergency fallback",
-      });
-    } catch (fallbackError) {
-      console.error("Even emergency fallback failed:", fallbackError);
-
-      // Absolute last resort - basic response (this should NEVER fail)
-      const emergencyResponse =
-        req.body.language === "ta"
-          ? "மன்னிக்கவும், தற்போது தொழில்நுட்ப சிக்கல் உள்ளது. மருத்துவ நிபுணரை அணுகவும்."
-          : "I apologize for the technical difficulty. Please consult a healthcare professional for your medical concerns.";
-
-      return res.json({
-        response: emergencyResponse,
-        timestamp: new Date().toISOString(),
-        language: req.body.language || "en",
-        sessionId: req.body.sessionId,
-        saved: false,
-        usingFallback: true,
-        fallbackReason: "Emergency fallback - all systems unavailable",
-      });
-    }
+    res.status(500).json({
+      message: error.message || "Chat processing failed",
+    });
   }
 });
 
@@ -2327,4 +1977,5 @@ function extractMedicationMentions(text) {
 }
 
 module.exports = router;
+
 

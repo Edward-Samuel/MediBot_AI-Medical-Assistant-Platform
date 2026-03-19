@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -81,6 +81,9 @@ const PublicRoute = ({ children }) => {
 
 function AppContent() {
   const { loading } = useAuth();
+  const location = useLocation();
+
+  const hideFooter = location.pathname === '/chat';
 
   if (loading) {
     return <LoadingSpinner />;
@@ -185,7 +188,7 @@ function AppContent() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
-      <Footer />
+      {!hideFooter && <Footer />}
       <Toaster 
         position="top-right"
         toastOptions={{
