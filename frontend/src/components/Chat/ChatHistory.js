@@ -439,8 +439,10 @@ const ChatHistory = ({ onLoadSession, currentSessionId, isOpen, onClose, onNewSe
 
       {/* Desktop Sidebar */}
       <div
-        className={`hidden overflow-hidden lg:flex lg:w-64 lg:flex-col bg-white dark:bg-gray-900 text-gray-900 dark:text-white flex-shrink-0 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 ease-in-out ${
-          isOpen ? "translate-x-0 opacity-100" : "pointer-events-none -translate-x-full opacity-0 w-0 border-r-0"
+        className={`hidden overflow-hidden bg-white dark:bg-gray-900 text-gray-900 dark:text-white flex-shrink-0 transition-all duration-300 ease-in-out lg:flex lg:flex-col ${
+          isOpen
+            ? "lg:w-64 translate-x-0 opacity-100 border-r border-gray-200 dark:border-gray-700"
+            : "pointer-events-none lg:w-0 -translate-x-full opacity-0 border-r-0"
         }`}
       >
         {/* Header */}
