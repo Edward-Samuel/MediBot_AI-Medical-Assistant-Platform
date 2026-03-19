@@ -53,16 +53,10 @@
 
 #### Google Gemini API
 
-- **Purpose**: Appointment booking agent and medical reasoning
+- **Purpose**: Primary chat, medical reasoning, and appointment intent handling
 - **Get API Key**: https://makersuite.google.com/app/apikey
-- **Environment Variable**: `GEMINI_API_KEY`
-
-#### OpenRouter API
-
-- **Purpose**: Primary AI chat functionality with multiple model access
-- **Get API Key**: https://openrouter.ai/keys
-- **Environment Variable**: `OPENROUTER_API_KEY`
-- **Models Used**: `openai/gpt-oss-120b` (default), vision models for image analysis
+- **Environment Variables**: `GEMINI_API_KEY`, `GEMINI_MODEL`
+- **Recommended Model**: `gemini-3.1-flash-lite-preview`
 
 #### Tavily Search API
 
@@ -142,7 +136,7 @@ medibot-ai-medical-assistant/
 
 - **FAQ Agent**: Semantic search using Pinecone vector database
 - **Appointment Agent**: Multi-step booking workflow with calendar integration
-- **General Chat Agent**: Medical consultation using OpenRouter AI
+- **General Chat Agent**: Medical consultation using Gemini
 - **Web Search Agent**: Real-time medical information retrieval
 
 ### Workflow
@@ -169,7 +163,7 @@ JWT_EXPIRE=24h
 
 # AI Services
 GEMINI_API_KEY=your_gemini_key
-OPENROUTER_API_KEY=your_openrouter_key
+GEMINI_MODEL=gemini-3.1-flash-lite-preview
 TAVILY_API_KEY=your_tavily_key
 PINECONE_API_KEY=your_pinecone_key
 PINECONE_INDEX_NAME=medibot-faq

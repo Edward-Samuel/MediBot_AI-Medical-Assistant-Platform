@@ -1,11 +1,18 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { History, MessageCircle, Trash2, Search, X, Plus, Loader2 } from 'lucide-react';
+import {
+  History,
+  MessageCircle,
+  Trash2,
+  Search,
+  X,
+  Plus,
+  Loader2,
+} from 'lucide-react';
 import axios from '../../config/axios';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { getRelativeTime } from '../../utils/dateFormatter';
 
-// Simple debounce hook
 const useDebounce = (value, delay) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
 
@@ -22,200 +29,204 @@ const useDebounce = (value, delay) => {
   return debouncedValue;
 };
 
-// Loading spinner component
 const LoadingSpinner = ({ size = 'md' }) => {
   const sizeClasses = {
     sm: 'h-4 w-4',
     md: 'h-6 w-6',
-    lg: 'h-8 w-8'
+    lg: 'h-8 w-8',
   };
 
-  return (
-    <Loader2 className={`animate-spin text-blue-600 ${sizeClasses[size]}`} />
-  );
+  return <Loader2 className={`animate-spin text-blue-600 ${sizeClasses[size]}`} />;
 };
 
-const ChatHistory = ({ onLoadSession, currentSessionId, isOpen, onClose, onNewSession }) => {
+const ChatHistory = ({
+  onLoadSession,
+  currentSessionId,
+  isOpen,
+  onClose,
+  onNewSession,
+  onSessionDeleted,
+}) => {
   const { user } = useAuth();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  
-  // Use refs to avoid dependency issues
+  const [requestError, setRequestError] = useState('');
+
   const cacheRef = useRef({
     sessions: [],
     lastFetch: 0,
-    isInitialized: false
+    isInitialized: false,
   });
-  
+
   const abortControllerRef = useRef(null);
   const searchAbortControllerRef = useRef(null);
-
-  // Cache duration: 30 seconds (reduced from 2 minutes to prevent stale data)
   const CACHE_DURATION = 30000;
-
-  // Debounced search query
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
-  // Simple axios instance
   const api = useMemo(() => {
     const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
     return axios.create({
       timeout: 8000,
       headers: {
-        'Authorization': `Bearer ${token}`
-      }
+        Authorization: `Bearer ${token}`,
+      },
     });
   }, []);
 
-  // Load sessions function - simplified and optimized
-  const loadSessions = useCallback(async (forceRefresh = false) => {
-    if (!user) return;
+  const loadSessions = useCallback(
+    async (forceRefresh = false) => {
+      if (!user) return;
 
-    const now = Date.now();
-    const cache = cacheRef.current;
+      const now = Date.now();
+      const cache = cacheRef.current;
 
-    // Use cache if valid and not forcing refresh
-    if (!forceRefresh && cache.sessions.length > 0 && (now - cache.lastFetch) < CACHE_DURATION) {
-      setSessions(cache.sessions);
-      return;
-    }
-
-    // Cancel any existing request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    abortControllerRef.current = new AbortController();
-
-    setLoading(true);
-    
-    try {
-      const response = await api.get('/api/chat-history/sessions', {
-        signal: abortControllerRef.current.signal
-      });
-      
-      const newSessions = response.data.sessions || [];
-      
-      // Sort by most recent
-      const sortedSessions = newSessions.sort((a, b) => 
-        new Date(b.updatedAt) - new Date(a.updatedAt)
-      );
-      
-      // Update cache and state
-      cache.sessions = sortedSessions;
-      cache.lastFetch = now;
-      cache.isInitialized = true;
-      
-      setSessions(sortedSessions);
-    } catch (error) {
-      if (error.name !== 'AbortError') {
-        console.error('Error loading sessions:', error);
-        toast.error('Failed to load chat history');
+      if (
+        !forceRefresh &&
+        cache.sessions.length > 0 &&
+        now - cache.lastFetch < CACHE_DURATION
+      ) {
+        setRequestError('');
+        setSessions(cache.sessions);
+        return;
       }
-    } finally {
-      setLoading(false);
-    }
-  }, [user, api]);
 
-  // Search sessions function - simplified
-  const searchSessions = useCallback(async (query) => {
-    if (!user || !query.trim()) {
-      setIsSearching(false);
-      setSearchLoading(false);
-      setSessions(cacheRef.current.sessions);
-      return;
-    }
-
-    // Cancel existing search
-    if (searchAbortControllerRef.current) {
-      searchAbortControllerRef.current.abort();
-    }
-    searchAbortControllerRef.current = new AbortController();
-
-    setIsSearching(true);
-    setSearchLoading(true);
-    
-    try {
-      const response = await api.get('/api/chat-history/search', {
-        params: { query: query.trim(), limit: 30 },
-        signal: searchAbortControllerRef.current.signal
-      });
-
-      setSessions(response.data.results || []);
-    } catch (error) {
-      if (error.name !== 'AbortError') {
-        console.error('Search error:', error);
-        toast.error('Search failed');
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
       }
-    } finally {
-      setSearchLoading(false);
-    }
-  }, [user, api]);
+      abortControllerRef.current = new AbortController();
 
-  // Delete session function - simplified
-  const deleteSession = useCallback(async (sessionId, e) => {
-    e.stopPropagation();
-    if (!user) return;
+      setLoading(true);
+      setRequestError('');
 
-    // Optimistic update
-    const originalSessions = sessions;
-    const updatedSessions = sessions.filter(s => s.sessionId !== sessionId);
-    setSessions(updatedSessions);
-    
-    // Update cache
-    cacheRef.current.sessions = updatedSessions;
+      try {
+        const response = await api.get('/api/chat-history/sessions', {
+          signal: abortControllerRef.current.signal,
+        });
 
-    try {
-      await api.delete(`/api/chat-history/session/${sessionId}`);
-      toast.success('Chat deleted');
-    } catch (error) {
-      // Revert on error
-      setSessions(originalSessions);
-      cacheRef.current.sessions = originalSessions;
-      console.error('Delete error:', error);
-      toast.error('Failed to delete chat');
-    }
-  }, [user, sessions, api]);
+        const sortedSessions = (response.data.sessions || []).sort(
+          (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt),
+        );
 
-  // Handle search input
+        cache.sessions = sortedSessions;
+        cache.lastFetch = now;
+        cache.isInitialized = true;
+        setSessions(sortedSessions);
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          console.error('Error loading sessions:', error);
+          setRequestError('Chat history is unavailable right now.');
+          toast.error('Failed to load chat history');
+        }
+      } finally {
+        setLoading(false);
+      }
+    },
+    [user, api],
+  );
+
+  const searchSessions = useCallback(
+    async (query) => {
+      if (!user || !query.trim()) {
+        setIsSearching(false);
+        setSearchLoading(false);
+        setRequestError('');
+        setSessions(cacheRef.current.sessions);
+        return;
+      }
+
+      if (searchAbortControllerRef.current) {
+        searchAbortControllerRef.current.abort();
+      }
+      searchAbortControllerRef.current = new AbortController();
+
+      setIsSearching(true);
+      setSearchLoading(true);
+      setRequestError('');
+
+      try {
+        const response = await api.get('/api/chat-history/search', {
+          params: { query: query.trim(), limit: 30 },
+          signal: searchAbortControllerRef.current.signal,
+        });
+
+        setSessions(response.data.results || []);
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          console.error('Search error:', error);
+          setRequestError('Search is unavailable right now.');
+          toast.error('Search failed');
+        }
+      } finally {
+        setSearchLoading(false);
+      }
+    },
+    [user, api],
+  );
+
+  const deleteSession = useCallback(
+    async (sessionId, e) => {
+      e.stopPropagation();
+      if (!user) return;
+
+      const originalSessions = sessions;
+      const updatedSessions = sessions.filter((session) => session.sessionId !== sessionId);
+      setSessions(updatedSessions);
+      cacheRef.current.sessions = updatedSessions;
+
+      try {
+        await api.delete(`/api/chat-history/session/${sessionId}`);
+        if (sessionId === currentSessionId && onSessionDeleted) {
+          onSessionDeleted();
+        }
+        toast.success('Chat deleted');
+      } catch (error) {
+        setSessions(originalSessions);
+        cacheRef.current.sessions = originalSessions;
+        console.error('Delete error:', error);
+        setRequestError('Unable to delete that chat right now.');
+        toast.error('Failed to delete chat');
+      }
+    },
+    [user, sessions, api, currentSessionId, onSessionDeleted],
+  );
+
   const handleSearchChange = useCallback((e) => {
     const value = e.target.value;
     setSearchQuery(value);
-    
+
     if (value.trim()) {
       setSearchLoading(true);
     }
   }, []);
 
-  // Clear search
   const clearSearch = useCallback(() => {
     setSearchQuery('');
     setIsSearching(false);
     setSearchLoading(false);
+    setRequestError('');
     setSessions(cacheRef.current.sessions);
   }, []);
 
-  // Initial load effect - simplified
   useEffect(() => {
     if (user && !cacheRef.current.isInitialized) {
       loadSessions(true);
     } else if (!user) {
-      // Reset everything when user logs out
       setSessions([]);
       setSearchQuery('');
       setIsSearching(false);
       setSearchLoading(false);
+      setRequestError('');
       cacheRef.current = {
         sessions: [],
         lastFetch: 0,
-        isInitialized: false
+        isInitialized: false,
       };
     }
   }, [user, loadSessions]);
 
-  // Search effect - simplified
   useEffect(() => {
     if (debouncedSearchQuery.trim()) {
       searchSessions(debouncedSearchQuery);
@@ -224,18 +235,15 @@ const ChatHistory = ({ onLoadSession, currentSessionId, isOpen, onClose, onNewSe
     }
   }, [debouncedSearchQuery, isSearching, searchSessions, clearSearch]);
 
-  // Sidebar open effect - simplified
   useEffect(() => {
     if (isOpen && user && cacheRef.current.isInitialized) {
       const now = Date.now();
-      // Only refresh if cache is expired
-      if ((now - cacheRef.current.lastFetch) >= CACHE_DURATION) {
+      if (now - cacheRef.current.lastFetch >= CACHE_DURATION) {
         loadSessions(false);
       }
     }
   }, [isOpen, user, loadSessions]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (abortControllerRef.current) {
@@ -247,61 +255,71 @@ const ChatHistory = ({ onLoadSession, currentSessionId, isOpen, onClose, onNewSe
     };
   }, []);
 
-  // Format date - memoized
-  const formatDate = useCallback((dateString) => {
-    return getRelativeTime(dateString);
-  }, []);
+  const formatDate = useCallback((dateString) => getRelativeTime(dateString), []);
+  const getLanguageLabel = useCallback((langCode) => (langCode || 'en').toUpperCase(), []);
 
-  // Get language flag - memoized
-  const getLanguageFlag = useCallback((langCode) => {
-    const flags = {
-      en: '🇺🇸', es: '🇪🇸', fr: '🇫�', de: '🇩🇪', it: '🇮🇹',
-      pt: '🇵🇹', zh: '🇨🇳', ja: '🇯🇵', ko: '🇰🇷', ar: '🇸🇦',
-      hi: '🇮🇳', ru: '🇷🇺', ta: '🇮🇳'
-    };
-    return flags[langCode] || '🌐';
-  }, []);
-
-  // Render loading state
   const renderLoading = () => (
     <div className="flex items-center justify-center py-8">
       <LoadingSpinner size="lg" />
-      <span className="ml-2 text-gray-600 dark:text-gray-400 text-sm">
+      <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
         {searchLoading ? 'Searching...' : 'Loading chats...'}
       </span>
     </div>
   );
 
-  // Render empty state
+  const renderError = () => (
+    <div className="px-4 py-8 text-center">
+      <div className="mx-auto max-w-xs rounded-lg border border-red-200 bg-red-50 p-4 text-red-700 dark:border-red-900/40 dark:bg-red-900/10 dark:text-red-300">
+        <p className="text-sm font-medium">{requestError}</p>
+        <button
+          onClick={() => {
+            if (searchQuery.trim()) {
+              searchSessions(searchQuery);
+            } else {
+              loadSessions(true);
+            }
+          }}
+          className="mt-3 inline-flex items-center rounded-md border border-red-300 px-3 py-1.5 text-xs font-medium hover:bg-red-100 dark:border-red-800 dark:hover:bg-red-900/20"
+        >
+          Try again
+        </button>
+      </div>
+    </div>
+  );
+
   const renderEmpty = () => (
-    <div className="text-center py-8 px-4">
-      <MessageCircle className="h-12 w-12 text-gray-400 dark:text-gray-500 mx-auto mb-2" />
-      <p className="text-gray-600 dark:text-gray-400 text-sm">
+    <div className="px-4 py-8 text-center">
+      <MessageCircle className="mx-auto mb-2 h-12 w-12 text-gray-400 dark:text-gray-500" />
+      <p className="text-sm text-gray-600 dark:text-gray-400">
         {searchQuery ? 'No matching conversations found' : 'No chat history yet'}
       </p>
       {!searchQuery && (
-        <p className="text-gray-500 text-xs mt-1">
-          Start a conversation to see it here
-        </p>
+        <p className="mt-1 text-xs text-gray-500">Start a conversation to see it here.</p>
       )}
     </div>
   );
 
-  // Render session item
   const renderSession = (session) => (
     <div
       key={session.sessionId}
-      className={`group flex items-start justify-between p-3 rounded-lg cursor-pointer transition-all hover:bg-gray-100 dark:hover:bg-gray-800 ${
+      className={`group flex cursor-pointer items-start justify-between rounded-lg border p-3 transition-all hover:bg-gray-100 dark:hover:bg-gray-800 ${
         currentSessionId === session.sessionId
-          ? 'bg-gray-100 dark:bg-gray-800 border-l-2 border-blue-500'
-          : ''
+          ? 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20'
+          : 'border-transparent'
       }`}
-      onClick={() => onLoadSession(session.sessionId)}
+      onClick={() => {
+        onLoadSession(session.sessionId);
+        if (window.innerWidth < 1024) {
+          onClose();
+        }
+      }}
     >
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center space-x-2 mb-1">
-          <span className="text-sm">{getLanguageFlag(session.language)}</span>
-          <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+      <div className="min-w-0 flex-1">
+        <div className="mb-1 flex items-center space-x-2">
+          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+            {getLanguageLabel(session.language)}
+          </span>
+          <h4 className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
             {session.title}
           </h4>
         </div>
@@ -313,26 +331,25 @@ const ChatHistory = ({ onLoadSession, currentSessionId, isOpen, onClose, onNewSe
           <span>{formatDate(session.updatedAt)}</span>
         </div>
       </div>
-      
+
       <button
         onClick={(e) => deleteSession(session.sessionId, e)}
-        className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-all"
-        title="Delete session"
+        className="p-1 text-gray-400 opacity-0 transition-all hover:text-red-500 group-hover:opacity-100 dark:text-gray-500 dark:hover:text-red-400"
+        title="Delete chat"
       >
         <Trash2 className="h-4 w-4" />
       </button>
     </div>
   );
 
-  // Render content
   const renderContent = () => {
     if (!user) {
       return (
         <div className="p-4 text-center">
-          <div className="bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-            <History className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-            <h3 className="font-medium text-gray-700 dark:text-gray-200 mb-2">Login Required</h3>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">
+          <div className="rounded-lg border border-gray-200 bg-gray-100 p-4 dark:border-gray-700 dark:bg-gray-800">
+            <History className="mx-auto mb-2 h-12 w-12 text-gray-400" />
+            <h3 className="mb-2 font-medium text-gray-700 dark:text-gray-200">Login Required</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
               Login to save and access your chat history across sessions.
             </p>
           </div>
@@ -342,37 +359,37 @@ const ChatHistory = ({ onLoadSession, currentSessionId, isOpen, onClose, onNewSe
 
     return (
       <>
-        {/* New Chat Button */}
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+        <div className="flex-shrink-0 border-b border-gray-200 p-4 dark:border-gray-700">
           <button
             onClick={() => {
               onNewSession();
-              if (isOpen) onClose();
+              if (window.innerWidth < 1024) {
+                onClose();
+              }
             }}
-            className="w-full flex items-center justify-center space-x-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white px-4 py-3 rounded-lg transition-colors border border-gray-200 dark:border-gray-600"
+            className="flex w-full items-center justify-center space-x-2 rounded-lg border border-gray-200 bg-gray-100 px-4 py-3 text-gray-900 transition-colors hover:bg-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700"
           >
             <Plus className="h-4 w-4" />
-            <span>New chat</span>
+            <span>New Chat</span>
           </button>
         </div>
 
-        {/* Search */}
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+        <div className="flex-shrink-0 border-b border-gray-200 p-4 dark:border-gray-700">
           <div className="flex space-x-2">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
               <input
                 type="text"
                 placeholder="Search conversations..."
                 value={searchQuery}
                 onChange={handleSearchChange}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400"
+                className="w-full rounded-md border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm text-gray-900 placeholder-gray-400 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
               />
             </div>
             {searchQuery ? (
               <button
                 onClick={clearSearch}
-                className="px-3 py-2 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 text-sm transition-colors border border-gray-300 dark:border-gray-600"
+                className="rounded-md border border-gray-300 bg-gray-100 px-3 py-2 text-gray-600 transition-colors hover:bg-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
                 title="Clear search"
               >
                 <X className="h-4 w-4" />
@@ -380,8 +397,9 @@ const ChatHistory = ({ onLoadSession, currentSessionId, isOpen, onClose, onNewSe
             ) : (
               <button
                 onClick={() => searchSessions(searchQuery)}
-                className="px-3 py-2 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 text-sm transition-colors border border-gray-300 dark:border-gray-600 flex items-center"
+                className="flex items-center rounded-md border border-gray-300 bg-gray-100 px-3 py-2 text-gray-600 transition-colors hover:bg-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
                 disabled={searchLoading}
+                title="Search chat history"
               >
                 {searchLoading ? <LoadingSpinner size="sm" /> : <Search className="h-4 w-4" />}
               </button>
@@ -389,14 +407,14 @@ const ChatHistory = ({ onLoadSession, currentSessionId, isOpen, onClose, onNewSe
           </div>
         </div>
 
-        {/* Sessions List */}
         <div className="flex-1 overflow-y-auto">
-          {(loading || searchLoading) ? renderLoading() : 
-           sessions.length === 0 ? renderEmpty() : (
-            <div className="space-y-1 p-2">
-              {sessions.map(renderSession)}
-            </div>
-          )}
+          {loading || searchLoading
+            ? renderLoading()
+            : requestError
+              ? renderError()
+              : sessions.length === 0
+                ? renderEmpty()
+                : <div className="space-y-1 p-2">{sessions.map(renderSession)}</div>}
         </div>
       </>
     );
@@ -404,66 +422,57 @@ const ChatHistory = ({ onLoadSession, currentSessionId, isOpen, onClose, onNewSe
 
   return (
     <>
-      {/* Mobile Overlay */}
       {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+        <div
+          className="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden"
           onClick={onClose}
         />
       )}
 
-      {/* Mobile Sidebar */}
-      <div className={`fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-lg transform transition-transform duration-300 ease-in-out z-50 flex flex-col lg:hidden ${
-        isOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}>
-        
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-          <div className="flex items-center space-x-2">
-            <History className="h-5 w-5" />
-            <span className="font-semibold">Chat History</span>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white transition-colors"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Mobile Content */}
-        <div className="flex flex-col flex-1 overflow-hidden">
-          {renderContent()}
-        </div>
-      </div>
-
-      {/* Desktop Sidebar */}
       <div
-        className={`hidden overflow-hidden bg-white dark:bg-gray-900 text-gray-900 dark:text-white flex-shrink-0 transition-all duration-300 ease-in-out lg:flex lg:flex-col ${
-          isOpen
-            ? "lg:w-64 translate-x-0 opacity-100 border-r border-gray-200 dark:border-gray-700"
-            : "pointer-events-none lg:w-0 -translate-x-full opacity-0 border-r-0"
+        className={`fixed left-0 top-16 z-50 flex h-[calc(100vh-4rem)] w-64 transform flex-col bg-white text-gray-900 shadow-lg transition-transform duration-300 ease-in-out dark:bg-gray-900 dark:text-white lg:hidden ${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+        <div className="flex flex-shrink-0 items-center justify-between border-b border-gray-200 p-4 dark:border-gray-700">
           <div className="flex items-center space-x-2">
             <History className="h-5 w-5" />
             <span className="font-semibold">Chat History</span>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white transition-colors"
+            className="text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-400 dark:hover:text-white"
             title="Close chat history"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        {/* Desktop Content */}
-        <div className="flex flex-col h-[calc(100vh-8rem)] overflow-hidden">
-          {renderContent()}
+        <div className="flex flex-1 flex-col overflow-hidden">{renderContent()}</div>
+      </div>
+
+      <div
+        className={`hidden flex-shrink-0 overflow-hidden bg-white text-gray-900 transition-all duration-300 ease-in-out dark:bg-gray-900 dark:text-white lg:flex lg:flex-col ${
+          isOpen
+            ? 'translate-x-0 opacity-100 lg:w-64 lg:border-r lg:border-gray-200 dark:lg:border-gray-700'
+            : 'pointer-events-none -translate-x-full opacity-0 lg:w-0 lg:border-r-0'
+        }`}
+      >
+        <div className="flex flex-shrink-0 items-center justify-between border-b border-gray-200 p-4 dark:border-gray-700">
+          <div className="flex items-center space-x-2">
+            <History className="h-5 w-5" />
+            <span className="font-semibold">Chat History</span>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-400 dark:hover:text-white"
+            title="Close chat history"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
+
+        <div className="flex h-[calc(100vh-8rem)] flex-col overflow-hidden">{renderContent()}</div>
       </div>
     </>
   );

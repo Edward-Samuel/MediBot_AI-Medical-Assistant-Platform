@@ -91,6 +91,7 @@ const ChatBot = () => {
   const [webSearchStatusChecked, setWebSearchStatusChecked] = useState(true); // Already checked
   const [quickQuestions, setQuickQuestions] = useState([]);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
+  const [quickQuestionsError, setQuickQuestionsError] = useState("");
   // followUpQuestions state removed - questions are stored in messages
   const messagesEndRef = useRef(null);
   const recognitionRef = useRef(null);
@@ -199,6 +200,15 @@ const ChatBot = () => {
   }, [currentLanguage]);
 
   // Load chat history for logged-in users
+  const resetTransientUi = () => {
+    setShowAppointmentWidget(false);
+    setAppointmentData(null);
+    setShowAppointmentSelection(false);
+    setAppointmentSelectionMode(null);
+    setShowRescheduleWidget(false);
+    setSelectedAppointmentToReschedule(null);
+  };
+
   const loadChatHistory = async (sessionId) => {
     const token = getToken();
     if (!user || !token || !sessionId) return;
@@ -264,10 +274,10 @@ const ChatBot = () => {
         );
 
         console.log("Processed messages:", processedMessages.length);
+        resetTransientUi();
         setMessages(processedMessages);
         setCurrentSessionId(sessionId);
         setChatSaved(true);
-        setSidebarOpen(false); // Close sidebar after loading
         toast.success("Chat history loaded!");
       }
     } catch (error) {
@@ -281,6 +291,7 @@ const ChatBot = () => {
     const token = getToken();
     if (!user || !token) {
       // For guests, just reset the chat
+      resetTransientUi();
       setMessages([
         {
           id: 1,
@@ -291,6 +302,7 @@ const ChatBot = () => {
       ]);
       setCurrentSessionId(null);
       setChatSaved(false);
+      fetchQuickQuestions();
       return;
     }
 
@@ -305,6 +317,7 @@ const ChatBot = () => {
         },
       );
 
+      resetTransientUi();
       setCurrentSessionId(response.data.sessionId);
       setMessages([
         {
@@ -315,7 +328,7 @@ const ChatBot = () => {
         },
       ]);
       setChatSaved(false);
-      fetchQuickQuestions(); // Refresh questions for new session
+      fetchQuickQuestions();
       toast.success("New chat session created!");
     } catch (error) {
       console.error("Error creating new session:", error);
@@ -326,6 +339,7 @@ const ChatBot = () => {
   // Fetch dynamic quick questions
   const fetchQuickQuestions = async () => {
     setLoadingQuestions(true);
+    setQuickQuestionsError("");
     try {
       const response = await axios.get('/api/quick-questions', {
         params: {
@@ -334,20 +348,17 @@ const ChatBot = () => {
         }
       });
 
-      if (response.data.success && response.data.questions) {
+      if (response.data.success && Array.isArray(response.data.questions)) {
         setQuickQuestions(response.data.questions);
+        return;
       }
+
+      setQuickQuestions([]);
+      setQuickQuestionsError("Starter questions are unavailable right now.");
     } catch (error) {
       console.error('Error fetching quick questions:', error);
-      // Fallback to default questions
-      const fallbackQuestions = t("sampleQuestions") || [
-        "I have a headache and fever",
-        "What should I do for chest pain?",
-        "I need a dermatologist",
-        "How do I book an appointment?",
-        "What are the symptoms of diabetes?",
-      ];
-      setQuickQuestions(fallbackQuestions);
+      setQuickQuestions([]);
+      setQuickQuestionsError("Starter questions are unavailable right now.");
     } finally {
       setLoadingQuestions(false);
     }
@@ -361,7 +372,7 @@ const ChatBot = () => {
   // Fetch quick questions on mount and language change
   useEffect(() => {
     fetchQuickQuestions();
-  }, [currentLanguage, user]);
+  }, [currentLanguage]);
 
   // Initialize speech recognition
   useEffect(() => {
@@ -1125,7 +1136,7 @@ const ChatBot = () => {
         setChatSaved(true);
         if (!chatSaved) {
           toast.success(
-            user ? "Chat saved to your history!" : "Chat session created!",
+            user ? "Chat saved to your history." : "Chat session created.",
           );
         }
       }
@@ -1142,13 +1153,6 @@ const ChatBot = () => {
             { duration: 4000 },
           );
         }
-      }
-
-      // Show fallback notification if using local LLM
-      if (response.data.usingFallback) {
-        toast.info("Using local AI model - responses may vary", {
-          duration: 3000,
-        });
       }
 
       // Handle appointment booking data
@@ -1187,49 +1191,28 @@ const ChatBot = () => {
     } catch (error) {
       console.error("Chat error:", error);
 
-      // Check if we got a successful response with fallback content
-      if (error.response?.status === 200 && error.response?.data?.response) {
-        // This shouldn't happen, but if it does, treat it as success
-        const botMessage = {
-          id: Date.now() + 1,
-          role: "bot",
-          content:
-            typeof error.response.data.response === "string"
-              ? error.response.data.response
-              : error.response.data.response?.formatted ||
-                error.response.data.response?.text ||
-                JSON.stringify(error.response.data.response),
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, botMessage]);
-        return;
+      let errorText = "I could not generate a response right now. Please try again.";
+
+      if (error.response?.status === 429) {
+        errorText = "Too many requests were sent. Please wait a moment and try again.";
+        toast.error("Too many requests. Please wait a moment.");
+      } else if (error.response?.status >= 500) {
+        errorText = "The assistant is temporarily unavailable. Please try again shortly.";
+        toast.error("The assistant is temporarily unavailable.");
+      } else if (error.response?.data?.message) {
+        errorText = error.response.data.message;
+        toast.error(error.response.data.message);
+      } else {
+        toast.error("Unable to send your message right now.");
       }
 
-      // Only show error messages for actual network/server failures
-      // Don't show errors if the backend is working but using fallbacks
-      if (error.response && error.response.status >= 500) {
-        // Server error (5xx)
-        const errorBotMessage = {
-          id: Date.now() + 1,
-          role: "bot",
-          content:
-            "I'm experiencing technical difficulties. Please try again in a moment.",
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, errorBotMessage]);
-        toast.error("Server error occurred");
-      } else if (error.response && error.response.status === 429) {
-        // Rate limiting (shouldn't happen with fallbacks)
-        toast.error("Too many requests - please wait a moment");
-      } else if (error.response) {
-        // Other client errors (4xx) - but backend should handle these with fallbacks
-        console.log(
-          "Unexpected client error:",
-          error.response.status,
-          error.response.data,
-        );
-        toast.error("Unexpected error occurred");
-      }
+      const errorBotMessage = {
+        id: Date.now() + 1,
+        role: "bot",
+        content: errorText,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorBotMessage]);
     } finally {
       setIsLoading(false);
     }
@@ -1349,6 +1332,21 @@ const ChatBot = () => {
     setMessages((prev) => [...prev, rescheduleMessage]);
   };
 
+  const handleSessionDeleted = () => {
+    resetTransientUi();
+    setMessages([
+      {
+        id: 1,
+        role: "bot",
+        content: getInitialMessage(),
+        timestamp: new Date(),
+      },
+    ]);
+    setCurrentSessionId(null);
+    setChatSaved(false);
+    fetchQuickQuestions();
+  };
+
   const contentContainerClass = sidebarOpen
     ? "max-w-3xl mx-auto px-4"
     : "max-w-4xl px-4 md:px-6 lg:px-8 mr-auto ml-0";
@@ -1362,6 +1360,7 @@ const ChatBot = () => {
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         onNewSession={createNewSession}
+        onSessionDeleted={handleSessionDeleted}
       />
 
       {/* Main Chat Interface */}
@@ -1396,7 +1395,7 @@ const ChatBot = () => {
                 <button
                   onClick={createNewSession}
                   className="flex items-center space-x-1 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
-                  title="Start new chat"
+                  title="Start New Chat"
                 >
                   <Bot className="h-4 w-4" />
                   <span className="hidden sm:inline">New Chat</span>
@@ -1416,7 +1415,7 @@ const ChatBot = () => {
                 <span className="hidden sm:inline">
                   Login to save chat history
                 </span>
-                <span className="sm:hidden">Guest mode</span>
+                <span className="sm:hidden">Guest Mode</span>
               </div>
             )}
           </div>
@@ -1683,7 +1682,7 @@ const ChatBot = () => {
                      messages[messages.length - 1].id === message.id && (
                       <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                         <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
-                          💡 You might also want to ask:
+                          You may also want to ask:
                         </p>
                         <div className="flex flex-wrap gap-2">
                           {message.followUpQuestions.map((question, index) => (
@@ -1741,21 +1740,31 @@ const ChatBot = () => {
                   <Loader className="h-4 w-4 animate-spin" />
                   <span className="text-sm">Loading personalized questions...</span>
                 </div>
+              ) : quickQuestionsError ? (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:border-amber-900/40 dark:bg-amber-900/10 dark:text-amber-300">
+                  {quickQuestionsError}
+                </div>
               ) : (
                 <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-start">
                   <p className="w-full text-sm font-medium text-gray-700 dark:text-gray-300 sm:w-auto sm:min-w-fit sm:pt-2">
                     {t("quickQuestions") || "Quick questions to get started:"}
                   </p>
                   <div className="flex flex-1 flex-wrap gap-3">
-                  {quickQuestions.map((question, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleQuickQuestion(question)}
-                      className="text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors border border-gray-200 dark:border-gray-600"
-                    >
-                      {question}
-                    </button>
-                  ))}
+                    {quickQuestions.length > 0 ? (
+                      quickQuestions.map((question, index) => (
+                        <button
+                          key={index}
+                          onClick={() => handleQuickQuestion(question)}
+                          className="text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors border border-gray-200 dark:border-gray-600"
+                        >
+                          {question}
+                        </button>
+                      ))
+                    ) : (
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        No starter questions are available yet.
+                      </p>
+                    )}
                   </div>
                 </div>
               )}

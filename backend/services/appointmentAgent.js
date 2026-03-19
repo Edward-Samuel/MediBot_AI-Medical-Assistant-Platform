@@ -8,7 +8,9 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 class AppointmentAgent {
   constructor() {
-    this.model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+    this.model = genAI.getGenerativeModel({
+      model: process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite-preview'
+    });
   }
 
   // Parse appointment request from natural language
