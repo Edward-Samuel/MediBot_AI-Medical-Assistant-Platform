@@ -9,6 +9,8 @@ import {
   Mic,
   MicOff,
   Copy,
+  ThumbsUp,
+  ThumbsDown,
   Volume2,
   VolumeX,
   Save,
@@ -260,6 +262,7 @@ const ChatBot = () => {
                 searchResults: message.searchResults || null,
                 triageData: message.triageData || null,
                 followUpQuestions: message.followUpQuestions || [],
+                feedback: message.feedback || null,
               };
             }
             return {
@@ -269,6 +272,7 @@ const ChatBot = () => {
               searchResults: message.searchResults || null,
               triageData: message.triageData || null,
               followUpQuestions: message.followUpQuestions || [],
+              feedback: message.feedback || null,
             };
           },
         );
@@ -1116,6 +1120,7 @@ const ChatBot = () => {
         videoData: response.data.videoData || null,
         followUpQuestions: response.data.followUpQuestions || [], // Add follow-up questions
         triageData: response.data.triageData || null, // Add triage data
+        feedback: null,
       };
 
       setMessages((prev) => [...prev, botMessage]);
@@ -1211,6 +1216,7 @@ const ChatBot = () => {
         role: "bot",
         content: errorText,
         timestamp: new Date(),
+        feedback: null,
       };
       setMessages((prev) => [...prev, errorBotMessage]);
     } finally {
@@ -1220,6 +1226,26 @@ const ChatBot = () => {
 
   const handleQuickQuestion = (question) => {
     setInputMessage(question);
+  };
+
+  const handleMessageFeedback = (messageId, feedback) => {
+    setMessages((prev) =>
+      prev.map((message) =>
+        message.id === messageId
+          ? {
+              ...message,
+              feedback: message.feedback === feedback ? null : feedback,
+            }
+          : message,
+      ),
+    );
+
+    toast.success(
+      feedback === "up"
+        ? "Thanks for the positive feedback."
+        : "Thanks. We'll use that feedback to improve responses.",
+      { duration: 2000 },
+    );
   };
 
   // Fetch follow-up questions asynchronously
@@ -1641,6 +1667,30 @@ const ChatBot = () => {
                     {/* Action buttons for bot messages */}
                     {message.role === "bot" && (
                       <div className="flex items-center space-x-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => handleMessageFeedback(message.id, "up")}
+                          className={`p-1.5 rounded-md transition-colors ${
+                            message.feedback === "up"
+                              ? "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-300"
+                              : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          }`}
+                          title="Helpful response"
+                        >
+                          <ThumbsUp className="h-3 w-3" />
+                        </button>
+
+                        <button
+                          onClick={() => handleMessageFeedback(message.id, "down")}
+                          className={`p-1.5 rounded-md transition-colors ${
+                            message.feedback === "down"
+                              ? "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-300"
+                              : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          }`}
+                          title="Unhelpful response"
+                        >
+                          <ThumbsDown className="h-3 w-3" />
+                        </button>
+
                         <button
                           onClick={() => copyToClipboard(message.content)}
                           className="p-1.5 rounded-md text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
