@@ -6,6 +6,7 @@ const rateLimit = require("express-rate-limit");
 require("dotenv").config();
 
 const memoryMonitor = require("./utils/memoryMonitor");
+const performanceMiddleware = require("./middleware/performance");
 
 // Initialize memory monitoring
 memoryMonitor.startMonitoring(5000); // Check every 5 seconds
@@ -101,6 +102,10 @@ Promise.all([
 // Body parsing middleware
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
+
+if (process.env.ENABLE_PERFORMANCE_MONITORING !== "false") {
+  app.use(performanceMiddleware);
+}
 
 // Database connection
 mongoose

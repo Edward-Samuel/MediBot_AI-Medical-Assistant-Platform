@@ -1,36 +1,42 @@
-const performanceMiddleware = (req, res, next) => {
-  const startTime = Date.now();
+const { randomUUID } = require("crypto");
+
+function formatMilliseconds(nsDuration) {
+  return (Number(nsDuration) / 1e6).toFixed(2);
+}
+
+function formatMegabytes(bytes) {
+  return (bytes / 1024 / 1024).toFixed(2);
+}
+
+module.exports = function performanceMiddleware(req, res, next) {
+  const startTime = process.hrtime.bigint();
   const startMemory = process.memoryUsage().heapUsed;
+  const requestId = randomUUID();
 
-  // Override res.json to measure response time
-  const originalJson = res.json;
-  res.json = function(data) {
-    const endTime = Date.now();
+  res.locals.requestId = requestId;
+
+  const originalEnd = res.end;
+  res.end = function patchedEnd(...args) {
+    const endTime = process.hrtime.bigint();
     const endMemory = process.memoryUsage().heapUsed;
-    const responseTime = endTime - startTime;
-    const memoryDelta = (endMemory - startMemory) / 1024 / 1024; // MB
 
-    // Add performance headers
-    res.set({
-      'X-Response-Time': `${responseTime}ms`,
-      'X-Memory-Delta': `${memoryDelta.toFixed(2)}MB`
-    });
+    const responseTimeMs = formatMilliseconds(endTime - startTime);
+    const memoryDeltaBytes = endMemory - startMemory;
 
-    // Log slow requests
-    if (responseTime > 2000) { // > 2 seconds
-      console.warn(`🐌 Slow request: ${req.method} ${req.path} - ${responseTime}ms`);
+    if (!res.headersSent) {
+      res.setHeader("X-Request-Id", requestId);
+      res.setHeader("X-Response-Time", `${responseTimeMs}ms`);
+      res.setHeader("X-Response-Time-Ms", responseTimeMs);
+      res.setHeader("X-Memory-Delta", `${memoryDeltaBytes}`);
+      res.setHeader("X-Memory-Used-MB", formatMegabytes(endMemory));
     }
 
-    // Log high memory usage
-    if (memoryDelta > 50) { // > 50MB
-      console.warn(`🧠 High memory request: ${req.method} ${req.path} - ${memoryDelta.toFixed(2)}MB`);
-    }
+    console.log(
+      `[Perf] ${req.method} ${req.originalUrl} ${res.statusCode} ${responseTimeMs}ms Δmem=${memoryDeltaBytes}B reqId=${requestId}`,
+    );
 
-    // Call original json method
-    return originalJson.call(this, data);
+    return originalEnd.apply(this, args);
   };
 
   next();
 };
-
-module.exports = performanceMiddleware;
