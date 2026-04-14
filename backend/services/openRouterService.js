@@ -6,7 +6,7 @@ class GeminiService {
     this.apiKey = process.env.GEMINI_API_KEY;
     this.baseUrl = "https://generativelanguage.googleapis.com/v1beta/models";
     this.defaultModel =
-      process.env.GEMINI_MODEL || "gemini-3.1-flash-lite-preview";
+      process.env.GEMINI_MODEL;
   }
 
   getApiUrl(model = this.defaultModel) {

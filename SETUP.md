@@ -56,7 +56,7 @@
 - **Purpose**: Primary chat, medical reasoning, and appointment intent handling
 - **Get API Key**: https://makersuite.google.com/app/apikey
 - **Environment Variables**: `GEMINI_API_KEY`, `GEMINI_MODEL`
-- **Recommended Model**: `gemini-3.1-flash-lite-preview`
+- **Recommended Model**: `gemini-2.5-flash-lite`
 
 #### Tavily Search API
 
@@ -163,7 +163,7 @@ JWT_EXPIRE=24h
 
 # AI Services
 GEMINI_API_KEY=your_gemini_key
-GEMINI_MODEL=gemini-3.1-flash-lite-preview
+GEMINI_MODEL=gemini-2.5-flash-lite
 TAVILY_API_KEY=your_tavily_key
 PINECONE_API_KEY=your_pinecone_key
 PINECONE_INDEX_NAME=medibot-faq

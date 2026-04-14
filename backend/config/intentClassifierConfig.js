@@ -299,7 +299,7 @@ module.exports = {
   // AI classification settings
   aiClassification: {
     enabled: true,
-    model: 'gemini-3.1-flash-lite-preview', // Default model for classification
+    model: 'gemini-2.5-flash-lite', // Default model for classification
     maxTokens: 15,
     temperature: 0.1, // Low temperature for consistent classification
     prompt: `Classify the following user message into one of these intents:
